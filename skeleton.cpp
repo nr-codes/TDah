@@ -46,17 +46,25 @@
 #define INITIAL_BLOB_WIDTH BOUNDING_BOX
 #define INITIAL_BLOB_HEIGHT BOUNDING_BOX
 
+// APPLICATION-SPECIFIC PARAMETERS
 #define BITS_PER_PIXEL 8
 #define NUM_CHANNELS 1
 #define THRESHOLD 128
 #define DISPLAY "Simple Tracking" /**< name of display GUI */
 #define NEXT_IMAGE 2 /**< next valid image to grab */
 
-/**
-*  There is in effect two ROIs that are being tracked.  The first ROI, those prefixed
-*  with "roi_" in TrackingWindow are parameters that are eventually sent to the camera.
-*  These parameters can be considered the hardware ROI.  The hardware components of the
-*  system (i.e. the frame grabber and camera) can only be programmed via these parameters.
+/** Sets the initial positions of the camera's window and blob's window
+*
+*  set_initial_position sets the vision systems two most important parameters.  The
+*  initial position or "best guess" location of the blob and the camera's ROI.  The
+*  camera's ROI determines the size of the image that the camera will send back to 
+*  the application and where in the image the window is located.
+*
+*  Keep in mind that there is in effect two ROIs that are being tracked.  The first ROI, 
+*  those prefixed with "roi_" in TrackingWindow are parameters that are eventually sent 
+*  to the camera.  These parameters can be considered the hardware ROI.  The hardware 
+*  components of the system (i.e. the frame grabber and camera) can only be programmed 
+*  via these parameters.
 *
 *  Because there are limitation with where the hardware-based ROIs can be placed (i.e. 
 *  roi_x & roi_w must be multiples of 4 and roi_w should be >= 8 pixels), the software
@@ -108,6 +116,8 @@ void set_initial_positions(TrackingWindow *win)
 }
 
 /** Draw ROI & blob windows and show image on screen (see OpenCV doc for info)
+*
+* display_tracking simply displays the current frame on screen.
 */
 
 void display_tracking(TrackingWindow *cur, IplImage *gui)
@@ -131,7 +141,7 @@ void display_tracking(TrackingWindow *cur, IplImage *gui)
 
 int main()
 {
-	// important variables
+	// important variables used in most applications
 	int rc;
 	Fg_Struct *fg = NULL;
 	int img_nr;
