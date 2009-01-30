@@ -188,7 +188,9 @@ int main()
 
 		// make sure that camera returned a valid image
 		if(cur.img != NULL) {
-			// increment the next desired frame
+			// increment to the next desired frame.  This has to be at least
+			// +2, because the camera's ROI will not be active until the second
+			// frame (see Silicon Software FastConfig doc)
 			img_nr += NEXT_IMAGE;
 
 			// process image
