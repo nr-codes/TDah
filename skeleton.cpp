@@ -38,19 +38,19 @@
 #define CAMLINK FG_CL_DUALTAP_8_BIT
 
 // CAMERA REGION OF INTEREST
-#define BOUNDING_BOX 256
+#define BOUNDING_BOX 1024
 
 // INITIAL BLOB POSITION IN IMG COORD FRAME
-#define INITIAL_BLOB_XMIN 0
-#define INITIAL_BLOB_YMIN 0
+#define INITIAL_BLOB_XMIN (322+24)
+#define INITIAL_BLOB_YMIN (423+24)
 #define INITIAL_BLOB_WIDTH BOUNDING_BOX
 #define INITIAL_BLOB_HEIGHT BOUNDING_BOX
 
 // APPLICATION-SPECIFIC PARAMETERS
 #define BITS_PER_PIXEL 8
 #define NUM_CHANNELS 1
-#define THRESHOLD 128
-#define DISPLAY "Simple Tracking" /**< name of display GUI */
+#define THRESHOLD 223
+#define DISPLAY "SimpleTracking" /**< name of display GUI */
 #define NEXT_IMAGE 2 /**< next valid image to grab */
 
 /** Sets the initial positions of the camera's window and blob's window
@@ -85,34 +85,48 @@ void set_initial_positions(TrackingWindow *win)
 	*/
 
 	// insert initial image coordinates of ROI 0 for camera
-	win[ROI_0].roi = ROI_0;
-	win[ROI_0].roi_w = BOUNDING_BOX;
-	win[ROI_0].roi_h = BOUNDING_BOX;
-	win[ROI_0].img_w = IMG_WIDTH;
-	win[ROI_0].img_h = IMG_HEIGHT;
+	win->roi = ROI_0;
+	win->roi_w = BOUNDING_BOX;
+	win->roi_h = BOUNDING_BOX;
+	win->img_w = IMG_WIDTH;
+	win->img_h = IMG_HEIGHT;
 
 	// store the camera's ROI 0 information
 	SetTrackCamParameters(win + ROI_0, FRAME_TIME, EXPOSURE);
 
 	// insert initial image coordinates of blob 0 (for software use)
-	win[ROI_0].blob_xmin = INITIAL_BLOB_XMIN;
-	win[ROI_0].blob_ymin = INITIAL_BLOB_YMIN;
-	win[ROI_0].blob_xmax = INITIAL_BLOB_XMIN + INITIAL_BLOB_WIDTH;
-	win[ROI_0].blob_ymax = INITIAL_BLOB_YMIN + INITIAL_BLOB_HEIGHT;
+	win->blob_xmin = INITIAL_BLOB_XMIN;
+	win->blob_ymin = INITIAL_BLOB_YMIN;
+	win->blob_xmax = INITIAL_BLOB_XMIN + INITIAL_BLOB_WIDTH;
+	win->blob_ymax = INITIAL_BLOB_YMIN + INITIAL_BLOB_HEIGHT;
 
 	// convert from the blob's image coordinate system to the ROI 
 	// coordinate system.  This only needs to be done during initialization, 
 	// because all routines in the tracking code assume that the blob is 
 	// relative to the currently active ROI window and remain in that coordinate 
 	// frame.
-	fix_blob_bounds(win + ROI_0);
+	fix_blob_bounds(win);
 
 	// center camera's ROI 0 around the blob's midpoint.  Note that in this 
 	// implementation the initial placement of the ROI is dependent on the blob's 
 	// initial coordinates.
-	blob_cx = (win[ROI_0].blob_xmin + win[ROI_0].blob_xmax) / 2;
-	blob_cy = (win[ROI_0].blob_ymin + win[ROI_0].blob_ymax) / 2;
-	set_roi_box(win + ROI_0, blob_cx, blob_cy);
+	blob_cx = (win->blob_xmin + win->blob_xmax) / 2;
+	blob_cy = (win->blob_ymin + win->blob_ymax) / 2;
+	set_roi_box(win, blob_cx, blob_cy);
+
+	// store parameters...note these parameters are NOT sent to the camera
+	// they are stored internally, because the Silicon Software doc does not
+	// make it clear on how to read what ROI parameters are currently active
+	// in the camera.
+	//
+	// In order to send the coordinates to the camera, it is 
+	// required to call write_roi(...) AFTER calling SetTrackCamParameters(...)
+	// or any of the individual functions that SetTrackCamParameters(...) relies
+	// on.  To summarize, writing to the camera is a two step process:
+	//
+	//  1) SetTrackCamParameters(win, FRAME_TIME, EXPOSURE); <- buffer parameters internally
+	//  2) write_roi(fg, cur.roi, img_nr, !DO_INIT); <- writes buffered parameters to camera
+	SetTrackCamParameters(win, FRAME_TIME, EXPOSURE);
 }
 
 /** Draw ROI & blob windows and show image on screen (see OpenCV doc for info)
@@ -123,6 +137,7 @@ void set_initial_positions(TrackingWindow *win)
 void display_tracking(TrackingWindow *cur, IplImage *gui)
 {
 	gui->imageData = (char *) cur->img;
+	gui->imageDataOrigin = (char *) cur->img;
 
 	// roi box
 	cvRectangle(gui, cvPoint(cur->roi_xoff, cur->roi_yoff), 
@@ -136,8 +151,19 @@ void display_tracking(TrackingWindow *cur, IplImage *gui)
 		cvScalar(128));
 
 	// show image
+	CopyTrackingWindowToImage(&cur, cvDisplay);
 	cvShowImage(DISPLAY, gui);
+
+	// add a small delay, so OpenCV has time to display to screen
+	cvWaitKey(1);
 }
+
+/** Grabs an image from the camera and displays the image on screen
+*
+*  The purpose of this program is to show how to get the camera up and running.
+*  Modifications can be made by modifying the while(...) loop with different image
+*  processing and tracking logic.
+*/
 
 int main()
 {
@@ -152,10 +178,10 @@ int main()
 	// they can be left out, if speed is important.
 	IplImage *cvDisplay = NULL;
 
-	cvDisplay = cvCreateImageHeader(cvSize(IMG_WIDTH, IMG_HEIGHT), 
+	cvDisplay = cvCreateImage(cvSize(IMG_WIDTH, IMG_HEIGHT), 
 		BITS_PER_PIXEL, NUM_CHANNELS);
 	cvNamedWindow(DISPLAY, CV_WINDOW_AUTOSIZE);
-
+	
 	// initialize the tracking window (i.e. blob and ROI positions)
 	memset(&cur, 0, sizeof(TrackingWindow));
 	set_initial_positions(&cur);
@@ -168,8 +194,8 @@ int main()
 		return rc;
 	}
 
-	// start acquiring images
-	rc = acquire_imgs(fg, seq, SEQ_LEN);
+	// start acquiring images (this function also writes any buffered ROIs to the camera)
+	rc = acquire_imgs(fg, (int *) &seq, SEQ_LEN);
 	if(rc != FG_OK) {
 		printf("init: %s\n", Fg_getLastErrorDescription(fg));
 		Fg_FreeGrabber(fg);
@@ -177,12 +203,11 @@ int main()
 	}
 
 	// initialize parameters
-	rc = FG_OK;
 	img_nr = 1;
 
 	// start image loop and don't stop until the user presses 'q'
 	printf("press 'q' at any time to quit this demo.");
-	while(!_kbhit() && _getch() != 'q') {
+	while(cvWaitKey(1) == 'q') {
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
 		cur.img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
 
@@ -199,6 +224,10 @@ int main()
 			// update ROI position
 			position(&cur);
 
+			// at this point position(...) has updated the ROI, but it only stores
+			// the updated values internal to the code.  The next step is to flush
+			// the ROI to the camera (see position(...) documentation).
+
 			// write ROI position to camera to be updated on frame "img_nr"
 			write_roi(fg, cur.roi, img_nr, !DO_INIT);
 
@@ -214,7 +243,7 @@ int main()
 	}
 
 	// free viewer resources
-	cvReleaseImageHeader(&cvDisplay);
+	cvReleaseImage(&cvDisplay);
 
 	// free camera resources
 	rc = deinit_cam(fg);
