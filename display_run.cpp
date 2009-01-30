@@ -181,7 +181,7 @@ int display_run(TrackingSequence *tseq, double frame, double exposure)
 			}
 
 #if ONLINE
-			write_roi(fg, cur->roi, img_nr, !DO_INIT);
+			write_roi(fg, cur->roi, img_nr + tseq->seq_len, !DO_INIT);
 #endif
 
 			// get input
