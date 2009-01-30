@@ -171,6 +171,7 @@ int main()
 	img_nr = 1;
 
 	// start image loop and don't stop until the user presses 'q'
+	printf("press 'q' at any time to quit this demo.");
 	while(!_kbhit() && _getch() != 'q') {
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
 		cur.img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
