@@ -18,7 +18,7 @@
 * camera and run the logic necessary for tracking objects.
 *
 * Most, if not all, applications will follow this recipe of initialization routines,
-* applicatoin-specific routines, and finally a main program that sits in a loop acquiring
+* application-specific routines, and finally a main program that sits in a loop acquiring
 * the next image to process.  A few common setup and helper functions can be found in 
 * utils.cpp.
 */

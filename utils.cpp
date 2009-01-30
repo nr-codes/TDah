@@ -1,5 +1,5 @@
 /**
-* @file cam.cpp contains functions for initiatlizing, acquiring, and deinitializing the 
+* @file utils.cpp contains functions for initiatlizing, acquiring, and deinitializing the 
 * frame grabber and camera.
 */
 
