@@ -167,6 +167,7 @@ int display_run(TrackingSequence *tseq, double frame, double exposure)
 			// process image
 			if(do_thresh) {
 				threshold(cur, cvGetTrackbarPos(THRESH_TRACK, MAIN_WIN));
+				erode(cur);
 			}
 			
 			// copy image processing results

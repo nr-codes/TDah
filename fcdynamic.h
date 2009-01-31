@@ -28,7 +28,7 @@
 * ONLINE is a debugging switch for testing the system on images (ONLINE == 0) or
 * is connected to the Photonfocus TrackCam camera (ONLINE != 0)
 */
-#define ONLINE 0
+#define ONLINE 1
 
 #define MIN_SEQ_LEN 2
 

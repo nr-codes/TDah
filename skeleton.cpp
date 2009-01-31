@@ -38,19 +38,19 @@
 #define CAMLINK FG_CL_DUALTAP_8_BIT
 
 // CAMERA REGION OF INTEREST
-#define BOUNDING_BOX 1024
+#define ROI_BOX 128
 
 // INITIAL BLOB POSITION IN IMG COORD FRAME
-#define INITIAL_BLOB_XMIN (322+24)
-#define INITIAL_BLOB_YMIN (423+24)
-#define INITIAL_BLOB_WIDTH BOUNDING_BOX
-#define INITIAL_BLOB_HEIGHT BOUNDING_BOX
+#define INITIAL_BLOB_XMIN (404+45)
+#define INITIAL_BLOB_YMIN (731+56)
+#define INITIAL_BLOB_WIDTH 25
+#define INITIAL_BLOB_HEIGHT 20
 
 // APPLICATION-SPECIFIC PARAMETERS
 #define BITS_PER_PIXEL 8
 #define NUM_CHANNELS 1
-#define THRESHOLD 223
-#define DISPLAY "SimpleTracking" /**< name of display GUI */
+#define THRESHOLD 59
+#define DISPLAY "Simple Tracking" /**< name of display GUI */
 #define NEXT_IMAGE 2 /**< next valid image to grab */
 
 /** Sets the initial positions of the camera's window and blob's window
@@ -86,8 +86,8 @@ void set_initial_positions(TrackingWindow *win)
 
 	// insert initial image coordinates of ROI 0 for camera
 	win->roi = ROI_0;
-	win->roi_w = BOUNDING_BOX;
-	win->roi_h = BOUNDING_BOX;
+	win->roi_w = ROI_BOX;
+	win->roi_h = ROI_BOX;
 	win->img_w = IMG_WIDTH;
 	win->img_h = IMG_HEIGHT;
 
@@ -100,19 +100,19 @@ void set_initial_positions(TrackingWindow *win)
 	win->blob_xmax = INITIAL_BLOB_XMIN + INITIAL_BLOB_WIDTH;
 	win->blob_ymax = INITIAL_BLOB_YMIN + INITIAL_BLOB_HEIGHT;
 
+	// center camera's ROI 0 around the blob's midpoint in the image's coordinate frame.  
+	// Note that in this implementation the initial placement of the ROI is dependent on 
+	// the blob's initial coordinates.
+	blob_cx = (win->blob_xmin + win->blob_xmax) / 2;
+	blob_cy = (win->blob_ymin + win->blob_ymax) / 2;
+	set_roi_box(win, blob_cx, blob_cy);
+
 	// convert from the blob's image coordinate system to the ROI 
 	// coordinate system.  This only needs to be done during initialization, 
 	// because all routines in the tracking code assume that the blob is 
 	// relative to the currently active ROI window and remain in that coordinate 
 	// frame.
 	fix_blob_bounds(win);
-
-	// center camera's ROI 0 around the blob's midpoint.  Note that in this 
-	// implementation the initial placement of the ROI is dependent on the blob's 
-	// initial coordinates.
-	blob_cx = (win->blob_xmin + win->blob_xmax) / 2;
-	blob_cy = (win->blob_ymin + win->blob_ymax) / 2;
-	set_roi_box(win, blob_cx, blob_cy);
 
 	// store parameters...note these parameters are NOT sent to the camera
 	// they are stored internally, because the Silicon Software doc does not
@@ -139,19 +139,13 @@ void display_tracking(TrackingWindow *cur, IplImage *gui)
 	gui->imageData = (char *) cur->img;
 	gui->imageDataOrigin = (char *) cur->img;
 
-	// roi box
-	cvRectangle(gui, cvPoint(cur->roi_xoff, cur->roi_yoff), 
-		cvPoint(cur->roi_xoff + cur->roi_w, cur->roi_yoff + cur->roi_h), 
-		cvScalar(128));
-
 	// blob box
-	cvRectangle(gui, cvPoint(cur->blob_xmin + cur->roi_xoff, 
-		cur->blob_ymin + cur->roi_yoff), 
-		cvPoint(cur->blob_xmax + cur->roi_xoff, cur->blob_ymax + cur->roi_yoff), 
+	cvRectangle(gui, cvPoint(cur->blob_xmin, 
+		cur->blob_ymin), 
+		cvPoint(cur->blob_xmax, cur->blob_ymax), 
 		cvScalar(128));
 
 	// show image
-	CopyTrackingWindowToImage(&cur, cvDisplay);
 	cvShowImage(DISPLAY, gui);
 
 	// add a small delay, so OpenCV has time to display to screen
@@ -178,7 +172,7 @@ int main()
 	// they can be left out, if speed is important.
 	IplImage *cvDisplay = NULL;
 
-	cvDisplay = cvCreateImage(cvSize(IMG_WIDTH, IMG_HEIGHT), 
+	cvDisplay = cvCreateImageHeader(cvSize(ROI_BOX, ROI_BOX), 
 		BITS_PER_PIXEL, NUM_CHANNELS);
 	cvNamedWindow(DISPLAY, CV_WINDOW_AUTOSIZE);
 	
@@ -207,7 +201,7 @@ int main()
 
 	// start image loop and don't stop until the user presses 'q'
 	printf("press 'q' at any time to quit this demo.");
-	while(cvWaitKey(1) == 'q') {
+	while(!(_kbhit() && _getch() == 'q')) {
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
 		cur.img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
 
@@ -220,6 +214,7 @@ int main()
 
 			// process image
 			threshold(&cur, THRESHOLD);
+			erode(&cur);
 
 			// update ROI position
 			position(&cur);
@@ -243,7 +238,7 @@ int main()
 	}
 
 	// free viewer resources
-	cvReleaseImage(&cvDisplay);
+	cvReleaseImageHeader(&cvDisplay);
 
 	// free camera resources
 	rc = deinit_cam(fg);

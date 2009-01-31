@@ -89,13 +89,13 @@ int erode(TrackingWindow *win)
 			if( // center pixel
 				PIXEL(win, i, j) == FOREGROUND &&
 				// upper neighbor
-				((i - 1 < 0) || PIXEL(win, i - 1, j) == BACKGROUND ||
+				(((i - 1 >= 0) && PIXEL(win, i - 1, j) == BACKGROUND) &&
 				// lower neighbor
-				(i > ymax - 2) || PIXEL(win, i + 1, j) == BACKGROUND ||
+				((i + 1 < ymax) && PIXEL(win, i + 1, j) == BACKGROUND) &&
 				// left neighbor
-				(j - 1 < 0) || PIXEL(win, i, j - 1) == BACKGROUND ||
+				((j - 1 >= 0) && PIXEL(win, i, j - 1) == BACKGROUND) &&
 				// right neighbor
-				(j > xmax - 2) || PIXEL(win, i, j + 1) == BACKGROUND)) {
+				((j + 1 < xmax) && PIXEL(win, i, j + 1) == BACKGROUND))) {
 					PIXEL(win, i, j) = BACKGROUND;
 			}
 		}
