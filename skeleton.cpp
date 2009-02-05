@@ -145,11 +145,77 @@ void display_tracking(TrackingWindow *cur, IplImage *gui)
 		cvPoint(cur->blob_xmax, cur->blob_ymax), 
 		cvScalar(128));
 
+	cvCircle(gui, cvPoint((cur->xc), (cur->yc)), 
+		RADIUS, cvScalar(0), THICKNESS);
+
 	// show image
 	cvShowImage(DISPLAY, gui);
 
 	// add a small delay, so OpenCV has time to display to screen
 	cvWaitKey(1);
+}
+
+/** Calculates the area centroid of the object of interest.
+* prints out total area of object
+* and x,y coordinates of the centroid of the object.
+*/
+
+int centroid(TrackingWindow *win, IplImage *gui)
+{
+	int i, j;
+	double m00, m10, m01;
+	int roi_xmin, roi_ymin, roi_xmax, roi_ymax;
+	int box_xmin, box_ymin, box_xmax, box_ymax;
+	int p;
+
+	m00 = m10 = m01 = 0;
+	roi_xmin = win->blob_xmin;
+	roi_ymin = win->blob_ymin;
+	roi_xmax = win->blob_xmax;
+	roi_ymax = win->blob_ymax;
+
+	box_xmin = roi_xmax;
+	box_ymin = roi_ymax;
+	box_xmax = 0;
+	box_ymax = 0;
+
+	for(i = roi_ymin; i < roi_ymax; i++) {
+		for(j = roi_xmin; j < roi_xmax; j++) {
+			p = PIXEL(win, i, j);
+
+			m00 += p; // area
+			m10 += j * p; // xc * area
+			m01 += i * p; //yc * area
+
+			// find bounding rectangle
+			if(p == FOREGROUND) {
+				if(box_xmin > j) {
+					box_xmin = j;
+				}
+				if(box_xmax < j) {
+					box_xmax = j;
+				}
+				if(box_ymin > i) {
+					box_ymin = i;
+				}
+				if(box_ymax < i) {
+					box_ymax = i;
+				}
+			}
+		}
+	}
+
+	win->A = m00;
+	win->xc = m10 / m00;
+	win->yc = m01 / m00;
+
+	// if there is an object in view, print out area of object (total number of pixels)
+	// and x,y coordinates of the centroid of the object
+	if (win->A) {
+        printf("%12.2f\t%6.2f\t%6.2f", win->A, (win->xc + win->roi_xoff), (win->yc + win->roi_yoff));
+	}
+
+	return !m00;
 }
 
 /** Grabs an image from the camera and displays the image on screen
@@ -216,6 +282,12 @@ int main()
 			threshold(&cur, THRESHOLD);
 			erode(&cur);
 
+			// display x,y coordinates of blob
+			printf("\n%d\t%d\t\t", (cur.blob_xmin + cur.roi_xoff), (cur.blob_ymin + cur.roi_yoff));
+			
+			// calculate centroid
+			centroid(&cur, cvDisplay);
+
 			// update ROI position
 			position(&cur);
 
@@ -228,6 +300,7 @@ int main()
 
 			// show image on screen
 			display_tracking(&cur, cvDisplay);
+			
 		}
 		else {
 			// typically this state only occurs if an invalid ROI has been programmed

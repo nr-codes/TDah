@@ -48,6 +48,9 @@
 #define DO_INIT 1
 #define MAX_ROI 8 /* limited by FastConfig Applet (see meIII documentation) */
 
+#define RADIUS 4 /* radius of centroid */
+#define THICKNESS 2 /* line thickness of centroid */
+
 /** 
 * the eight indices enumerated as ROI_n
 *
@@ -103,6 +106,10 @@ struct tracking_window {
 	int img_w; /**< the image's total width */
 	int img_h; /**< the image's total height */
 	unsigned char *img; /**< point to the grayscale 8-bit image data */
+
+	double A; /**< the total area of the object of interest*/
+	double xc; /**< the x coordinate of the object's centroid*/
+	double yc; /**< the y coordinate of the object's centroid*/
 };
 
 /**
