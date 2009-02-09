@@ -48,7 +48,7 @@
 #define DO_INIT 1
 #define MAX_ROI 8 /* limited by FastConfig Applet (see meIII documentation) */
 
-#define RADIUS 4 /* radius of centroid */
+#define RADIUS 3 /* radius of centroid */
 #define THICKNESS 2 /* line thickness of centroid */
 
 /** 

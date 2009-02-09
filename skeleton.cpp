@@ -38,18 +38,18 @@
 #define CAMLINK FG_CL_DUALTAP_8_BIT
 
 // CAMERA REGION OF INTEREST
-#define ROI_BOX 128
+#define ROI_BOX 256
 
 // INITIAL BLOB POSITION IN IMG COORD FRAME
-#define INITIAL_BLOB_XMIN (404+45)
-#define INITIAL_BLOB_YMIN (731+56)
-#define INITIAL_BLOB_WIDTH 25
-#define INITIAL_BLOB_HEIGHT 20
+#define INITIAL_BLOB_XMIN (475)
+#define INITIAL_BLOB_YMIN (649)
+#define INITIAL_BLOB_WIDTH 60
+#define INITIAL_BLOB_HEIGHT 60
 
 // APPLICATION-SPECIFIC PARAMETERS
 #define BITS_PER_PIXEL 8
 #define NUM_CHANNELS 1
-#define THRESHOLD 59
+#define THRESHOLD 180
 #define DISPLAY "Simple Tracking" /**< name of display GUI */
 #define NEXT_IMAGE 2 /**< next valid image to grab */
 
@@ -146,7 +146,7 @@ void display_tracking(TrackingWindow *cur, IplImage *gui)
 		cvScalar(128));
 
 	cvCircle(gui, cvPoint((cur->xc), (cur->yc)), 
-		RADIUS, cvScalar(0), THICKNESS);
+		RADIUS, cvScalar(GRAY), THICKNESS);
 
 	// show image
 	cvShowImage(DISPLAY, gui);
@@ -160,7 +160,7 @@ void display_tracking(TrackingWindow *cur, IplImage *gui)
 * and x,y coordinates of the centroid of the object.
 */
 
-int centroid(TrackingWindow *win, IplImage *gui)
+int centroid(TrackingWindow *win)
 {
 	int i, j;
 	double m00, m10, m01;
@@ -218,6 +218,11 @@ int centroid(TrackingWindow *win, IplImage *gui)
 	return !m00;
 }
 
+void transcoords(TrackingWindow *win) {
+	printf("\n\t\t\t\t\t%6.4f\t", ((win->xc + win->roi_xoff)-505.2)/4.6);
+	printf("%6.4f\n", (678.3-(win->yc + win->roi_yoff))/4.6);
+}
+
 /** Grabs an image from the camera and displays the image on screen
 *
 *  The purpose of this program is to show how to get the camera up and running.
@@ -233,6 +238,11 @@ int main()
 	int img_nr;
 	TrackingWindow cur;
 	int seq[] = SEQ;
+
+	// Open text file for taking data, initialize time to zero
+	FILE *pF;
+    pF = fopen("testdata.txt","w");
+	int time = 0;
 
 	// following lines are for displaying images only!  See OpenCV doc for more info.
 	// they can be left out, if speed is important.
@@ -286,7 +296,14 @@ int main()
 			printf("\n%d\t%d\t\t", (cur.blob_xmin + cur.roi_xoff), (cur.blob_ymin + cur.roi_yoff));
 			
 			// calculate centroid
-			centroid(&cur, cvDisplay);
+			centroid(&cur);
+			transcoords(&cur);
+			
+            // Print time and coordinates of centroid to text file
+			fprintf(pF, "%d\t%f\t%f\n", time, ((cur.xc + cur.roi_xoff)-505.2)/4.6, 
+				(678.3-(cur.yc + cur.roi_yoff))/4.6);
+			time++;
+			
 
 			// update ROI position
 			position(&cur);
@@ -309,6 +326,8 @@ int main()
 			break;
 		}
 	}
+
+	fclose(pF);
 
 	// free viewer resources
 	cvReleaseImageHeader(&cvDisplay);
