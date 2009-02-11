@@ -212,14 +212,14 @@ int centroid(TrackingWindow *win)
 	// if there is an object in view, print out area of object (total number of pixels)
 	// and x,y coordinates of the centroid of the object
 	if (win->A) {
-        printf("%12.2f\t%6.2f\t%6.2f", win->A, (win->xc + win->roi_xoff), (win->yc + win->roi_yoff));
+        printf("%6.2f\t%6.2f", (win->xc + win->roi_xoff), (win->yc + win->roi_yoff));
 	}
 
 	return !m00;
 }
 
 void transcoords(TrackingWindow *win) {
-	printf("\n\t\t\t\t\t%6.4f\t", ((win->xc + win->roi_xoff)-505.2)/4.6);
+	printf("\n%6.4f\t", ((win->xc + win->roi_xoff)-505.2)/4.6);
 	printf("%6.4f\n", (678.3-(win->yc + win->roi_yoff))/4.6);
 }
 
@@ -239,10 +239,12 @@ int main()
 	TrackingWindow cur;
 	int seq[] = SEQ;
 
-	// Open text file for taking data, initialize time to zero
-	FILE *pF;
-    pF = fopen("testdata.txt","w");
-	int time = 0;
+	int takedata = 0;  // takedata has value 0 or 1 depending on whether data is being recorded
+	char key = '0';   // initialize command key
+	int time;    // variable for recording time in microseconds	
+	int inittime;    // initial time when data collection begins
+	FILE *pF;    // pointer to text file
+	pF = fopen("testdata2.txt","w");    // open text file where data is to be stored
 
 	// following lines are for displaying images only!  See OpenCV doc for more info.
 	// they can be left out, if speed is important.
@@ -276,8 +278,15 @@ int main()
 	img_nr = 1;
 
 	// start image loop and don't stop until the user presses 'q'
-	printf("press 'q' at any time to quit this demo.");
-	while(!(_kbhit() && _getch() == 'q')) {
+	printf("press 'q' at any time to quit this demo.\n");
+	printf("press 'd' to begin recording data.\n");
+	while(!(key == 'q')) {
+		
+		// if a key is hit, assign it to variable 'key'
+		if (_kbhit()) {
+			key = _getch();
+		}
+		
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
 		cur.img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
 
@@ -291,18 +300,26 @@ int main()
 			// process image
 			threshold(&cur, THRESHOLD);
 			erode(&cur);
-
-			// display x,y coordinates of blob
-			printf("\n%d\t%d\t\t", (cur.blob_xmin + cur.roi_xoff), (cur.blob_ymin + cur.roi_yoff));
 			
 			// calculate centroid
+			time = img_nr;
+			Fg_getParameter(fg, FG_TIMESTAMP, 
+					&time, PORT_A);
+			printf("\n%d\n", time);
 			centroid(&cur);
 			transcoords(&cur);
 			
-            // Print time and coordinates of centroid to text file
-			fprintf(pF, "%d\t%f\t%f\n", time, ((cur.xc + cur.roi_xoff)-505.2)/4.6, 
-				(678.3-(cur.yc + cur.roi_yoff))/4.6);
-			time++;
+			if (key == 'd') {
+				printf("\nData collection in progress...\n");
+				takedata = 1;
+				inittime = time;
+				key = '0';
+			}
+			// Print time and coordinates of centroid to text file
+			if (takedata) {
+			    fprintf(pF, "%d\t\t%f\t%f\n", (time-inittime), ((cur.xc + cur.roi_xoff)-505.2)/4.6, 
+				    (678.3-(cur.yc + cur.roi_yoff))/4.6);
+			}
 			
 
 			// update ROI position
