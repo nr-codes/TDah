@@ -26,8 +26,8 @@
 #include "fcdynamic.h"
 
 // CAMERA PARAMETERS
-#define EXPOSURE 20000 /**< shutter speed in us */
-#define FRAME_TIME 50000 /**< pause between images in us (e.g. 1 / fps) */
+#define EXPOSURE 200 /**< shutter speed in us */
+#define FRAME_TIME 500 /**< pause between images in us (e.g. 1 / fps) */
 #define IMG_WIDTH 1024
 #define IMG_HEIGHT 1024
 #define NUM_BUFFERS 16 /**< typical setting (max is 1,000,000 shouldn't exceed 1.6 GB)*/
@@ -38,20 +38,46 @@
 #define CAMLINK FG_CL_DUALTAP_8_BIT
 
 // CAMERA REGION OF INTEREST
-#define ROI_BOX 256
+#define ROI_BOX 128
 
 // INITIAL BLOB POSITION IN IMG COORD FRAME
 #define INITIAL_BLOB_XMIN (475)
-#define INITIAL_BLOB_YMIN (649)
-#define INITIAL_BLOB_WIDTH 60
-#define INITIAL_BLOB_HEIGHT 60
+#define INITIAL_BLOB_YMIN (640)
+#define INITIAL_BLOB_WIDTH 64
+#define INITIAL_BLOB_HEIGHT 64
+
+// DURATION OF DATA COLLECTION IN SECONDS
+#define DTIME 2
 
 // APPLICATION-SPECIFIC PARAMETERS
 #define BITS_PER_PIXEL 8
 #define NUM_CHANNELS 1
-#define THRESHOLD 180
+#define THRESHOLD 25
 #define DISPLAY "Simple Tracking" /**< name of display GUI */
 #define NEXT_IMAGE 2 /**< next valid image to grab */
+
+// PARAMETERS FOR COORDINATE TRANSFORMATION
+    // INTRINSIC PARAMETERS
+#define fc1 1245.309338624055    // focal lengths
+#define fc2 1246.902575725452
+#define cc1 523.8161317628477    // principle point
+#define cc2 508.96477931404246
+#define kc1 -0.459304591710119    // distortion coefficients
+#define kc2 0.472363915512406
+#define kc3 0.000229968151613
+#define kc4 0.001702280156825
+#define kc5 0
+#define alpha_c 0.0000    // skew coefficient
+    // EXTRINSIC PARAMETERS
+#define Rotx1 0.999993264905185
+#define Rotx2 0.003483038877945
+#define Rotx3 0.001156972101158
+#define Roty1 0.003451052793253
+#define Roty2 -0.999640611799059
+#define Roty3 0.02658453453835
+#define XTRANS 509.2    // camera frame -> real world frame translation
+#define YTRANS 637.6
+#define PIXELS_PER_MM 4.67    // conversion factor
 
 /** Sets the initial positions of the camera's window and blob's window
 *
@@ -156,8 +182,7 @@ void display_tracking(TrackingWindow *cur, IplImage *gui)
 }
 
 /** Calculates the area centroid of the object of interest.
-* prints out total area of object
-* and x,y coordinates of the centroid of the object.
+* prints out x,y coordinates of the centroid of the object.
 */
 
 int centroid(TrackingWindow *win)
@@ -209,18 +234,77 @@ int centroid(TrackingWindow *win)
 	win->xc = m10 / m00;
 	win->yc = m01 / m00;
 
-	// if there is an object in view, print out area of object (total number of pixels)
-	// and x,y coordinates of the centroid of the object
-	if (win->A) {
-        printf("%6.2f\t%6.2f", (win->xc + win->roi_xoff), (win->yc + win->roi_yoff));
-	}
+	// if there is an object in view, print out
+	// x,y coordinates of the centroid of the object
+	//if (win->A) {
+    //   printf("%6.2f\t%6.2f\n", (win->xc + win->roi_xoff), (win->yc + win->roi_yoff));
+	//}
 
 	return !m00;
 }
 
-void transcoords(TrackingWindow *win) {
-	printf("\n%6.4f\t", ((win->xc + win->roi_xoff)-505.2)/4.6);
-	printf("%6.4f\n", (678.3-(win->yc + win->roi_yoff))/4.6);
+/** Transforms the x & y coordinates of the centroid from pixel coordinates in the camera frame 
+*   to their normalized coordinates, using the same method as the 'normalize' function
+*   in the Matlab calibration toolbox.
+*   Then transforms coordinates from normalized coordinates to real world 
+*   by multiplying by the focal length and adding a translation. 
+*   Then divides by (pixels/mm) to convert from pixels to metric
+*/
+void trans_coords(TrackingWindow *win) {
+
+	double x_p;    // pixel coordinates
+	double y_p;
+	double x_distort;
+	double y_distort;
+	double r_sq;    // position squared
+	double k_radial;
+	double delta_x;
+	double delta_y;
+	double x_n;   // normalized coordinates
+	double y_n;
+	double x_nrot;    // normalized coordinates with corrected rotation
+	double y_nrot;
+	double x_cent;
+	double y_cent;
+
+	// INTRINSIC TRANSFORMATIONS
+	    // First: Subtract principal point, and divide by the focal length:
+	x_p = (win->xc + win->roi_xoff);
+	y_p = (win->yc + win->roi_yoff);
+
+	x_p = 54.54759853369029;
+	y_p = 79.06419845619979;
+
+	x_distort = (x_p - cc1)/fc1;
+	y_distort = (y_p - cc2)/fc2;
+        // Second: undo skew
+    x_distort = x_distort - (alpha_c * y_distort);
+	    // Third: Compensate for lens distortion:
+	x_n = x_distort;
+	y_n = y_distort;
+	int kk;
+	for (kk = 0; kk < 20; kk++) { 
+	    r_sq = pow(x_n, 2) + pow(y_n, 2);
+        k_radial =  1 + kc1 * r_sq + kc2 * pow(r_sq, 2) + kc5 * (r_sq, 3);
+        delta_x = 2*kc3*x_n*y_n + kc4*(r_sq + 2*pow(x_n,2));
+        delta_y = kc3 * (r_sq + 2*pow(y_n,2))+2*kc4*x_n*y_n;
+        x_n = (x_distort - delta_x) / k_radial;
+	    y_n = (y_distort - delta_y) / k_radial;
+	}
+
+	// EXTRINSIC TRANSFORMATIONS
+	    // First: apply rotation compensation
+	x_nrot = x_n*Rotx1 + y_n*Rotx2 + Rotx3;
+	y_nrot = x_n*Roty1 + y_n*Roty2 + Roty3;
+
+	    // Second: Undo normalization, apply translation
+	x_cent = x_nrot*267.4346 + 111.9982;
+	y_cent = y_nrot*266.1613 + 10.7803;
+
+	win->xc = x_cent;
+	win->yc = y_cent;
+
+
 }
 
 /** Grabs an image from the camera and displays the image on screen
@@ -244,7 +328,13 @@ int main()
 	int time;    // variable for recording time in microseconds	
 	int inittime;    // initial time when data collection begins
 	FILE *pF;    // pointer to text file
-	pF = fopen("testdata2.txt","w");    // open text file where data is to be stored
+	pF = fopen("testdata.txt","w");    // open text file where data is to be stored
+	int counter = 0;    // Counts the number of images taken
+
+	char format[] = "Images/img%d.jpg";
+    char filename[sizeof format+1000*DTIME];
+	
+	FrameInfo timing;
 
 	// following lines are for displaying images only!  See OpenCV doc for more info.
 	// they can be left out, if speed is important.
@@ -276,18 +366,24 @@ int main()
 
 	// initialize parameters
 	img_nr = 1;
+	int initnum;
+
+	//QueryPerformanceFrequency(&timing.freq);
 
 	// start image loop and don't stop until the user presses 'q'
 	printf("press 'q' at any time to quit this demo.\n");
 	printf("press 'd' to begin recording data.\n");
 	while(!(key == 'q')) {
+
+		//QueryPerformanceCounter(&timing.grab_start);
 		
 		// if a key is hit, assign it to variable 'key'
 		if (_kbhit()) {
 			key = _getch();
 		}
-		
+
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
+
 		cur.img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
 
 		// make sure that camera returned a valid image
@@ -301,39 +397,65 @@ int main()
 			threshold(&cur, THRESHOLD);
 			erode(&cur);
 			
-			// calculate centroid
+			// create timestamp
 			time = img_nr;
 			Fg_getParameter(fg, FG_TIMESTAMP, 
 					&time, PORT_A);
-			printf("\n%d\n", time);
-			centroid(&cur);
-			transcoords(&cur);
+			//printf("\n%d\n", time);
 			
+			// calculate centroid
+			centroid(&cur);
+			trans_coords(&cur);
+
 			if (key == 'd') {
 				printf("\nData collection in progress...\n");
 				takedata = 1;
 				inittime = time;
+				initnum = img_nr;
 				key = '0';
 			}
+			
 			// Print time and coordinates of centroid to text file
 			if (takedata) {
-			    fprintf(pF, "%d\t\t%f\t%f\n", (time-inittime), ((cur.xc + cur.roi_xoff)-505.2)/4.6, 
-				    (678.3-(cur.yc + cur.roi_yoff))/4.6);
+			    counter++;
+				fprintf(pF, "%d\t%d\t\t%f\t%f\n", counter, (time-inittime), (cur.xc), 
+				    (cur.yc));
+				
+				// Once the duration exceeds the desired length of the test, stop taking data
+			    if (time-inittime > DTIME*1000000) {
+				    takedata = 0;
+				    printf("\nData collection complete.\n");
+					
+					// Save individual images to folder
+					/*printf("\nSaving images...\n");
+					int lastpic	= Fg_getLastPicNumber(fg, PORT_A) ;
+					for (counter = initnum; counter <= lastpic; counter = counter + NEXT_IMAGE) {
+                        sprintf(filename, format, counter + 1 - initnum);
+						cvDisplay = cvCreateImage(cvSize(ROI_BOX, ROI_BOX), 
+		                         BITS_PER_PIXEL, NUM_CHANNELS);
+						cvDisplay->imageData = (char*) Fg_getImagePtr(fg, counter, PORT_A);
+						cvSaveImage(filename, cvDisplay);
+					}
+					printf("\nImages saved.\n");*/
+			    }
 			}
+
+			
 			
 
 			// update ROI position
 			position(&cur);
 
 			// at this point position(...) has updated the ROI, but it only stores
-			// the updated values internal to the code.  The next step is to flush
+			// the updated values internal to the code.  The next step is to flushq
 			// the ROI to the camera (see position(...) documentation).
 
 			// write ROI position to camera to be updated on frame "img_nr"
 			write_roi(fg, cur.roi, img_nr, !DO_INIT);
 
 			// show image on screen
-			display_tracking(&cur, cvDisplay);
+			//display_tracking(&cur, cvDisplay);
+
 			
 		}
 		else {
@@ -341,13 +463,41 @@ int main()
 			// into the camera (e.g. roi_w == 4).
 			printf("img is null: %d\n", img_nr);
 			break;
-		}
+		}	
+			/*QueryPerformanceCounter(&timing.grab_stop);
+			printf("Time elapsed: %lld\n", 1000000*(timing.grab_stop.QuadPart - 
+				timing.grab_start.QuadPart) / timing.freq.QuadPart);
+			printf("%d\n", img_nr);*/
 	}
-
+	
 	fclose(pF);
+
+	/*
+
+	// Create video, add each image to video, write video to file
+
+	printf("Creating video...\n");
+	typedef struct CvVideoWriter CvVideoWriter;
+	CvVideoWriter* writer;
+	IplImage* ptrImg;
+	char formatvid[] = "2.21.09-100HzThresh/img%d.jpg";
+    char filenamevid[sizeof format+1000*DTIME];
+    //writer = cvCreateVideoWriter( "100HzVid2.avi", -1, 10, cvSize(ROI_BOX, ROI_BOX), 0);
+	for (counter = 1; counter <= 200; counter = counter + NEXT_IMAGE) {
+		sprintf(filenamevid, formatvid, counter);
+	    ptrImg = cvLoadImage(filenamevid, CV_LOAD_IMAGE_GRAYSCALE);
+        cvThreshold(ptrImg, ptrImg, 128,
+                  255, CV_THRESH_BINARY);
+		cvShowImage(DISPLAY, ptrImg);
+		cvWaitKey(1);
+		//cvWriteFrame( writer, ptrImg );
+	}
+	//cvReleaseVideoWriter( &writer );
 
 	// free viewer resources
 	cvReleaseImageHeader(&cvDisplay);
+
+	*/
 
 	// free camera resources
 	rc = deinit_cam(fg);

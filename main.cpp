@@ -186,6 +186,5 @@ int main(int argc, char *argv[])
 		_getch();
 	}
 #endif
-
 	return rc;
 }

@@ -245,6 +245,7 @@ int display_run(TrackingSequence *tseq, double frame, double exposure)
 			}
 
 			cvShowImage(MAIN_WIN, cvDisplay);
+			cvSaveImage("image.jpg", cvDisplay);
 
 			printf("roi (%d): x %d y %d w %d h %d\n", cur->roi,
 				cur->roi_xoff, cur->roi_yoff, cur->roi_w, cur->roi_h);

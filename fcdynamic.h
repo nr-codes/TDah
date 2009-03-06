@@ -174,6 +174,7 @@ struct frame_info {
 	LARGE_INTEGER blob_start;
 	LARGE_INTEGER blob_stop;
 	LARGE_INTEGER pc_ts;
+	LARGE_INTEGER freq;
 	__int64 fg_ts;
 };
 
