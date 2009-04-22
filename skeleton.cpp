@@ -41,43 +41,44 @@
 #define ROI_BOX 128
 
 // INITIAL BLOB POSITION IN IMG COORD FRAME
-#define INITIAL_BLOB_XMIN (475)
-#define INITIAL_BLOB_YMIN (640)
-#define INITIAL_BLOB_WIDTH 64
-#define INITIAL_BLOB_HEIGHT 64
+#define INITIAL_BLOB_XMIN (520)
+#define INITIAL_BLOB_YMIN (550)
+#define INITIAL_BLOB_WIDTH 50
+#define INITIAL_BLOB_HEIGHT 50
 
 // DURATION OF DATA COLLECTION IN SECONDS
-#define DTIME 2
+#define DTIME 5
 
 // APPLICATION-SPECIFIC PARAMETERS
 #define BITS_PER_PIXEL 8
 #define NUM_CHANNELS 1
-#define THRESHOLD 25
+#define THRESHOLD 80
 #define DISPLAY "Simple Tracking" /**< name of display GUI */
 #define NEXT_IMAGE 2 /**< next valid image to grab */
 
 // PARAMETERS FOR COORDINATE TRANSFORMATION
     // INTRINSIC PARAMETERS
-#define fc1 1245.309338624055    // focal lengths
-#define fc2 1246.902575725452
-#define cc1 523.8161317628477    // principle point
-#define cc2 508.96477931404246
-#define kc1 -0.459304591710119    // distortion coefficients
-#define kc2 0.472363915512406
-#define kc3 0.000229968151613
-#define kc4 0.001702280156825
-#define kc5 0
+#define fc1 1266.4284821980687    // focal lengths
+#define fc2 1267.0872016270605
+#define cc1 525.4444073039037    // principle point
+#define cc2 507.82196875937
+#define kc1 -0.438355014235685    // distortion coefficients
+#define kc2 0.383272634115685
+#define kc3 -0.000173352516888
+#define kc4 0.001387888614912
+#define kc5 0.0000
 #define alpha_c 0.0000    // skew coefficient
     // EXTRINSIC PARAMETERS
-#define Rotx1 0.999993264905185
-#define Rotx2 0.003483038877945
-#define Rotx3 0.001156972101158
-#define Roty1 0.003451052793253
-#define Roty2 -0.999640611799059
-#define Roty3 0.02658453453835
-#define XTRANS 509.2    // camera frame -> real world frame translation
-#define YTRANS 637.6
-#define PIXELS_PER_MM 4.67    // conversion factor
+#define Rotx1 0.999998024892877
+#define Rotx2 -0.001485493817206
+#define Rotx3 0.001320423592483
+#define Roty1 -0.001492242762369
+#define Roty2 -0.999985753731942
+#define Roty3 0.005124992165745
+#define XCONV 200.1760775378343    // conversion factors, camera frame -> real world frame
+#define YCONV 200.37829776822787
+#define XTRANS 79.64661719630012    // camera frame -> real world frame translation
+#define YTRANS 27.011541475687352
 
 /** Sets the initial positions of the camera's window and blob's window
 *
@@ -171,7 +172,7 @@ void display_tracking(TrackingWindow *cur, IplImage *gui)
 		cvPoint(cur->blob_xmax, cur->blob_ymax), 
 		cvScalar(128));
 
-	cvCircle(gui, cvPoint((cur->xc), (cur->yc)), 
+	cvCircle(gui, cvPoint((cur->xcpix), (cur->ycpix)), 
 		RADIUS, cvScalar(GRAY), THICKNESS);
 
 	// show image
@@ -237,7 +238,7 @@ int centroid(TrackingWindow *win)
 	// if there is an object in view, print out
 	// x,y coordinates of the centroid of the object
 	//if (win->A) {
-    //   printf("%6.2f\t%6.2f\n", (win->xc + win->roi_xoff), (win->yc + win->roi_yoff));
+      // printf("%6.2f\t%6.2f\n%f\n", (win->xc + win->roi_xoff), (win->yc + win->roi_yoff), win->A);
 	//}
 
 	return !m00;
@@ -270,10 +271,7 @@ void trans_coords(TrackingWindow *win) {
 	// INTRINSIC TRANSFORMATIONS
 	    // First: Subtract principal point, and divide by the focal length:
 	x_p = (win->xc + win->roi_xoff);
-	y_p = (win->yc + win->roi_yoff);
-
-	x_p = 54.54759853369029;
-	y_p = 79.06419845619979;
+	y_p = (win->yc + win->roi_yoff - 5);
 
 	x_distort = (x_p - cc1)/fc1;
 	y_distort = (y_p - cc2)/fc2;
@@ -298,9 +296,11 @@ void trans_coords(TrackingWindow *win) {
 	y_nrot = x_n*Roty1 + y_n*Roty2 + Roty3;
 
 	    // Second: Undo normalization, apply translation
-	x_cent = x_nrot*267.4346 + 111.9982;
-	y_cent = y_nrot*266.1613 + 10.7803;
+	x_cent = x_nrot*XCONV + XTRANS;
+	y_cent = y_nrot*YCONV + YTRANS;
 
+	win->xcpix = win->xc;
+	win->ycpix = win->yc;
 	win->xc = x_cent;
 	win->yc = y_cent;
 
@@ -498,6 +498,32 @@ int main()
 	cvReleaseImageHeader(&cvDisplay);
 
 	*/
+
+
+	/* IplImage* ptrImg;
+	char formatvid[] = "image.jpg";
+    char filenamevid[sizeof format+1000*DTIME];
+		sprintf(filenamevid, formatvid, counter);
+	    ptrImg = cvLoadImage(filenamevid, CV_LOAD_IMAGE_GRAYSCALE);
+
+        cur.img = (unsigned char *) ptrImg;
+	    cur.roi_xoff = 0;
+	    cur.roi_yoff = 0;
+	    cur.roi_w = 1024;
+	    cur.roi_h = 1024;
+	
+	    cur.blob_xmin = 0;
+	    cur.blob_ymin = 0;
+	    cur.blob_xmax = 1024;
+        cur.blob_ymax = 1024;
+	
+	    cur.img_w = 1024;
+	    cur.img_h = 1024;
+		threshold(&cur, THRESHOLD);
+		centroid(&cur);
+
+	    printf("%d\n", cur.A);
+	    cvWaitKey(1000); */
 
 	// free camera resources
 	rc = deinit_cam(fg);

@@ -110,6 +110,8 @@ struct tracking_window {
 	double A; /**< the total area of the object of interest*/
 	double xc; /**< the x coordinate of the object's centroid*/
 	double yc; /**< the y coordinate of the object's centroid*/
+	double xcpix; /**< the x coordinate of the object's centroid, in pixels (used only for displaying centroid)*/
+	double ycpix; /**< the y coordinate of the object's centroid, in pixels*/
 };
 
 /**
