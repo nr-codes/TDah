@@ -18,6 +18,7 @@
 */
 
 #include "fcdynamic.h"
+#include "constants.h"
 
 /**
 * padding applied after the blob's bounding box is found
@@ -342,4 +343,176 @@ int position(TrackingWindow *cur)
 	pad_blob_region(cur);
 
 	return OBJECT_FOUND;
+}
+
+/** Draw ROI & blob windows and show image on screen (see OpenCV doc for info)
+*
+* display_tracking simply displays the current frame on screen.
+*/
+
+void display_tracking(TrackingWindow *cur, IplImage *gui)
+{
+	gui->imageData = (char *) cur->img;
+	gui->imageDataOrigin = (char *) cur->img;
+
+	// blob box
+	cvRectangle(gui, cvPoint(cur->blob_xmin, 
+		cur->blob_ymin), 
+		cvPoint(cur->blob_xmax, cur->blob_ymax), 
+		cvScalar(128));
+
+	cvCircle(gui, cvPoint((cur->xcpix), (cur->ycpix)), 
+		RADIUS, cvScalar(GRAY), THICKNESS);
+
+	// show image
+	cvShowImage(DISPLAY, gui);
+
+	// add a small delay, so OpenCV has time to display to screen
+	cvWaitKey(1);
+}
+
+void display_tracking2(TrackingWindow *cur, IplImage *gui)
+{
+	gui->imageData = (char *) cur->img;
+	gui->imageDataOrigin = (char *) cur->img;
+
+	// blob box
+	cvRectangle(gui, cvPoint(cur->blob_xmin, 
+		cur->blob_ymin), 
+		cvPoint(cur->blob_xmax, cur->blob_ymax), 
+		cvScalar(128));
+
+	cvCircle(gui, cvPoint((cur->xcpix), (cur->ycpix)), 
+		RADIUS, cvScalar(GRAY), THICKNESS);
+
+	// show image
+	cvShowImage("Simple Tracking 2", gui);
+
+	// add a small delay, so OpenCV has time to display to screen
+	cvWaitKey(1);
+}
+
+/** Calculates the area centroid of the object of interest.
+* prints out x,y coordinates of the centroid of the object.
+*/
+
+int centroid(TrackingWindow *win)
+{
+	int i, j;
+	double m00, m10, m01;
+	int roi_xmin, roi_ymin, roi_xmax, roi_ymax;
+	int box_xmin, box_ymin, box_xmax, box_ymax;
+	int p;
+
+	m00 = m10 = m01 = 0;
+	roi_xmin = win->blob_xmin;
+	roi_ymin = win->blob_ymin;
+	roi_xmax = win->blob_xmax;
+	roi_ymax = win->blob_ymax;
+
+	box_xmin = roi_xmax;
+	box_ymin = roi_ymax;
+	box_xmax = 0;
+	box_ymax = 0;
+
+	for(i = roi_ymin; i < roi_ymax; i++) {
+		for(j = roi_xmin; j < roi_xmax; j++) {
+			p = PIXEL(win, i, j);
+
+			m00 += p; // area
+			m10 += j * p; // xc * area
+			m01 += i * p; //yc * area
+
+			// find bounding rectangle
+			if(p == FOREGROUND) {
+				if(box_xmin > j) {
+					box_xmin = j;
+				}
+				if(box_xmax < j) {
+					box_xmax = j;
+				}
+				if(box_ymin > i) {
+					box_ymin = i;
+				}
+				if(box_ymax < i) {
+					box_ymax = i;
+				}
+			}
+		}
+	}
+
+	win->A = m00;
+	win->xc = m10 / m00;
+	win->yc = m01 / m00;
+
+	// if there is an object in view, print out
+	// x,y coordinates of the centroid of the object
+	//if (win->A) {
+    //   printf("%6.2f\t%6.2f\n%f\n", (win->xc + win->roi_xoff), (win->yc + win->roi_yoff), win->A);
+	//}
+
+	return !m00;
+}
+
+/** Transforms the x & y coordinates of the centroid from pixel coordinates in the camera frame 
+*   to their normalized coordinates, using the same method as the 'normalize' function
+*   in the Matlab calibration toolbox.
+*   Then transforms coordinates from normalized coordinates to real world 
+*   by multiplying by the focal length and adding a translation. 
+*   Then divides by (pixels/mm) to convert from pixels to metric
+*/
+void trans_coords(TrackingWindow *win) {
+
+	double x_p;    // pixel coordinates
+	double y_p;
+	double x_distort;
+	double y_distort;
+	double r_sq;    // position squared
+	double k_radial;
+	double delta_x;
+	double delta_y;
+	double x_n;   // normalized coordinates
+	double y_n;
+	double x_nrot;    // normalized coordinates with corrected rotation
+	double y_nrot;
+	double x_cent;
+	double y_cent;
+
+	// INTRINSIC TRANSFORMATIONS
+	    // First: Subtract principal point, and divide by the focal length:
+	x_p = (win->xc + win->roi_xoff);
+	y_p = (win->yc + win->roi_yoff - 5);
+
+	x_distort = (x_p - cc1)/fc1;
+	y_distort = (y_p - cc2)/fc2;
+        // Second: undo skew
+    x_distort = x_distort - (alpha_c * y_distort);
+	    // Third: Compensate for lens distortion:
+	x_n = x_distort;
+	y_n = y_distort;
+	int kk;
+	for (kk = 0; kk < 20; kk++) { 
+	    r_sq = pow(x_n, 2) + pow(y_n, 2);
+        k_radial =  1 + kc1 * r_sq + kc2 * pow(r_sq, 2) + kc5 * (r_sq, 3);
+        delta_x = 2*kc3*x_n*y_n + kc4*(r_sq + 2*pow(x_n,2));
+        delta_y = kc3 * (r_sq + 2*pow(y_n,2))+2*kc4*x_n*y_n;
+        x_n = (x_distort - delta_x) / k_radial;
+	    y_n = (y_distort - delta_y) / k_radial;
+	}
+
+	// EXTRINSIC TRANSFORMATIONS
+	    // First: apply rotation compensation
+	x_nrot = x_n*Rotx1 + y_n*Rotx2 + Rotx3;
+	y_nrot = x_n*Roty1 + y_n*Roty2 + Roty3;
+
+	    // Second: Undo normalization, apply translation
+	x_cent = x_nrot*XCONV + XTRANS;
+	y_cent = y_nrot*YCONV + YTRANS;
+
+	win->xcpix = win->xc;
+	win->ycpix = win->yc;
+	win->xc = x_cent;
+	win->yc = y_cent;
+
+
 }

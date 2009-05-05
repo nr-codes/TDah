@@ -247,4 +247,11 @@ extern void PrintTimingData(Fg_Struct *fg, TimingInfo *timing_info);
 extern void GetNextImage(IplImage **img, int nr, char *name, int seq_len, int show_name);
 extern int SetTrackCamParameters(TrackingWindow *win, double frame, double exposure);
 
+extern void display_tracking(TrackingWindow *cur, IplImage *gui);
+extern void display_tracking2(TrackingWindow *cur, IplImage *gui);
+extern void set_initial_positions(TrackingWindow *win);
+extern void set_initial_positions2(TrackingWindow *win);
+extern int centroid(TrackingWindow *win);
+extern void trans_coords(TrackingWindow *win);
+
 #endif /* FCDYNAMIC_H_ */
