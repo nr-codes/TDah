@@ -106,6 +106,7 @@ struct tracking_window {
 	int img_w; /**< the image's total width */
 	int img_h; /**< the image's total height */
 	unsigned char *img; /**< point to the grayscale 8-bit image data */
+	const char *display; /** name of display GUI where image is to be displayed*/
 
 	double A; /**< the total area of the object of interest*/
 	double xc; /**< the x coordinate of the object's centroid*/
@@ -248,10 +249,10 @@ extern void GetNextImage(IplImage **img, int nr, char *name, int seq_len, int sh
 extern int SetTrackCamParameters(TrackingWindow *win, double frame, double exposure);
 
 extern void display_tracking(TrackingWindow *cur, IplImage *gui);
-extern void display_tracking2(TrackingWindow *cur, IplImage *gui);
 extern void set_initial_positions(TrackingWindow *win);
 extern void set_initial_positions2(TrackingWindow *win);
 extern int centroid(TrackingWindow *win);
 extern void trans_coords(TrackingWindow *win);
+extern void trans_coords2(TrackingWindow *win);
 
 #endif /* FCDYNAMIC_H_ */

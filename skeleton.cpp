@@ -39,43 +39,47 @@ int main()
 	int rc;
 	Fg_Struct *fg = NULL;
 	int img_nr;
-	TrackingWindow cur, cur2;
+	TrackingWindow cur[NUM_ROI];
+	int index = 0;
 	int seq[] = SEQ;
 
 	int takedata = 0;  // takedata has value 0 or 1 depending on whether data is being recorded
 	char key = '0';   // initialize command key
 	int time;    // variable for recording time in microseconds	
 	int inittime;    // initial time when data collection begins
-	FILE *pF;    // pointer to text file
-	pF = fopen(DESTINATION,"w");    // open text file where data is to be stored
+	FILE *pF0;    // pointer to text file
+	FILE *pF1;    // pointer to second text file
+	FILE *pFtime;
+	pF0 = fopen(DESTINATION_FOR_ROI_0,"w");    // open text file where data is to be stored
+	pF1 = fopen(DESTINATION_FOR_ROI_1,"w");    // open text file where data is to be stored
+	pFtime = fopen("time_run.txt","w");    // open text file where data is to be stored
 	int counter = 0;    // Counts the number of images taken
-
-	char format[] = "Images/img%d.jpg";
+	FrameInfo timing;
+	//char format[] = "Images/img%d.jpg";
     //char filename[sizeof format+1000*DTIME];
-	
-	//FrameInfo timing;
+
 
 	// following lines are for displaying images only!  See OpenCV doc for more info.
 	// they can be left out, if speed is important.
-	IplImage *cvDisplay = NULL;
-	cvDisplay = cvCreateImageHeader(cvSize(ROI_BOX, ROI_BOX), 
-		BITS_PER_PIXEL, NUM_CHANNELS);
-	cvNamedWindow(DISPLAY, CV_WINDOW_AUTOSIZE);
+	IplImage *cvDisplay[NUM_ROI];
 
-	IplImage *cvDisplay2 = NULL;
-    cvDisplay2 = cvCreateImageHeader(cvSize(ROI_BOX2, ROI_BOX2), 
+	cvDisplay[0] = cvCreateImageHeader(cvSize(ROI_BOX_W0, ROI_BOX_H0), 
 		BITS_PER_PIXEL, NUM_CHANNELS);
-	cvNamedWindow("Simple Tracking 2", CV_WINDOW_AUTOSIZE);
+	cvNamedWindow(DISPLAY0, CV_WINDOW_AUTOSIZE);
+
+    cvDisplay[1] = cvCreateImageHeader(cvSize(ROI_BOX_W1, ROI_BOX_H1), 
+		BITS_PER_PIXEL, NUM_CHANNELS);
+	cvNamedWindow(DISPLAY1, CV_WINDOW_AUTOSIZE);
 	
 	// initialize the tracking window (i.e. blob and ROI positions)
-	memset(&cur, 0, sizeof(TrackingWindow));
-	set_initial_positions(&cur);
+	memset(&cur[0], 0, sizeof(TrackingWindow));
+	set_initial_positions(&cur[0]);
 
-	memset(&cur2, 0, sizeof(TrackingWindow));
-	set_initial_positions2(&cur2);
+	memset(&cur[1], 0, sizeof(TrackingWindow));
+	set_initial_positions2(&cur[1]);
 
 	// initialize the camera
-	rc = init_cam(&fg, MEMSIZE(cur.roi_w, cur.roi_h), NUM_BUFFERS, CAMLINK);
+	rc = init_cam(&fg, MEMSIZE(cur[0].roi_w, cur[0].roi_h), NUM_BUFFERS, CAMLINK);
 	if(rc != FG_OK) {
 		printf("init: %s\n", Fg_getLastErrorDescription(fg));
 		Fg_FreeGrabber(fg);
@@ -93,13 +97,14 @@ int main()
 	img_nr = 1;
 	int initnum;
 
-	//QueryPerformanceFrequency(&timing.freq);
+	QueryPerformanceFrequency(&timing.freq);
     
 	// start image loop and don't stop until the user presses 'q'
 	printf("press 'q' at any time to quit this demo.\n");
 	printf("press 'd' to begin recording data.\n");
 	while(!(key == 'q')) {
-		//QueryPerformanceCounter(&timing.grab_start);
+		
+		QueryPerformanceCounter(&timing.grab_start);
 		
 		// if a key is hit, assign it to variable 'key'
 		if (_kbhit()) {
@@ -108,130 +113,114 @@ int main()
 
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
 
+		// Obtain index for ROI based on image number
 		if (img_nr%2 == 1) {
-		    cur.img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
+			index = 0;
 		}
 		else {
-			cur2.img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
+			index = 1;
 		}
+		
+		cur[index].img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
 
 		// make sure that camera returned a valid image
+		if (cur[index].img == NULL) {
+			// typically this state only occurs if an invalid ROI has been programmed
+			// into the camera (e.g. roi_w == 4).
+			printf("img is null: %d\n", img_nr);
+			system("PAUSE");
+			break;
+		}
+        // process image
+        threshold(&cur[index], THRESHOLD);
+        erode(&cur[index]);
+        // calculate centroid
+        centroid(&cur[index]);
+		// Transform coordinates from camera frame to realworld frame
+		if (index == 0) {
+			trans_coords(&cur[index]);
+		}
+		else {
+			trans_coords2(&cur[index]);
+		}
 
-			if (img_nr%2 == 1) {
-				if (cur.img == NULL) {
-					// typically this state only occurs if an invalid ROI has been programmed
-					// into the camera (e.g. roi_w == 4).
-					printf("img is null: %d\n", img_nr);
-					system("PAUSE");
-					break;
-				}
-		        // process image
-		        threshold(&cur, THRESHOLD);
-		        erode(&cur);
-		        // calculate centroid
-		        centroid(&cur);
-		        trans_coords(&cur);
+		// create timestamp
+		time = img_nr;
+		Fg_getParameter(fg, FG_TIMESTAMP, 
+				&time, PORT_A);
+		//printf("\n%d\n", time);
 
+		// DATA COLLECTION
+		if (key == 'd') {
+			printf("\nData collection in progress...\n");
+			takedata = 1;
+			inittime = time;
+			initnum = img_nr;
+			key = '0';
+		}
+		// Print time and coordinates of centroid to text file
+		if (takedata) {
+		    counter++;
+			if (counter %2 == 1){
+				fprintf(pF0, "%d\t%d\t\t%f\t%f\n", counter, (time-inittime), (cur[0].xc), (cur[0].yc));
 			}
-
 			else {
-				if (cur2.img == NULL) {
-					// typically this state only occurs if an invalid ROI has been programmed
-					// into the camera (e.g. roi_w == 4).
-					printf("img is null: %d\n", img_nr);
-					system("PAUSE");
-					break;
+				fprintf(pF1, "%d\t%d\t\t%f\t%f\n", counter, (time-inittime), (cur[1].xc), (cur[1].yc));
+			}
+
+			// Once the duration exceeds the desired length of the test, stop taking data
+		    if (time-inittime > DTIME*1000000) {
+			    takedata = 0;
+			    printf("\nData collection complete.\n");
+				
+				// Save individual images to folder
+				/*printf("\nSaving images...\n");
+				int lastpic	= Fg_getLastPicNumber(fg, PORT_A) ;
+				for (counter = initnum; counter <= lastpic; counter = counter + NEXT_IMAGE) {
+                    sprintf(filename, format, counter + 1 - initnum);
+					cvDisplay = cvCreateImage(cvSize(ROI_BOX, ROI_BOX), 
+	                         BITS_PER_PIXEL, NUM_CHANNELS);
+					cvDisplay->imageData = (char*) Fg_getImagePtr(fg, counter, PORT_A);
+					cvSaveImage(filename, cvDisplay);
 				}
-				// process image
-				threshold(&cur2, THRESHOLD);
-				erode(&cur2);
-			
-				// calculate centroid
-				centroid(&cur2);
-				trans_coords(&cur2);
-			}
+				printf("\nImages saved.\n");*/
+		    }
+		}
+		
+		// updata position
+		position(&cur[index]);
 
-			// create timestamp
-			time = img_nr;
-			Fg_getParameter(fg, FG_TIMESTAMP, 
-					&time, PORT_A);
-			//printf("\n%d\n", time);
+		// at this point position(...) has updated the ROI, but it only stores
+		// the updated values internal to the code.  The next step is to flushq
+		// the ROI to the camera (see position(...) documentation).
 
-			if (key == 'd') {
-				printf("\nData collection in progress...\n");
-				takedata = 1;
-				inittime = time;
-				initnum = img_nr;
-				key = '0';
-			}
-			// Print time and coordinates of centroid to text file
-			if (takedata) {
-			    counter++;
-				if (counter %2 == 0){
-					fprintf(pF, "%d\t%d\t\t%f\t%f\t%f\t%f\n", counter/2, (time-inittime), (cur.xc), 
-						(cur.yc), (cur2.xc), (cur2.yc));
-				}
+		// write ROI position to camera to be updated on frame "img_nr"
+		write_roi(fg, cur[index].roi, img_nr + 4, !DO_INIT);
 
-				// Once the duration exceeds the desired length of the test, stop taking data
-			    if (time-inittime > DTIME*1000000) {
-				    takedata = 0;
-				    printf("\nData collection complete.\n");
-					
-					// Save individual images to folder
-					/*printf("\nSaving images...\n");
-					int lastpic	= Fg_getLastPicNumber(fg, PORT_A) ;
-					for (counter = initnum; counter <= lastpic; counter = counter + NEXT_IMAGE) {
-                        sprintf(filename, format, counter + 1 - initnum);
-						cvDisplay = cvCreateImage(cvSize(ROI_BOX, ROI_BOX), 
-		                         BITS_PER_PIXEL, NUM_CHANNELS);
-						cvDisplay->imageData = (char*) Fg_getImagePtr(fg, counter, PORT_A);
-						cvSaveImage(filename, cvDisplay);
-					}
-					printf("\nImages saved.\n");*/
-			    }
-			}
+		// show image on screen
+		if (DISPLAY_TRACKING) {
+			display_tracking(&cur[index], cvDisplay[index]);
+		}
 
-			if (img_nr%2 == 1) {
-			// update ROI position
-			position(&cur);
+		// increment to the next desired frame.  This has to be at least
+		// +2, because the camera's ROI will not be active until the second
+		// frame (see Silicon Software FastConfig doc)
 
-			// at this point position(...) has updated the ROI, but it only stores
-			// the updated values internal to the code.  The next step is to flushq
-			// the ROI to the camera (see position(...) documentation).
+		img_nr += NEXT_IMAGE;
 
-			// write ROI position to camera to be updated on frame "img_nr"
-			write_roi(fg, cur.roi, img_nr + 4, !DO_INIT);
-
-			// show image on screen
-			//display_tracking(&cur, cvDisplay);
-			}
-
-			else {
-			// update ROI position
-			position(&cur2);
-
-			// at this point position(...) has updated the ROI, but it only stores
-			// the updated values internal to the code.  The next step is to flushq
-			// the ROI to the camera (see position(...) documentation).
-
-			// write ROI position to camera to be updated on frame "img_nr"
-			write_roi(fg, cur2.roi, img_nr + 4, !DO_INIT);
-			// show image on screen
-			//display_tracking2(&cur2, cvDisplay2);
-			}
-			
-			// increment to the next desired frame.  This has to be at least
-			// +2, because the camera's ROI will not be active until the second
-			// frame (see Silicon Software FastConfig doc)
-			img_nr += NEXT_IMAGE;
-			
-			/*QueryPerformanceCounter(&timing.grab_stop);
-			printf("Time elapsed: %lld\n", 1000000*(timing.grab_stop.QuadPart - 
+		QueryPerformanceCounter(&timing.grab_stop);
+		if(takedata) {
+			fprintf(pFtime, "%lld\t%d\n", 1000000*(timing.grab_stop.QuadPart - 
+				timing.grab_start.QuadPart) / timing.freq.QuadPart, counter);
+			/*printf("Time elapsed: %lld\n", 1000000*(timing.grab_stop.QuadPart - 
 				timing.grab_start.QuadPart) / timing.freq.QuadPart);
 			printf("%d\n", img_nr);*/
+		}
 	}
 	
-	fclose(pF);
+	fclose(pF0);
+	fclose(pF1);
+	fclose(pFtime);
 
 	// free camera resources
 	rc = deinit_cam(fg);

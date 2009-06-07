@@ -207,8 +207,8 @@ void set_initial_positions(TrackingWindow *win)
 
 	// insert initial image coordinates of ROI 0 for camera
 	win->roi = ROI_0;
-	win->roi_w = ROI_BOX;
-	win->roi_h = ROI_BOX;
+	win->roi_w = ROI_BOX_W0;
+	win->roi_h = ROI_BOX_H0;
 	win->img_w = IMG_WIDTH;
 	win->img_h = IMG_HEIGHT;
 
@@ -216,10 +216,13 @@ void set_initial_positions(TrackingWindow *win)
 	SetTrackCamParameters(win, FRAME_TIME, EXPOSURE);
 
 	// insert initial image coordinates of blob 0 (for software use)
-	win->blob_xmin = INITIAL_BLOB_XMIN;
-	win->blob_ymin = INITIAL_BLOB_YMIN;
-	win->blob_xmax = INITIAL_BLOB_XMIN + INITIAL_BLOB_WIDTH;
-	win->blob_ymax = INITIAL_BLOB_YMIN + INITIAL_BLOB_HEIGHT;
+	win->blob_xmin = INITIAL_BLOB_XMIN_0;
+	win->blob_ymin = INITIAL_BLOB_YMIN_0;
+	win->blob_xmax = INITIAL_BLOB_XMIN_0 + INITIAL_BLOB_WIDTH_0;
+	win->blob_ymax = INITIAL_BLOB_YMIN_0 + INITIAL_BLOB_HEIGHT_0;
+	
+	// initialize name of display GUI
+	win->display = DISPLAY0;
 
 	// center camera's ROI 0 around the blob's midpoint in the image's coordinate frame.  
 	// Note that in this implementation the initial placement of the ROI is dependent on 
@@ -248,6 +251,7 @@ void set_initial_positions(TrackingWindow *win)
 	//  1) SetTrackCamParameters(win, FRAME_TIME, EXPOSURE); <- buffer parameters internally
 	//  2) write_roi(fg, cur.roi, img_nr, !DO_INIT); <- writes buffered parameters to camera
 	SetTrackCamParameters(win, FRAME_TIME, EXPOSURE);
+
 }
 
 
@@ -259,23 +263,26 @@ void set_initial_positions2(TrackingWindow *win)
 		eight ROIs by copying and pasting the code below or by writing a generic loop
 	*/
 
-	// insert initial image coordinates of ROI 0 for camera
+	// insert initial image coordinates of ROI 1 for camera
 	win->roi = ROI_1;
-	win->roi_w = ROI_BOX2;
-	win->roi_h = ROI_BOX2;
+	win->roi_w = ROI_BOX_W1;
+	win->roi_h = ROI_BOX_H1;
 	win->img_w = IMG_WIDTH;
 	win->img_h = IMG_HEIGHT;
 
-	// store the camera's ROI 0 information
+	// store the camera's ROI 1 information
 	SetTrackCamParameters(win, FRAME_TIME, EXPOSURE);
 
-	// insert initial image coordinates of blob 0 (for software use)
-	win->blob_xmin = INITIAL_BLOB_XMIN2;
-	win->blob_ymin = INITIAL_BLOB_YMIN2;
-	win->blob_xmax = INITIAL_BLOB_XMIN2 + INITIAL_BLOB_WIDTH2;
-	win->blob_ymax = INITIAL_BLOB_YMIN2 + INITIAL_BLOB_HEIGHT2;
+	// insert initial image coordinates of blob 1 (for software use)
+	win->blob_xmin = INITIAL_BLOB_XMIN_1;
+	win->blob_ymin = INITIAL_BLOB_YMIN_1;
+	win->blob_xmax = INITIAL_BLOB_XMIN_1 + INITIAL_BLOB_WIDTH_1;
+	win->blob_ymax = INITIAL_BLOB_YMIN_1 + INITIAL_BLOB_HEIGHT_1;
 
-	// center camera's ROI 0 around the blob's midpoint in the image's coordinate frame.  
+	// initialize name of display GUI
+	win->display = DISPLAY1;
+
+	// center camera's ROI 1 around the blob's midpoint in the image's coordinate frame.  
 	// Note that in this implementation the initial placement of the ROI is dependent on 
 	// the blob's initial coordinates.
 	blob_cx = (win->blob_xmin + win->blob_xmax) / 2;
