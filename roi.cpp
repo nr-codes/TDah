@@ -310,3 +310,59 @@ void set_initial_positions2(TrackingWindow *win)
 	//  2) write_roi(fg, cur.roi, img_nr, !DO_INIT); <- writes buffered parameters to camera
 	SetTrackCamParameters(win, FRAME_TIME, EXPOSURE);
 }
+
+void set_initial_positions3(TrackingWindow *win)
+{
+	int blob_cx, blob_cy;
+	/* The following example shows how to initialize the ROI for the camera ("roi_")
+		and object to track ("blob_").  This function can be generalized to include all
+		eight ROIs by copying and pasting the code below or by writing a generic loop
+	*/
+
+	// insert initial image coordinates of ROI 1 for camera
+	win->roi = ROI_2;
+	win->roi_w = ROI_BOX_W2;
+	win->roi_h = ROI_BOX_H2;
+	win->img_w = IMG_WIDTH;
+	win->img_h = IMG_HEIGHT;
+
+	// store the camera's ROI 1 information
+	SetTrackCamParameters(win, FRAME_TIME, EXPOSURE);
+
+	// insert initial image coordinates of blob 1 (for software use)
+	win->blob_xmin = INITIAL_BLOB_XMIN_2;
+	win->blob_ymin = INITIAL_BLOB_YMIN_2;
+	win->blob_xmax = INITIAL_BLOB_XMIN_2 + INITIAL_BLOB_WIDTH_2;
+	win->blob_ymax = INITIAL_BLOB_YMIN_2 + INITIAL_BLOB_HEIGHT_2;
+
+	// initialize name of display GUI
+	win->display = DISPLAY2;
+
+	// center camera's ROI 1 around the blob's midpoint in the image's coordinate frame.  
+	// Note that in this implementation the initial placement of the ROI is dependent on 
+	// the blob's initial coordinates.
+	blob_cx = (win->blob_xmin + win->blob_xmax) / 2;
+	blob_cy = (win->blob_ymin + win->blob_ymax) / 2;
+	set_roi_box(win, blob_cx, blob_cy);
+
+	// convert from the blob's image coordinate system to the ROI 
+	// coordinate system.  This only needs to be done during initialization, 
+	// because all routines in the tracking code assume that the blob is 
+	// relative to the currently active ROI window and remain in that coordinate 
+	// frame.
+	fix_blob_bounds(win);
+
+	// store parameters...note these parameters are NOT sent to the camera
+	// they are stored internally, because the Silicon Software doc does not
+	// make it clear on how to read what ROI parameters are currently active
+	// in the camera.
+	//
+	// In order to send the coordinates to the camera, it is 
+	// required to call write_roi(...) AFTER calling SetTrackCamParameters(...)
+	// or any of the individual functions that SetTrackCamParameters(...) relies
+	// on.  To summarize, writing to the camera is a two step process:
+	//
+	//  1) SetTrackCamParameters(win, FRAME_TIME, EXPOSURE); <- buffer parameters internally
+	//  2) write_roi(fg, cur.roi, img_nr, !DO_INIT); <- writes buffered parameters to camera
+	SetTrackCamParameters(win, FRAME_TIME, EXPOSURE);
+}

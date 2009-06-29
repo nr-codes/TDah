@@ -49,9 +49,11 @@ int main()
 	int inittime;    // initial time when data collection begins
 	FILE *pF0;    // pointer to text file
 	FILE *pF1;    // pointer to second text file
+	FILE *pF2;	  // pointer to third text file
 	FILE *pFtime;
 	pF0 = fopen(DESTINATION_FOR_ROI_0,"w");    // open text file where data is to be stored
 	pF1 = fopen(DESTINATION_FOR_ROI_1,"w");    // open text file where data is to be stored
+	pF2 = fopen(DESTINATION_FOR_ROI_2,"w");    // open text file where data is to be stored
 	pFtime = fopen("time_run.txt","w");    // open text file where data is to be stored
 	int counter = 0;    // Counts the number of images taken
 	FrameInfo timing;
@@ -70,6 +72,10 @@ int main()
     cvDisplay[1] = cvCreateImageHeader(cvSize(ROI_BOX_W1, ROI_BOX_H1), 
 		BITS_PER_PIXEL, NUM_CHANNELS);
 	cvNamedWindow(DISPLAY1, CV_WINDOW_AUTOSIZE);
+
+	cvDisplay[2] = cvCreateImageHeader(cvSize(ROI_BOX_W2, ROI_BOX_H2), 
+		BITS_PER_PIXEL, NUM_CHANNELS);
+	cvNamedWindow(DISPLAY2, CV_WINDOW_AUTOSIZE);
 	
 	// initialize the tracking window (i.e. blob and ROI positions)
 	memset(&cur[0], 0, sizeof(TrackingWindow));
@@ -77,6 +83,9 @@ int main()
 
 	memset(&cur[1], 0, sizeof(TrackingWindow));
 	set_initial_positions2(&cur[1]);
+
+	memset(&cur[2], 0, sizeof(TrackingWindow));
+	set_initial_positions3(&cur[2]);
 
 	// initialize the camera
 	rc = init_cam(&fg, MEMSIZE(cur[0].roi_w, cur[0].roi_h), NUM_BUFFERS, CAMLINK);
@@ -114,11 +123,14 @@ int main()
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
 
 		// Obtain index for ROI based on image number
-		if (img_nr%2 == 1) {
+		if (img_nr%3 == 1) {
 			index = 0;
 		}
-		else {
+		else if (img_nr%3 == 2) {
 			index = 1;
+		}
+		else {
+			index = 2;
 		}
 		
 		cur[index].img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
@@ -137,11 +149,11 @@ int main()
         // calculate centroid
         centroid(&cur[index]);
 		// Transform coordinates from camera frame to realworld frame
-		if (index == 0) {
-			trans_coords(&cur[index]);
+		if (index == 1) {
+			trans_coords2(&cur[index]);
 		}
 		else {
-			trans_coords2(&cur[index]);
+			trans_coords(&cur[index]);
 		}
 
 		// create timestamp
@@ -161,11 +173,14 @@ int main()
 		// Print time and coordinates of centroid to text file
 		if (takedata) {
 		    counter++;
-			if (counter %2 == 1){
+			if (counter %3 == 1){
 				fprintf(pF0, "%d\t%d\t\t%f\t%f\n", counter, (time-inittime), (cur[0].xc), (cur[0].yc));
 			}
-			else {
+			else if (counter %3 == 2){
 				fprintf(pF1, "%d\t%d\t\t%f\t%f\n", counter, (time-inittime), (cur[1].xc), (cur[1].yc));
+			}
+			else {
+				fprintf(pF2, "%d\t%d\t\t%f\t%f\n", counter, (time-inittime), (cur[2].xc), (cur[2].yc));
 			}
 
 			// Once the duration exceeds the desired length of the test, stop taking data
@@ -195,7 +210,7 @@ int main()
 		// the ROI to the camera (see position(...) documentation).
 
 		// write ROI position to camera to be updated on frame "img_nr"
-		write_roi(fg, cur[index].roi, img_nr + 4, !DO_INIT);
+		write_roi(fg, cur[index].roi, img_nr + 6, !DO_INIT);
 
 		// show image on screen
 		if (DISPLAY_TRACKING) {
@@ -220,6 +235,7 @@ int main()
 	
 	fclose(pF0);
 	fclose(pF1);
+	fclose(pF2);
 	fclose(pFtime);
 
 	// free camera resources

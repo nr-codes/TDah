@@ -251,6 +251,7 @@ extern int SetTrackCamParameters(TrackingWindow *win, double frame, double expos
 extern void display_tracking(TrackingWindow *cur, IplImage *gui);
 extern void set_initial_positions(TrackingWindow *win);
 extern void set_initial_positions2(TrackingWindow *win);
+extern void set_initial_positions3(TrackingWindow *win);
 extern int centroid(TrackingWindow *win);
 extern void trans_coords(TrackingWindow *win);
 extern void trans_coords2(TrackingWindow *win);
