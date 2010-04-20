@@ -48,9 +48,6 @@
 #define DO_INIT 1
 #define MAX_ROI 8 /* limited by FastConfig Applet (see meIII documentation) */
 
-#define RADIUS 3 /* radius of centroid */
-#define THICKNESS 2 /* line thickness of centroid */
-
 /** 
 * the eight indices enumerated as ROI_n
 *
@@ -106,13 +103,6 @@ struct tracking_window {
 	int img_w; /**< the image's total width */
 	int img_h; /**< the image's total height */
 	unsigned char *img; /**< point to the grayscale 8-bit image data */
-	const char *display; /** name of display GUI where image is to be displayed*/
-
-	double A; /**< the total area of the object of interest*/
-	double xc; /**< the x coordinate of the object's centroid*/
-	double yc; /**< the y coordinate of the object's centroid*/
-	double xcpix; /**< the x coordinate of the object's centroid, in pixels (used only for displaying centroid)*/
-	double ycpix; /**< the y coordinate of the object's centroid, in pixels*/
 };
 
 /**
@@ -177,7 +167,6 @@ struct frame_info {
 	LARGE_INTEGER blob_start;
 	LARGE_INTEGER blob_stop;
 	LARGE_INTEGER pc_ts;
-	LARGE_INTEGER freq;
 	__int64 fg_ts;
 };
 
@@ -247,13 +236,5 @@ extern void CopyImageToTrackingWindow(TrackingWindow *win, IplImage *img);
 extern void PrintTimingData(Fg_Struct *fg, TimingInfo *timing_info);
 extern void GetNextImage(IplImage **img, int nr, char *name, int seq_len, int show_name);
 extern int SetTrackCamParameters(TrackingWindow *win, double frame, double exposure);
-
-extern void display_tracking(TrackingWindow *cur, IplImage *gui);
-extern void set_initial_positions(TrackingWindow *win);
-extern void set_initial_positions2(TrackingWindow *win);
-extern void set_initial_positions3(TrackingWindow *win);
-extern int centroid(TrackingWindow *win);
-extern void trans_coords(TrackingWindow *win);
-extern void trans_coords2(TrackingWindow *win);
 
 #endif /* FCDYNAMIC_H_ */
