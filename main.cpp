@@ -14,39 +14,44 @@
 #define IMG_HEIGHT 1024
 
 // TIMER
-#define NUM_IMGS 100
+#define NUM_IMGS 1000
 #define WIDTH_STEP 2
 #define MIN_WIDTH 16
-#define MAX_WIDTH 128
+#define MAX_WIDTH 1024
 #define MIN_FRAME 10
 #define MAX_FRAME 100000 // us (10 fps)
 #define FRAME_STEP 10
 #define EXPOSURE_STEP 4
 
-// INITIAL BLOB POSITION IN IMG COORD FRAME6
+// INITIAL BLOB1 POSITION IN IMG COORD FRAME
 #define INITIAL_ROI_X 0
 #define INITIAL__ROI_Y 0
 #define BOUNDING_BOX 1024
-#define INITIAL_BLOB_XMIN 0
-#define INITIAL_BLOB_YMIN 0
-#define INITIAL_BLOB_WIDTH 1024
-#define INITIAL_BLOB_HEIGHT 1024
-#define THRESHOLD 128
+
+#define INITIAL_BLOB1_XMIN 622
+#define INITIAL_BLOB1_YMIN 514
+#define INITIAL_BLOB5_XMIN 542
+#define INITIAL_BLOB5_YMIN 478
+
+#define INITIAL_BLOB_WIDTH 28
+#define INITIAL_BLOB_HEIGHT 28
+
+#define THRESHOLD 50
 
 #define SEQ {ROI_0, ROI_5}
 #define SEQ_LEN 2
 
 void initial_blob_positions(TrackingWindow *win)
 {
-	win[ROI_0].blob_xmin = INITIAL_BLOB_XMIN;
-	win[ROI_0].blob_ymin = INITIAL_BLOB_YMIN;
-	win[ROI_0].blob_xmax = INITIAL_BLOB_XMIN + INITIAL_BLOB_WIDTH;
-	win[ROI_0].blob_ymax = INITIAL_BLOB_YMIN + INITIAL_BLOB_HEIGHT;
+	win[ROI_0].blob_xmin = INITIAL_BLOB1_XMIN;
+	win[ROI_0].blob_ymin = INITIAL_BLOB1_YMIN;
+	win[ROI_0].blob_xmax = INITIAL_BLOB1_XMIN + INITIAL_BLOB_WIDTH;
+	win[ROI_0].blob_ymax = INITIAL_BLOB1_YMIN + INITIAL_BLOB_HEIGHT;
 
-	win[ROI_5].blob_xmin = INITIAL_BLOB_XMIN;
-	win[ROI_5].blob_ymin = INITIAL_BLOB_YMIN;
-	win[ROI_5].blob_xmax = INITIAL_BLOB_XMIN + INITIAL_BLOB_WIDTH;
-	win[ROI_5].blob_ymax = INITIAL_BLOB_YMIN + INITIAL_BLOB_HEIGHT;
+	win[ROI_5].blob_xmin = INITIAL_BLOB5_XMIN;
+	win[ROI_5].blob_ymin = INITIAL_BLOB5_YMIN;
+	win[ROI_5].blob_xmax = INITIAL_BLOB5_XMIN + INITIAL_BLOB_WIDTH;
+	win[ROI_5].blob_ymax = INITIAL_BLOB5_YMIN + INITIAL_BLOB_HEIGHT;
 }
 
 void reset(TrackingWindow *win, int roi_box, double frame, double exposure)
@@ -161,17 +166,20 @@ int main(int argc, char *argv[])
 	while(box <= MAX_WIDTH) {
 	#if ONLINE
 		for(frame = MAX_FRAME; frame >= MIN_FRAME; frame /= FRAME_STEP) {
+			/*
 			if(frame == MIN_FRAME) {
 				exp_step = EXPOSURE_STEP;
 			}
 			else {
 				exp_step = (frame - MIN_FRAME) / EXPOSURE_STEP;
 			}
+			*/
 
-			for(exposure = MIN_FRAME; exposure <= frame; exposure += exp_step) {
-					reset(tseq.windows, box, frame, exposure);
-					time_run(&tseq, NUM_IMGS, THRESHOLD, frame, exposure);
-			}
+			//for(exposure = MIN_FRAME; exposure <= frame; exposure += exp_step) {
+					// replaced exposure with constant EXPOSURE
+					reset(tseq.windows, box, frame, EXPOSURE);
+					time_run(&tseq, NUM_IMGS, THRESHOLD, frame, EXPOSURE);
+			//}
 		}
 	#else
 		reset(tseq.windows, box, -1, -1);
@@ -186,5 +194,6 @@ int main(int argc, char *argv[])
 		_getch();
 	}
 #endif
+
 	return rc;
 }
