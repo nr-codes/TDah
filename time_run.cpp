@@ -5,6 +5,8 @@
 
 #include "fcdynamic.h"
 
+#define IMG_IS_NULL -135
+
 /**
 * times different parts of the software
 *
@@ -80,7 +82,7 @@ int time_run(TrackingSequence *tseq, int num_imgs, int t, double frame, double e
 		cur_win %= tseq->seq_len;
 #if ONLINE
 		QueryPerformanceCounter(&(timer.frame[total_imgs].grab_start));
-		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
+		img_nr = Fg_getLastPicNumberBlocking(fg, total_imgs + 1, PORT_A, TIMEOUT);
 		cur->img = (unsigned char *) Fg_getImagePtr(fg, img_nr, PORT_A);
 		QueryPerformanceCounter(&(timer.frame[total_imgs].grab_stop));
 #else
@@ -125,6 +127,8 @@ int time_run(TrackingSequence *tseq, int num_imgs, int t, double frame, double e
 		}
 		else {
 			printf("img is null: %d\n", img_nr);
+			timer.frame[total_imgs].img = img_nr;
+			timer.frame[total_imgs].blob_found = IMG_IS_NULL;
 			break;
 		}
 	}
