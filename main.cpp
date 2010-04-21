@@ -16,12 +16,13 @@
 // TIMER
 #define NUM_IMGS 100
 #define WIDTH_STEP 2
-#define MIN_WIDTH 16
+#define MIN_WIDTH 128
 #define MAX_WIDTH 128
 #define MIN_FRAME 10
 #define MAX_FRAME 100000 // us (10 fps)
-#define FRAME_STEP 10
+#define FRAME_STEP 1000
 #define EXPOSURE_STEP 4
+#define DURATION 5
 
 // INITIAL BLOB POSITION IN IMG COORD FRAME
 #define INITIAL_ROI_X 0
@@ -182,8 +183,10 @@ int main(int argc, char *argv[])
 #elif TIMING == 2
 	box = MIN_WIDTH;
 	while(box <= MAX_WIDTH) {
-		reset(tseq.windows, box, -1, -1);
-		time_dur(&tseq, NUM_IMGS, THRESHOLD, -1, -1);
+		for(frame = MAX_FRAME; frame >= MIN_FRAME; frame /= FRAME_STEP) {
+				reset(tseq.windows, box, frame, EXPOSURE);
+				time_dur(&tseq, DURATION, THRESHOLD, frame, EXPOSURE);
+		}
 		box *= WIDTH_STEP;
 	}
 #else

@@ -33,7 +33,7 @@ int time_dur(TrackingSequence *tseq, int dur, int t, double frame, double exposu
 
 #if ONLINE
 	Fg_Struct *fg = NULL;
-	num_imgs = ceil(dur * 10^6 / frame);
+	num_imgs = ceil(dur * 1e10^6 / frame);
 #else
 	printf("time_dur not supported offline...frame and exposure are meaningless\n");
 	return EINVAL;
@@ -114,7 +114,6 @@ int time_dur(TrackingSequence *tseq, int dur, int t, double frame, double exposu
 			break;
 		}
 	}
-
 
 	PrintTimingData(fg, &timer);
 
