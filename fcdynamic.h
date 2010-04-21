@@ -186,6 +186,7 @@ typedef struct frame_info FrameInfo;
 
 struct timing_info {
 	int num_imgs;
+	int dur;
 	double roi_f;
 	double roi_e; 
 	int roi_w;
@@ -218,6 +219,7 @@ extern int boundary(TrackingWindow *win);
 extern int erode(TrackingWindow *win);
 
 extern int time_run(TrackingSequence *tseq, int num_imgs, int t, double frame, double exposure);
+extern int time_dur(TrackingSequence *tseq, int dur, int t, double frame, double exposure);
 extern int display_run(TrackingSequence *tseq, double frame, double exposure);
 
 extern void set_roi_box(TrackingWindow *win, int x, int y);

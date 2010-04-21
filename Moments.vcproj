@@ -203,6 +203,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\time_dur.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\time_run.cpp"
 				>
 			</File>

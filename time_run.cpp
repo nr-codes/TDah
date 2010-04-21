@@ -14,6 +14,7 @@
 *
 * @param tseq the TrackingSequence specifying the active ROIs and their initial positions
 * in the image prior to tracking an object
+* @param num_imgs the number of images to collect
 * @param t the threshold value to be used with <code>threshold</code>
 * @param frame the frame time (e.g. length of time between images) in microseconds
 * @param exposure the exposure time (e.g. length of time the shutter is kept open) in
