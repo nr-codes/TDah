@@ -33,10 +33,10 @@ int time_dur(TrackingSequence *tseq, int dur, int t, double frame, double exposu
 
 #if ONLINE
 	Fg_Struct *fg = NULL;
-	num_imgs = ceil(dur * 1e10^6 / frame);
+	num_imgs = (int) ceil((dur * 10^6) / frame);
 #else
-	printf("time_dur not supported offline...frame and exposure are meaningless\n");
-	return EINVAL;
+#error "time_dur not supported offline, because frame time is meaningless. \
+	Please recompile with ONLINE = 1 in order to use time_dur."
 #endif
 
 	if(tseq->seq_len < MIN_SEQ_LEN) {
@@ -74,7 +74,7 @@ int time_dur(TrackingSequence *tseq, int dur, int t, double frame, double exposu
 	}
 
 	// start image loop
-	time(&t0)
+	time(&t0);
 	while(difftime(time(&tf), t0) < dur) {
 		QueryPerformanceCounter(&(timer.frame[total_imgs].pc_ts));
 
