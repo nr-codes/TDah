@@ -4,7 +4,7 @@
 // TODO
 // fix parser
 
-#define TIMING 0
+#define TIMING 2
 #define RECORD 0
 
 // TRACKCAM
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 	return capture_video(&tseq, 100);
 #endif
 
-#if TIMING
+#if TIMING == 1
 	box = MIN_WIDTH;
 	while(box <= MAX_WIDTH) {
 	#if ONLINE
@@ -177,6 +177,13 @@ int main(int argc, char *argv[])
 		reset(tseq.windows, box, -1, -1);
 		time_run(&tseq, NUM_IMGS, THRESHOLD, -1, -1);
 	#endif
+		box *= WIDTH_STEP;
+	}
+#elif TIMING == 2
+	box = MIN_WIDTH;
+	while(box <= MAX_WIDTH) {
+		reset(tseq.windows, box, -1, -1);
+		time_dur(&tseq, NUM_IMGS, THRESHOLD, -1, -1);
 		box *= WIDTH_STEP;
 	}
 #else
