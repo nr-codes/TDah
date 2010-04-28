@@ -345,7 +345,7 @@ int StartGrabbing(Fg_Struct **fg, TrackingSequence *tseq, unsigned char **data)
 
 	rc = acquire_imgs(*fg, tseq->seq, tseq->seq_len);
 	if(rc != FG_OK) {
-		printf("init: %s\n", Fg_getLastErrorDescription(*fg));
+		printf("acquire: %s\n", Fg_getLastErrorDescription(*fg));
 		Fg_FreeGrabber(*fg);
 		return rc;
 	}
