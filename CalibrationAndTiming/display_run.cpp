@@ -3,7 +3,7 @@
 * manually set the initial bounding box around the object to be tracked.
 */
 
-#include "fcdynamic.h"
+#include <fcdynamic.h>
 
 #define MAIN_WIN "main"
 #define THRESH_WIN "thresh"
