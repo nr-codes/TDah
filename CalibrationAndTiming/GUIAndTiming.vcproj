@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="Moments"
-	ProjectGUID="{F70375CB-9D76-4AA7-B152-35F3A468E33E}"
+	Name="GUIAndTiming"
+	ProjectGUID="{1037F3B3-BC3F-40E2-AA75-6511F5DA23B9}"
 	RootNamespace="ROITracking"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
