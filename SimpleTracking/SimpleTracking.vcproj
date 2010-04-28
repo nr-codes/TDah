@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;&quot;C:\Program Files\OpenCV\cv\include&quot;;&quot;C:\Program Files\OpenCV\cvaux\include&quot;;&quot;C:\Program Files\OpenCV\otherlibs\highgui&quot;;&quot;C:\Program Files\OpenCV\cvcore\include&quot;;&quot;C:\Program Files\OpenCV\cxcore\include&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Documents and Settings\LIMS\Desktop\hsv&quot;;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;&quot;C:\Program Files\OpenCV\cv\include&quot;;&quot;C:\Program Files\OpenCV\cvaux\include&quot;;&quot;C:\Program Files\OpenCV\otherlibs\highgui&quot;;&quot;C:\Program Files\OpenCV\cvcore\include&quot;;&quot;C:\Program Files\OpenCV\cxcore\include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -179,15 +179,15 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\cam.cpp"
+				RelativePath="..\cam.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\imgproc.cpp"
+				RelativePath="..\imgproc.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\roi.cpp"
+				RelativePath="..\roi.cpp"
 				>
 			</File>
 			<File
@@ -195,11 +195,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\tracking.cpp"
+				RelativePath="..\tracking.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\utils.cpp"
+				RelativePath="..\utils.cpp"
 				>
 			</File>
 		</Filter>

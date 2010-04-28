@@ -23,7 +23,7 @@
 * utils.cpp.
 */
 
-#include "fcdynamic.h"
+#include <fcdynamic.h>
 
 // CAMERA PARAMETERS
 #define EXPOSURE 20000 /**< shutter speed in us */
