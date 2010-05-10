@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual C++ Express 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleAppletTest", "SimpleAppletTest\SimpleAppletTest.vcproj", "{E8B59FA4-48A2-4E47-AA3E-C9FC0BB2E611}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleFastConfig", "SimpleFastConfig\SimpleFastConfig.vcproj", "{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E8B59FA4-48A2-4E47-AA3E-C9FC0BB2E611}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E8B59FA4-48A2-4E47-AA3E-C9FC0BB2E611}.Debug|Win32.Build.0 = Debug|Win32
+		{E8B59FA4-48A2-4E47-AA3E-C9FC0BB2E611}.Release|Win32.ActiveCfg = Release|Win32
+		{E8B59FA4-48A2-4E47-AA3E-C9FC0BB2E611}.Release|Win32.Build.0 = Release|Win32
+		{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}.Debug|Win32.ActiveCfg = Debug|Win32
+		{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}.Debug|Win32.Build.0 = Debug|Win32
+		{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}.Release|Win32.ActiveCfg = Release|Win32
+		{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

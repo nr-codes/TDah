@@ -39,7 +39,7 @@ int init_cam(Fg_Struct **grabber, int memsize, int buffers, int camlink)
 	int rc;
 	Fg_Struct *fg = NULL;
 
-	fg = Fg_Init("FastConfig.dll", 0);
+	fg = Fg_Init("FastConfig.dll", PORT_A);
 	if(fg == NULL) {
 		return Fg_getLastErrorNumber(fg);
 	}
