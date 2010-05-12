@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleAppletTest", "SimpleA
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleFastConfig", "SimpleFastConfig\SimpleFastConfig.vcproj", "{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleTiming", "SimpleTiming\SimpleTiming.vcproj", "{EA265F65-0785-4D39-814A-4204A7BA5E94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,10 @@ Global
 		{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}.Debug|Win32.Build.0 = Debug|Win32
 		{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}.Release|Win32.ActiveCfg = Release|Win32
 		{55400A2C-1FF3-4ABB-8B04-E26FE6FC6313}.Release|Win32.Build.0 = Release|Win32
+		{EA265F65-0785-4D39-814A-4204A7BA5E94}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EA265F65-0785-4D39-814A-4204A7BA5E94}.Debug|Win32.Build.0 = Debug|Win32
+		{EA265F65-0785-4D39-814A-4204A7BA5E94}.Release|Win32.ActiveCfg = Release|Win32
+		{EA265F65-0785-4D39-814A-4204A7BA5E94}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
