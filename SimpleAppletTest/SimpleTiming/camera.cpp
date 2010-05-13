@@ -8,19 +8,17 @@
 #include "FastConfig.h"
 
 #define APPLET "FastConfig.dll"
-#define NUM_BUFFERS 16
-//#define NUM_IMAGES 10
-#define TIMEOUT 3
 #define WINDOW "SimpleAppletTest"
 #define SEQ_LEN 1
 #define MAX_ROI 8
-#define IMG_SIZE 1024
 #define DO_INIT 1
+#define PAUSE 10 // ms
 
 int close_cam(Fg_Struct *fg);
 int update_roi(Fg_Struct *fg, int w, int h, double e, double f);
 int open_cam(Fg_Struct **gr, int mode);
 int get_images(Fg_Struct *fg, int num_imgs);
+int show_images(Fg_Struct *fg, int *nr, int num_images, int w, int h);
 
 int update_roi(Fg_Struct *fg, int w, int h, double e, double f)
 {
@@ -38,7 +36,7 @@ int update_roi(Fg_Struct *fg, int w, int h, double e, double f)
 	return rc;
 }
 
-int open_cam(Fg_Struct **gr, int mode)
+int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h)
 {
 	Fg_Struct *fg = NULL;
 	FastConfigSequence mFcs;
@@ -82,24 +80,7 @@ int open_cam(Fg_Struct **gr, int mode)
 		return rc;
 	}
 
-	rc = IMG_SIZE;
-	if(Fg_setParameter(fg, FG_WIDTH, &rc, PORT_A) < 0) {
-		printf("width: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		close_cam(fg);
-		return rc;
-	}
-
-	rc = IMG_SIZE;
-	if(Fg_setParameter(fg, FG_HEIGHT, &rc, PORT_A) < 0) {
-		printf("height: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		close_cam(fg);
-		return rc;
-	}	
-
-	if(Fg_AllocMem(fg, IMG_SIZE*IMG_SIZE*NUM_BUFFERS, NUM_BUFFERS, PORT_A)
-		== NULL) {
+	if(Fg_AllocMem(fg, w*h*num_images, num_images, PORT_A) == NULL) {
 		printf("mem: %s\n", Fg_getLastErrorDescription(fg));
 		rc = Fg_getLastErrorNumber(fg);
 		close_cam(fg);
@@ -140,6 +121,28 @@ int get_images(Fg_Struct *fg, int num_imgs)
         close_cam(fg);
 		return rc;
 	}
+
+	return FG_OK;
+}
+
+int show_images(Fg_Struct *fg, int *nr, int num_imgs, int w, int h)
+{
+	int i;
+	int disp;
+	unsigned long *img;
+
+	printf("showing images %d %d %d\n", num_imgs, w, h);
+
+	disp = CreateDisplay(8, w, h);
+	SetBufferWidth(disp, w, h);
+	for(i = 0; i < num_imgs; i++) {
+		if(nr[i] > FG_OK) {
+			img = Fg_getImagePtr(fg, nr[i], PORT_A);
+			DrawBuffer(disp, img, nr[i], "SimpleTiming");
+			Sleep(PAUSE);
+		}
+	}
+	CloseDisplay(disp);
 
 	return FG_OK;
 }
