@@ -7,11 +7,50 @@
 #include "fgrab_define.h"
 #include "FastConfig.h"
 
-#define APPLET "SingleAreaGray.dll"
+#define APPLET "FastConfig.dll"
 #define NUM_BUFFERS 16
-#define NUM_IMAGES 100
+#define NUM_IMAGES 10
 #define TIMEOUT 3
 #define WINDOW "SimpleAppletTest"
+#define FRAME_TIME 50000
+#define EXPOSURE 20000
+
+int FCInit(Fg_Struct *fg, int w, int h)
+{
+    // setup ROI 0
+	int rc;
+	FastConfigSequence mFcs;
+	FC_ParameterSet lRoiParameterSet;
+
+	mFcs.mLengthOfSequence = 1;
+	mFcs.mRoiPagePointer = new int[mFcs.mLengthOfSequence];
+	mFcs.mRoiPagePointer[0]	= 0;
+
+    memset(&lRoiParameterSet, 0, sizeof(FC_ParameterSet));
+    setParameterSetRoi(&lRoiParameterSet, 0, w, 0, h);
+    setParameterSetTime(&lRoiParameterSet, EXPOSURE, FRAME_TIME);
+    setParameterSetLinlog(&lRoiParameterSet, 0, 0, 0, 0);
+
+    rc = FastConfigInit(PORT_A);
+    if(rc != FG_OK) {
+        printf("FC Init: %s\n", Fg_getLastErrorDescription(fg));
+        rc = Fg_getLastErrorNumber(fg);
+        Fg_FreeGrabber(fg);
+        return rc;
+    }
+
+	rc = Fg_setParameter(fg, FG_FASTCONFIG_SEQUENCE, &mFcs,PORT_A);
+    if(rc != FG_OK) {
+        printf("FC SEQ: %s\n", Fg_getLastErrorDescription(fg));
+        rc = Fg_getLastErrorNumber(fg);
+        Fg_FreeGrabber(fg);
+        return rc;
+    }
+
+    writeParameterSet(fg, &lRoiParameterSet, 0, 0xfab, 1, PORT_A);
+
+	return FG_OK;
+}
 
 
 int main(void)
@@ -30,7 +69,7 @@ int main(void)
 		return rc;
 	}
 
-	mode = GRABBER_CONTROLLED;
+	mode = ASYNC_SOFTWARE_TRIGGER;
 	if(Fg_setParameter(fg, FG_TRIGGERMODE, &mode, PORT_A) < 0) {
 		printf("mode: %s\n", Fg_getLastErrorDescription(fg));
 		rc = Fg_getLastErrorNumber(fg);
@@ -65,8 +104,24 @@ int main(void)
 			printf("unknown trigger signal\n");
 	}
 
+	rc = FG_CL_DUALTAP_8_BIT;
+	if(Fg_setParameter(fg, FG_CAMERA_LINK_CAMTYP, &rc, PORT_A) < 0) {
+		printf("dual tap: %s\n", Fg_getLastErrorDescription(fg));
+		rc = Fg_getLastErrorNumber(fg);
+		Fg_FreeGrabber(fg);
+		return rc;
+	}
+
 	if(Fg_setExsync(fg, FG_ON, PORT_A) < 0) {
 		printf("sync on: %s\n", Fg_getLastErrorDescription(fg));
+		rc = Fg_getLastErrorNumber(fg);
+		Fg_FreeGrabber(fg);
+		return rc;
+	}
+
+    rc = FG_ON;
+	if(Fg_setParameter(fg, FG_EXSYNCINVERT, &rc, PORT_A) < 0) {
+		printf("sync invert: %s\n", Fg_getLastErrorDescription(fg));
 		rc = Fg_getLastErrorNumber(fg);
 		Fg_FreeGrabber(fg);
 		return rc;
@@ -84,7 +139,7 @@ int main(void)
 		rc = Fg_getLastErrorNumber(fg);
 		Fg_FreeGrabber(fg);
 		return rc;
-	}
+	}	
 
 	if(Fg_AllocMem(fg, w*h*NUM_BUFFERS, NUM_BUFFERS, PORT_A) == NULL){
 		printf("mem: %s\n", Fg_getLastErrorDescription(fg));
@@ -93,9 +148,19 @@ int main(void)
 		return rc;
 	}
 
+    if(FCInit(fg, w, h) != FG_OK) {
+		printf("FCInit: %s\n", Fg_getLastErrorDescription(fg));
+		rc = Fg_getLastErrorNumber(fg);
+        FastConfigFree(PORT_A);
+		Fg_FreeGrabber(fg);
+		return rc;
+    }
+
+
 	if(Fg_Acquire(fg, PORT_A, NUM_IMAGES) < 0){
 		printf("acq: %s\n", Fg_getLastErrorDescription(fg));
 		rc = Fg_getLastErrorNumber(fg);
+        FastConfigFree(PORT_A);
 		Fg_FreeGrabber(fg);
 		return rc;
 	}
@@ -106,6 +171,7 @@ int main(void)
 	while(nr < NUM_IMAGES)
 	{
 		nr++;
+		Fg_sendSoftwareTrigger(fg, PORT_A);
 		rc = Fg_getLastPicNumberBlocking(fg, nr, PORT_A, TIMEOUT);
 		if(rc <= FG_OK) {
 			printf("get images: %s\n", Fg_getLastErrorDescription(fg));
@@ -121,40 +187,24 @@ int main(void)
 			}
 		}
 		cvShowImage(WINDOW, cvDisplay);
-		cvWaitKey(1);
+		cvWaitKey(2);
 	}
 	cvReleaseImage(&cvDisplay);
 
 	if(Fg_setExsync(fg, FG_OFF, PORT_A) < 0) {
-		printf("sync on: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		Fg_FreeGrabber(fg);
-		return rc;
+		printf("sync off: %s\n", Fg_getLastErrorDescription(fg));
 	}
 
-
-	rc = Fg_stopAcquire(fg, PORT_A);
-	if(rc != FG_OK) {
+	if(Fg_stopAcquire(fg, PORT_A) != FG_OK) {
 		printf("stop acq: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		Fg_FreeGrabber(fg);
-		return rc;
 	}
 
-	rc = Fg_FreeMem(fg, PORT_A);
-	if(rc != FG_OK) {
-		printf("free mem: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		Fg_FreeGrabber(fg);
-		return rc;
+	if(FastConfigFree(PORT_A) != FG_OK) {
+		printf("FC free: %s\n", Fg_getLastErrorDescription(fg));
 	}
 
-	rc = Fg_FreeGrabber(fg);
-	if(rc != FG_OK) {
+	if(Fg_FreeGrabber(fg) != FG_OK) {
 		printf("free grabber: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		Fg_FreeGrabber(fg);
-		return rc;
 	}
 
 	return 0;

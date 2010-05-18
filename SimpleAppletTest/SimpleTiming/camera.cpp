@@ -13,6 +13,7 @@
 #define MAX_ROI 8
 #define DO_INIT 1
 #define PAUSE 10 // ms
+#define SHOW_DISP 0
 
 int close_cam(Fg_Struct *fg);
 int update_roi(Fg_Struct *fg, int w, int h, double e, double f);
@@ -20,18 +21,31 @@ int open_cam(Fg_Struct **gr, int mode);
 int get_images(Fg_Struct *fg, int num_imgs);
 int show_images(Fg_Struct *fg, int *nr, int num_images, int w, int h);
 
-int update_roi(Fg_Struct *fg, int w, int h, double e, double f)
+int update_roi(Fg_Struct *fg, int label, int w, int h, double e, double f, int init)
 {
     // setup one ROI, ROI0
 	int rc;
 	FC_ParameterSet lRoiParameterSet;
 
     memset(&lRoiParameterSet, 0, sizeof(FC_ParameterSet));
-    setParameterSetRoi(&lRoiParameterSet, 0, w, 0, h);
-    setParameterSetTime(&lRoiParameterSet, e, f);
-    setParameterSetLinlog(&lRoiParameterSet, 0, 0, 0, 0);
+    
+	
+	if(setParameterSetRoi(&lRoiParameterSet, 0, w, 0, h) < 0) {
+		printf("set roi: %s\n", Fg_getLastErrorDescription(fg));
+	}
+    
+	if(setParameterSetTime(&lRoiParameterSet, e, f) < 0) {
+		printf("set time: %s\n", Fg_getLastErrorDescription(fg));
+	}
 
-    rc = writeParameterSet(fg, &lRoiParameterSet, 0, 0xfab, DO_INIT, PORT_A);
+	if(setParameterSetLinlog(&lRoiParameterSet, 0, 0, 0, 0) < 0) {
+		printf("set linlog: %s\n", Fg_getLastErrorDescription(fg));
+	}
+
+    rc = writeParameterSet(fg, &lRoiParameterSet, 0, label, init, PORT_A);
+	if(rc < 0) {
+		printf("write params: %s\n", Fg_getLastErrorDescription(fg));
+	}
 
 	return rc;
 }
@@ -64,7 +78,7 @@ int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h)
 		close_cam(fg);
 		return rc;
 	}
-
+/*
 	if(Fg_setExsync(fg, FG_ON, PORT_A) < 0) {
 		printf("sync on: %s\n", Fg_getLastErrorDescription(fg));
 		rc = Fg_getLastErrorNumber(fg);
@@ -79,6 +93,7 @@ int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h)
 		close_cam(fg);
 		return rc;
 	}
+*/
 
 	if(Fg_AllocMem(fg, w*h*num_images, num_images, PORT_A) == NULL) {
 		printf("mem: %s\n", Fg_getLastErrorDescription(fg));
@@ -122,16 +137,30 @@ int get_images(Fg_Struct *fg, int num_imgs)
 		return rc;
 	}
 
+	if(Fg_setExsync(fg, FG_ON, PORT_A) < 0) {
+		printf("sync on: %s\n", Fg_getLastErrorDescription(fg));
+		rc = Fg_getLastErrorNumber(fg);
+		close_cam(fg);
+		return rc;
+	}
+
+    rc = FG_ON;
+	if(Fg_setParameter(fg, FG_EXSYNCINVERT, &rc, PORT_A) < 0) {
+		printf("sync invert: %s\n", Fg_getLastErrorDescription(fg));
+		rc = Fg_getLastErrorNumber(fg);
+		close_cam(fg);
+		return rc;
+	}
+
 	return FG_OK;
 }
 
 int show_images(Fg_Struct *fg, int *nr, int num_imgs, int w, int h)
 {
+#if SHOW_DISP
 	int i;
 	int disp;
 	unsigned long *img;
-
-	printf("showing images %d %d %d\n", num_imgs, w, h);
 
 	disp = CreateDisplay(8, w, h);
 	SetBufferWidth(disp, w, h);
@@ -143,7 +172,7 @@ int show_images(Fg_Struct *fg, int *nr, int num_imgs, int w, int h)
 		}
 	}
 	CloseDisplay(disp);
-
+#endif
 	return FG_OK;
 }
 
