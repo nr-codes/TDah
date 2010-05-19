@@ -28,7 +28,6 @@ int update_roi(Fg_Struct *fg, int label, int w, int h, double e, double f, int i
 	FC_ParameterSet lRoiParameterSet;
 
     memset(&lRoiParameterSet, 0, sizeof(FC_ParameterSet));
-    
 	
 	if(setParameterSetRoi(&lRoiParameterSet, 0, w, 0, h) < 0) {
 		printf("set roi: %s\n", Fg_getLastErrorDescription(fg));
@@ -78,7 +77,7 @@ int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h)
 		close_cam(fg);
 		return rc;
 	}
-/*
+
 	if(Fg_setExsync(fg, FG_ON, PORT_A) < 0) {
 		printf("sync on: %s\n", Fg_getLastErrorDescription(fg));
 		rc = Fg_getLastErrorNumber(fg);
@@ -93,7 +92,14 @@ int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h)
 		close_cam(fg);
 		return rc;
 	}
-*/
+
+    rc = FG_ON;
+	if(Fg_setParameter(fg, FG_EXSYNCPOLARITY, &rc, PORT_A) < 0) {
+		printf("sync polarity: %s\n", Fg_getLastErrorDescription(fg));
+		rc = Fg_getLastErrorNumber(fg);
+		close_cam(fg);
+		return rc;
+	}
 
 	if(Fg_AllocMem(fg, w*h*num_images, num_images, PORT_A) == NULL) {
 		printf("mem: %s\n", Fg_getLastErrorDescription(fg));
@@ -102,8 +108,28 @@ int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h)
 		return rc;
 	}
 
+////////////////////////////////////////////
+	/*
+	if(Fg_setParameter(fg, FG_WIDTH, &w, PORT_A) < 0) {
+		printf("width: %s\n", Fg_getLastErrorDescription(fg));
+		rc = Fg_getLastErrorNumber(fg);
+		Fg_FreeGrabber(fg);
+		return rc;
+	}
+
+	if(Fg_setParameter(fg, FG_HEIGHT, &h, PORT_A) < 0) {
+		printf("height: %s\n", Fg_getLastErrorDescription(fg));
+		rc = Fg_getLastErrorNumber(fg);
+		Fg_FreeGrabber(fg);
+		return rc;
+	}
+	*/
+////////////////////////////////////////////
+
+
 	// FastConfig parameters
-    if(FastConfigInit(PORT_A) != FG_OK) {
+
+	if(FastConfigInit(PORT_A) != FG_OK) {
         printf("fc init: %s\n", Fg_getLastErrorDescription(fg));
         rc = Fg_getLastErrorNumber(fg);
         close_cam(fg);
@@ -130,25 +156,10 @@ int get_images(Fg_Struct *fg, int num_imgs)
 {
 	int rc;
 
-	if(Fg_Acquire(fg, PORT_A, num_imgs) < 0){
+	if(Fg_Acquire(fg, PORT_A, GRAB_INFINITE) < 0) {
 		printf("acq: %s\n", Fg_getLastErrorDescription(fg));
 		rc = Fg_getLastErrorNumber(fg);
         close_cam(fg);
-		return rc;
-	}
-
-	if(Fg_setExsync(fg, FG_ON, PORT_A) < 0) {
-		printf("sync on: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		close_cam(fg);
-		return rc;
-	}
-
-    rc = FG_ON;
-	if(Fg_setParameter(fg, FG_EXSYNCINVERT, &rc, PORT_A) < 0) {
-		printf("sync invert: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		close_cam(fg);
 		return rc;
 	}
 
