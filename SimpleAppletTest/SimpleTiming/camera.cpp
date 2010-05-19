@@ -85,6 +85,7 @@ int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h)
 		return rc;
 	}
 
+	// I don't think the next two do anything
     rc = FG_ON;
 	if(Fg_setParameter(fg, FG_EXSYNCINVERT, &rc, PORT_A) < 0) {
 		printf("sync invert: %s\n", Fg_getLastErrorDescription(fg));
@@ -107,25 +108,6 @@ int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h)
 		close_cam(fg);
 		return rc;
 	}
-
-////////////////////////////////////////////
-	/*
-	if(Fg_setParameter(fg, FG_WIDTH, &w, PORT_A) < 0) {
-		printf("width: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		Fg_FreeGrabber(fg);
-		return rc;
-	}
-
-	if(Fg_setParameter(fg, FG_HEIGHT, &h, PORT_A) < 0) {
-		printf("height: %s\n", Fg_getLastErrorDescription(fg));
-		rc = Fg_getLastErrorNumber(fg);
-		Fg_FreeGrabber(fg);
-		return rc;
-	}
-	*/
-////////////////////////////////////////////
-
 
 	// FastConfig parameters
 

@@ -128,7 +128,7 @@ int method2(Fg_Struct *fg, int num_imgs, int w, int h, double e, double f)
 	QueryPerformanceCounter((LARGE_INTEGER *) &loop_start);
 	while(i < num_imgs) {
 		QueryPerformanceCounter((LARGE_INTEGER *) (pc_start + i));
-		if(Fg_sendSoftwareTrigger(fg, PORT_A) < 0) {
+		if(Fg_sendSoftwareTrigger(fg, PORT_A) < 0) { // this always seems to return success, never busy
 			printf("swt: %s\n", Fg_getLastErrorDescription(fg));
 		}
 		img_nr = Fg_getLastPicNumberBlocking(fg, i + 1, PORT_A, TIMEOUT);
@@ -139,16 +139,7 @@ int method2(Fg_Struct *fg, int num_imgs, int w, int h, double e, double f)
 		nr[i] = img_nr;
 		QueryPerformanceCounter((LARGE_INTEGER *) (pc_stop + i));
 
-		/*
-		rc = i+1;
-		if(Fg_getParameter(fg, FG_IMAGE_TAG, &rc, PORT_A) < 0) {
-			printf("image tag: %s\n", Fg_getLastErrorDescription(fg));
-		}
-		printf("image tag (%d): %d\n", nr[i], rc);
-		*/
-
 		i++;
-		//Sleep(i*2);
 	}
 	QueryPerformanceCounter((LARGE_INTEGER *) &loop_stop);
 
@@ -157,17 +148,10 @@ int method2(Fg_Struct *fg, int num_imgs, int w, int h, double e, double f)
 	printf("%lld %lld %lld -1\n", 
 		((rc == TRUE) ? freq : -ENODEV), loop_start, loop_stop);
 	for(i = 0; i < num_imgs; i++) {
-		fg_ts[i] = i+1;//nr[i];
+		fg_ts[i] = nr[i];
 		rc = Fg_getParameter(fg, FG_TIMESTAMP, fg_ts + i, PORT_A);
 		printf("%d %lld %lld %lld\n", 
 			nr[i], pc_start[i], pc_stop[i], ((rc < 0) ? rc : fg_ts[i]));
-
-
-		rc = i+1;
-		if(Fg_getParameter(fg, FG_IMAGE_TAG, &rc, PORT_A) < 0) {
-			printf("image tag: %s\n", Fg_getLastErrorDescription(fg));
-		}
-		printf("image tag: %d\n", rc);
 	}
 
 	show_images(fg, nr, num_imgs, w, h);
