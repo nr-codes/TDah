@@ -2,14 +2,23 @@
 #include "fgrab_prototyp.h"
 #include "fgrab_define.h"
 
-#define NUM_IMGS 1000
-#define WIDTH 1024
-#define HEIGHT 1024
-#define EXPOSURE 100
+#define NUM_IMGS 3
+
+
+#define WIDTH 524
+#define HEIGHT 1
+#define EXPOSURE 600
+
 #define MIN_EXP 1
-#define MAX_EXP 1000
-#define MIN_LENGTH 16
-#define MAX_LENGTH 256
+#define MAX_EXP 1
+
+#define MIN_WIDTH 16
+#define MAX_WIDTH 16
+#define MIN_HEIGHT 1
+#define MAX_HEIGHT 1
+
+#define MIN_LENGTH 128
+#define MAX_LENGTH 128
 
 
 extern int open_cam(Fg_Struct **gr, int mode, int num_images, int w, int h);
@@ -25,17 +34,15 @@ int main(int argc, char *argv[])
 	double e;
 
 	for(e = MIN_EXP; e <= MAX_EXP; e *= 10) {
-		for(w = MIN_LENGTH; w <= MAX_LENGTH; w += 20) {
-			for(h = MIN_LENGTH; h <= MAX_LENGTH; h += 20) {
+		for(w = MIN_WIDTH; w <= MAX_WIDTH; w += 4) {
+			for(h = MIN_HEIGHT; h <= MAX_HEIGHT; h++) {
 				if(open_cam(&fg, ASYNC_SOFTWARE_TRIGGER, NUM_IMGS, w, h) == FG_OK) {
 					method2(fg, NUM_IMGS, w, h, e, e);
 					close_cam(fg);
 				}
-
 			}
 		}
 	}
-
 
 	/*
 				if(open_cam(&fg, GRABBER_CONTROLLED, NUM_IMGS, w, h) == FG_OK) {

@@ -9,7 +9,7 @@
 
 #define APPLET "FastConfig.dll"
 #define NUM_BUFFERS 16
-#define NUM_IMAGES 10
+#define NUM_IMAGES 1
 #define TIMEOUT 3
 #define WINDOW "SimpleAppletTest"
 #define FRAME_TIME 50000

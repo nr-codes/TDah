@@ -9,7 +9,7 @@
 
 #define APPLET "FastConfig.dll"
 #define NUM_BUFFERS 16
-#define NUM_IMAGES 10
+#define NUM_IMAGES 1
 #define TIMEOUT 3
 #define WINDOW "SimpleAppletTest"
 #define FRAME_TIME 50000
@@ -171,7 +171,21 @@ int main(void)
 	while(nr < NUM_IMAGES)
 	{
 		nr++;
-		Fg_sendSoftwareTrigger(fg, PORT_A);
+		if(Fg_sendSoftwareTrigger(fg, PORT_A) != FG_OK) {
+			printf("send trigger 1: %s\n", Fg_getLastErrorDescription(fg));
+			rc = Fg_getLastErrorNumber(fg);
+			Fg_FreeGrabber(fg);
+			return rc;
+		}
+
+		rc = FG_ON;
+		if(Fg_setParameter(fg, FG_SENDSOFTWARETRIGGER, &rc, PORT_A) != FG_OK) {
+			printf("send trigger 2: %s\n", Fg_getLastErrorDescription(fg));
+			rc = Fg_getLastErrorNumber(fg);
+			Fg_FreeGrabber(fg);
+			return rc;
+		}
+
 		rc = Fg_getLastPicNumberBlocking(fg, nr, PORT_A, TIMEOUT);
 		if(rc <= FG_OK) {
 			printf("get images: %s\n", Fg_getLastErrorDescription(fg));
@@ -187,7 +201,7 @@ int main(void)
 			}
 		}
 		cvShowImage(WINDOW, cvDisplay);
-		cvWaitKey(2);
+		cvWaitKey(200);
 	}
 	cvReleaseImage(&cvDisplay);
 
