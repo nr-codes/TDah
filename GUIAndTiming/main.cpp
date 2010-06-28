@@ -171,7 +171,8 @@ int main(int argc, char *argv[])
 
 			for(exposure = MIN_FRAME; exposure <= frame; exposure += exp_step) {
 					reset(tseq.windows, box, frame, exposure);
-					time_run(&tseq, NUM_IMGS, THRESHOLD, frame, exposure);
+					//time_run(&tseq, NUM_IMGS, THRESHOLD, frame, exposure);
+					time_run(&tseq, NUM_IMGS, THRESHOLD, FRAME_TIME, EXPOSURE);
 			}
 		}
 	#else

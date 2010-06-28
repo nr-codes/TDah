@@ -155,16 +155,16 @@ int roi_linlog(int index, int use_linlog, int ll1, int ll2, int comp)
 *
 * @param grabber an initialized Fg_Struct object defined in the Silicon Software API
 * @param index the ROI where the parameters are saved
-* @param imgNr the (minimum) image that the ROI will be active for
+* @param tag the label associated with the image that the ROI will be active for
 * @param doInit perform a reinitialization of the camera ROI (see Silicon Software API)
 *
 * @see roi_index
 */
-int write_roi(Fg_Struct *fg, int index, int imgNr, int doInit)
+int write_roi(Fg_Struct *fg, int index, int tag, int doInit)
 {
 	int rc;
 
-	rc = writeParameterSet(fg, &rois[index], index, imgNr, doInit, PORT_A);
+	rc = writeParameterSet(fg, &rois[index], index, tag, doInit, PORT_A);
 	if(rc != FG_OK) {
 		printf("write parameterset failed\n");
 		return Fg_getLastErrorNumber(fg);

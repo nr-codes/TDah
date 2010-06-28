@@ -91,7 +91,7 @@ int acquire_imgs(Fg_Struct *fg, int *seq, int seq_len)
 	}
 
 	for(i = 0; i < MAX_ROI; i++) {
-		rc = write_roi(fg, i, 0, !DO_INIT);
+		rc = write_roi(fg, i, i, !DO_INIT);
 		if(rc != FG_OK) {
 			printf("init of roi %d failed\n", i);
 			return Fg_getLastErrorNumber(fg);

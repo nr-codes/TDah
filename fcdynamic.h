@@ -212,7 +212,7 @@ extern int set_roi(int index, int width, int height, int exposure, int frame);
 extern int roi_window(int index, int x, int width, int y, int height);
 extern int roi_exposure(int index, double exp, double ft);
 extern int roi_linlog(int index, int use_linglog, int ll1, int ll2, int comp);
-extern int write_roi(Fg_Struct *fg, int index, int imgNr, int doInit);
+extern int write_roi(Fg_Struct *fg, int index, int tag, int doInit);
 
 extern int threshold(TrackingWindow *win, int t);
 extern int boundary(TrackingWindow *win);
@@ -228,8 +228,8 @@ extern void set_region(int e, int x, int y, int flags, void *param);
 extern int position(TrackingWindow *cur);
 extern int blob(TrackingWindow *win);
 
-extern int open_comm();
-extern int write_comm(TrackingWindow *win, int box_x, int box_y);
+extern int open_comm(LPCTSTR port);
+extern int write_comm(int roi, float x, float y, unsigned int timestamp);
 extern int close_comm();
 
 extern int StartGrabbing(Fg_Struct **fg, TrackingSequence *tseq, unsigned char **data);
