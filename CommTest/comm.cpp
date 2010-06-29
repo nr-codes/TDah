@@ -5,8 +5,8 @@
 #define BYTES_TO_SEND 34
 #define BYTES_TO_RX 100
 
-#define RESPONSE 0
-#define DROPPED_PACKETS 1
+#define RESPONSE 1
+#define DROPPED_PACKETS 0
 
 // roi 5: x = 123.456, y = 789.0123, timestamp = 987654321
 // roi 9: x = 987.6, y = 54.321, timestamp = 1234567890;
@@ -23,7 +23,7 @@ static unsigned char info[BYTES_TO_SEND];
 
 int open_comm()
 {
-	hComm = CreateFile( TEXT("\\\\.\\COM12"),
+	hComm = CreateFile( TEXT("\\\\.\\COM11"),
                     GENERIC_READ | GENERIC_WRITE, 
                     0, 
                     0, 
@@ -45,8 +45,8 @@ int open_comm()
 	dcb.fParity = FALSE;
 	dcb.Parity = NOPARITY;
 	dcb.StopBits = ONESTOPBIT;
-	dcb.fOutxCtsFlow = TRUE;
-	dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
+	dcb.fOutxCtsFlow = FALSE;
+	dcb.fRtsControl = RTS_CONTROL_DISABLE;
 	dcb.fOutX = FALSE;
 	dcb.fInX = FALSE;
 
@@ -66,16 +66,16 @@ int close_comm()
 
 int main(void)
 {
-	unsigned int packet = 0, ts = 0;
+	unsigned int packet = 0, ts = 2;
 	DWORD bytes = 0;
 	COMMTIMEOUTS timeout;
 
 	open_comm();
 
 	// if one of these aren't set, then read returns immediately
-	timeout.ReadIntervalTimeout = 10;
-	timeout.ReadTotalTimeoutConstant = 10;
-	timeout.ReadTotalTimeoutMultiplier = 10;
+	timeout.ReadIntervalTimeout = 1000;
+	timeout.ReadTotalTimeoutConstant = 1000;
+	timeout.ReadTotalTimeoutMultiplier = 1000;
 
 	SetCommTimeouts(hComm, &timeout);
 
@@ -100,6 +100,7 @@ int main(void)
 			printf("error reading from comm port\n");
 			break;
 		}
+
 		packet++;
 		if(bytes == 0) {
 			printf("no bytes sent\n");
@@ -115,7 +116,6 @@ int main(void)
 			break;
 		}
 #endif
-		Sleep(1000);
 	}
 
 	close_comm();
