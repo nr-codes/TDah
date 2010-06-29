@@ -6,7 +6,7 @@
  **********************************************************************/
 #include <HardwareProfile.h>
 
-#define DESIRED_BAUDRATE    	(115200)      // The desired BaudRate
+#define DESIRED_BAUDRATE    	(111111)      // The desired BaudRate
 
 // define setup Configuration 1 for OpenUARTx
 	// Module Enable 
