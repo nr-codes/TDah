@@ -26,8 +26,8 @@
 #include <fcdynamic.h>
 
 // CAMERA PARAMETERS
-#define EXPOSURE 20000//1300 /**< shutter speed in us */
-#define FRAME_TIME 50000//2000 /**< pause between images in us (e.g. 1 / fps) */
+#define EXPOSURE 1000 /**< shutter speed in us */
+#define FRAME_TIME 3000 /**< pause between images in us (e.g. 1 / fps) */
 #define IMG_WIDTH 1024
 #define IMG_HEIGHT 1024
 #define NUM_BUFFERS 16 /**< typical setting (max is 1,000,000 shouldn't exceed 1.6 GB)*/
@@ -38,7 +38,7 @@
 #define CAMLINK FG_CL_DUALTAP_8_BIT
 
 // CAMERA REGION OF INTEREST
-#define ROI_BOX 64
+#define ROI_BOX 128
 
 // INITIAL BLOB0 POSITION IN IMG COORD FRAME
 #define INITIAL_BLOB0_XMIN (434)
@@ -64,8 +64,20 @@
 #define DISPLAY1 "Simple Tracking 1" /**< name of display GUI */
 #define NEXT_IMAGE 1 /**< next valid image to grab */
 #define PORT TEXT("COM5") /**< name of comm port */
-#define SHOW_DISP 1 /**< show display, turn off for accurate timing */
+#define SHOW_DISP 0 /**< show display, turn off for accurate timing */
 #define TEXT_BUF 100
+#define OBJ_ERR -1
+#define APP_NUM_ROI 2
+#define PACKET_SIZE 17
+
+struct {
+	char roi;
+	float x;
+	float y;
+	unsigned int t;
+} roi_packet[APP_NUM_ROI];
+
+char packet[PACKET_SIZE*APP_NUM_ROI];
 
 /** Sets the initial positions of the camera's window and blob's window
 *
@@ -188,7 +200,7 @@ int main()
 	// important variables used in most applications
 	int rc;
 	Fg_Struct *fg = NULL;
-	unsigned int img_nr, cur_roi;
+	int img_nr, cur_roi;
 	TrackingSequence wins;
 	TrackingWindow *cur;
 	int seq[] = SEQ;
@@ -196,7 +208,19 @@ int main()
 	__int64 start, stop, accum;
 	CvMat *intrinsic, *distortion, *rot, *trans;
 	CvMat *world, *distorted, *normalized;
-	float x, y, z;
+	float z;
+
+	assert(sizeof(unsigned int) == 4 && sizeof(float) == 4);
+
+	// initialize packet...not good design should change
+	packet[0] = 'R';
+	packet[2] = 'X';
+	packet[7] = 'Y';
+	packet[12] = 'T';
+	packet[PACKET_SIZE] = 'P';
+	packet[PACKET_SIZE+2] = 'X';
+	packet[PACKET_SIZE+7] = 'Y';
+	packet[PACKET_SIZE+12] = 'T';
 
 	// load camera model
 	intrinsic = (CvMat *) cvLoad( "TrackCamIntrinsics062810.xml" );
@@ -266,7 +290,7 @@ int main()
 	cvNamedWindow(DISPLAY0, CV_WINDOW_AUTOSIZE);
 	cvNamedWindow(DISPLAY1, CV_WINDOW_AUTOSIZE);
 #endif
-	
+
 	// initialize the tracking windows (i.e. blob and ROI positions)
 	wins.seq = seq;
 	wins.seq_len = SEQ_LEN;
@@ -296,10 +320,14 @@ int main()
 	int old_img_nr = 0;
 
 	// start image loop and don't stop until the user presses 'q'
-	printf("press 'q' at any time to quit this demo.");
+	printf("press 'q' at any time to quit this demo.\n");
 	while(!(_kbhit() && _getch() == 'q')) {
 		QueryPerformanceCounter((PLARGE_INTEGER) &start);
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
+		if(img_nr < FG_OK) {
+			printf("loop getLast: %s\n", Fg_getLastErrorDescription(fg));
+			break;
+		}
 
 #if !SHOW_DISP
 		if(img_nr - old_img_nr > 1) {
@@ -337,7 +365,13 @@ int main()
 			erode(cur);
 
 			// update ROI position
-			position(cur);
+			rc = position(cur);
+			if(rc == OBJECT_FOUND) {
+				roi_packet[cur_roi].roi = cur_roi;
+			}
+			else {
+				roi_packet[cur_roi].roi = -cur_roi;
+			}
 
 			// at this point position(...) has updated the ROI, but it only stores
 			// the updated values internal to the code.  The next step is to flush
@@ -359,14 +393,39 @@ int main()
 			cvSub(world, trans, world);
 			cvGEMM(rot, world, 1, NULL, 0, world, CV_GEMM_A_T);
 			
-			x = CV_MAT_ELEM(*world, float, 0, 0);
-			y = CV_MAT_ELEM(*world, float, 1, 0);
+			roi_packet[cur_roi].x = CV_MAT_ELEM(*world, float, 0, 0);
+			roi_packet[cur_roi].y = CV_MAT_ELEM(*world, float, 1, 0);
+			roi_packet[cur_roi].t = ts;
 
-			// send data to serial port
-			rc = write_comm(cur_roi, x, y, ts);
-			if(rc != FG_OK) {
-				printf("loop comm: error writing to comm port %s\n", PORT);
-				break;
+			if(cur_roi == ROI_1) {
+				for(rc = 0; rc < APP_NUM_ROI; rc++) {
+					packet[rc*PACKET_SIZE + 1] = (char) roi_packet[rc].roi;
+					memcpy(&packet[rc*PACKET_SIZE + 3], &roi_packet[rc].x, sizeof(float));
+					memcpy(&packet[rc*PACKET_SIZE + 8], &roi_packet[rc].y, sizeof(float));
+					memcpy(&packet[rc*PACKET_SIZE + 13], &roi_packet[rc].t, sizeof(unsigned int));
+				}
+
+#if 0
+				printf("V - %d: ! %d_%0.3f_%0.4f_%u * %d_%0.1f_%0.3f_%u\n", img_nr, 
+						roi_packet[0].roi, roi_packet[0].x, roi_packet[0].y, roi_packet[0].t,
+						roi_packet[1].roi, roi_packet[1].x, roi_packet[1].y, roi_packet[1].t);
+				fflush(stdout);
+#endif
+
+				assert(packet[0] == 'R');
+				assert(packet[2] == 'X');
+				assert(packet[7] == 'Y');
+				assert(packet[12] == 'T');
+				assert(packet[PACKET_SIZE] == 'P');
+				assert(packet[PACKET_SIZE+2] == 'X');
+				assert(packet[PACKET_SIZE+7] == 'Y');
+				assert(packet[PACKET_SIZE+12] == 'T');
+				
+				rc = write_comm(packet, APP_NUM_ROI*PACKET_SIZE);
+				if(rc != FG_OK) {
+					printf("loop comm: error writing to comm port %s\n", PORT);
+					break;
+				}
 			}
 
 			// show image on screen
@@ -378,7 +437,7 @@ int main()
 				display_tracking(cur, cvDisplay1, DISPLAY1);
 			}
 #endif
-			
+
 			// increment to the next desired frame.
 			img_nr += NEXT_IMAGE;
 		}
