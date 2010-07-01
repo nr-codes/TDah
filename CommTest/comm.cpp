@@ -23,7 +23,7 @@ static unsigned char info[BYTES_TO_SEND];
 
 int open_comm()
 {
-	hComm = CreateFile( TEXT("\\\\.\\COM11"),
+	hComm = CreateFile( TEXT("\\\\.\\COM5"),
                     GENERIC_READ | GENERIC_WRITE, 
                     0, 
                     0, 

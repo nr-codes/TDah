@@ -24,7 +24,7 @@ int threshold(TrackingWindow *win, int t)
 
 	for(i = win->blob_ymin; i < ymax; i++) {
 		for(j = win->blob_xmin; j < xmax; j++) {
-			PIXEL(win, i, j) = (PIXEL(win, i, j) < t) ? BACKGROUND : FOREGROUND;
+			PIXEL(win, i, j) = (PIXEL(win, i, j) > t) ? BACKGROUND : FOREGROUND;
 		}
 	}
 

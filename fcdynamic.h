@@ -38,8 +38,8 @@
 #define WHITE 255
 #define GRAY 128
 #define BLACK 0
-#define BACKGROUND BLACK
-#define FOREGROUND WHITE
+#define BACKGROUND WHITE
+#define FOREGROUND BLACK
 #define BORDER GRAY
 
 #define OBJECT_FOUND 0
@@ -229,7 +229,8 @@ extern int position(TrackingWindow *cur);
 extern int blob(TrackingWindow *win);
 
 extern int open_comm(LPCTSTR port);
-extern int write_comm(int roi, float x, float y, unsigned int timestamp);
+extern int write_comm(char roi, float x, float y, unsigned int timestamp);
+extern int write_comm(char *packet, int size);
 extern int close_comm();
 
 extern int StartGrabbing(Fg_Struct **fg, TrackingSequence *tseq, unsigned char **data);
