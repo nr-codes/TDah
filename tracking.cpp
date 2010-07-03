@@ -22,7 +22,7 @@
 /**
 * padding applied after the blob's bounding box is found
 */
-#define ROI_PAD 15
+#define ROI_PAD 10
 
 #define PIXEL_BOUNDARY 0xfffffffc
 

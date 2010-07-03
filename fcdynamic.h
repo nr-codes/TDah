@@ -38,8 +38,8 @@
 #define WHITE 255
 #define GRAY 128
 #define BLACK 0
-#define BACKGROUND WHITE
-#define FOREGROUND BLACK
+#define BACKGROUND BLACK
+#define FOREGROUND WHITE
 #define BORDER GRAY
 
 #define OBJECT_FOUND 0
@@ -217,6 +217,7 @@ extern int write_roi(Fg_Struct *fg, int index, int tag, int doInit);
 extern int threshold(TrackingWindow *win, int t);
 extern int boundary(TrackingWindow *win);
 extern int erode(TrackingWindow *win);
+extern int erode(TrackingWindow *win, int n);
 
 extern int time_run(TrackingSequence *tseq, int num_imgs, int t, double frame, double exposure);
 extern int time_dur(TrackingSequence *tseq, int dur, int t, double frame, double exposure);

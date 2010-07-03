@@ -165,13 +165,15 @@ int display_run(TrackingSequence *tseq, double frame, double exposure)
 
 		if(cur->img != NULL) {
 			// process image
+			
 			if(do_thresh) {
 				threshold(cur, cvGetTrackbarPos(THRESH_TRACK, MAIN_WIN));
-				erode(cur);
+				erode(cur, 8);
 			}
-			
+
 			// copy image processing results
 			CopyTrackingWindowToImage(cur, cvDisplay);
+			
 
 			// update roi
 			if(find_blob) {

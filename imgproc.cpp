@@ -24,7 +24,11 @@ int threshold(TrackingWindow *win, int t)
 
 	for(i = win->blob_ymin; i < ymax; i++) {
 		for(j = win->blob_xmin; j < xmax; j++) {
+#if FOREGROUND == WHITE
+			PIXEL(win, i, j) = (PIXEL(win, i, j) < t) ? BACKGROUND : FOREGROUND;
+#else
 			PIXEL(win, i, j) = (PIXEL(win, i, j) > t) ? BACKGROUND : FOREGROUND;
+#endif
 		}
 	}
 
@@ -100,6 +104,68 @@ int erode(TrackingWindow *win)
 			}
 		}
 	}
+
+	return 0;
+}
+
+
+/**
+* a morphological operation that is useful for removing noisy <code>FOREGROUND</code> 
+* pixels.
+*
+* <code>erode</code> takes a TrackingWindow after the image data has been binarized 
+* and aggressively removes stray <code>FOREGROUND</code> pixels that appear to be noise.
+*
+* @param win the TrackingWindow with the binarized image data
+* @param n the number of FOREGROUND neighbors for the pixel to survive
+*/
+
+int erode(TrackingWindow *win, int n)
+{
+	int i, j, xmax, ymax;
+	int r, c, k = 0;
+	TrackingWindow e;
+
+	xmax = win->blob_xmax;
+	ymax = win->blob_ymax;
+
+	e = *win;
+	e.img = (unsigned char *) malloc(e.roi_w*e.roi_h*sizeof(char));
+	if(e.img == NULL) {
+		return !FG_OK;
+	}
+	memcpy(e.img, win->img, win->roi_w*win->roi_h);
+
+	for(i = win->blob_ymin; i < ymax; i++) {
+		for(j = win->blob_xmin; j < xmax; j++) {
+			if(PIXEL(&e, i, j) != FOREGROUND) {
+				continue;
+			}
+
+			for(r = -1; r < 2; r++) {
+				if((i + r < 0) || (i + r >= ymax)) {
+					continue;
+				}
+
+				for(c = -1; c < 2; c++) {
+					if((j + c < 0) || (j + c >= xmax)) {
+						continue;
+					}
+
+					if(PIXEL(&e, i + r, j + c) == BACKGROUND) {
+						k++;
+					}
+				}
+			}
+		
+			if(k >= n) {
+				PIXEL(win, i, j) = BACKGROUND;
+			}
+			k = 0;
+		}
+	}
+
+	free(e.img);
 
 	return 0;
 }

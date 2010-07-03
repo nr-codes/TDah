@@ -26,8 +26,8 @@
 #include <fcdynamic.h>
 
 // CAMERA PARAMETERS
-#define EXPOSURE 1000 /**< shutter speed in us */
-#define FRAME_TIME 3000 /**< pause between images in us (e.g. 1 / fps) */
+#define EXPOSURE (2200) /**< shutter speed in us */
+#define FRAME_TIME (3000) /**< pause between images in us (e.g. 1 / fps) */
 #define IMG_WIDTH 1024
 #define IMG_HEIGHT 1024
 #define NUM_BUFFERS 16 /**< typical setting (max is 1,000,000 shouldn't exceed 1.6 GB)*/
@@ -38,19 +38,19 @@
 #define CAMLINK FG_CL_DUALTAP_8_BIT
 
 // CAMERA REGION OF INTEREST
-#define ROI_BOX 128
+#define ROI_BOX 52
 
 // INITIAL BLOB0 POSITION IN IMG COORD FRAME
-#define INITIAL_BLOB0_XMIN (434)
-#define INITIAL_BLOB0_YMIN (572)
-#define INITIAL_BLOB0_WIDTH 30
-#define INITIAL_BLOB0_HEIGHT 30
+#define INITIAL_BLOB0_XMIN (409)
+#define INITIAL_BLOB0_YMIN (435)
+#define INITIAL_BLOB0_WIDTH 25
+#define INITIAL_BLOB0_HEIGHT 25
 
 // INITIAL BLOB1 POSITION IN IMG COORD FRAME
-#define INITIAL_BLOB1_XMIN (592)
-#define INITIAL_BLOB1_YMIN (583)
-#define INITIAL_BLOB1_WIDTH 30
-#define INITIAL_BLOB1_HEIGHT 30
+#define INITIAL_BLOB1_XMIN (619)
+#define INITIAL_BLOB1_YMIN (416)
+#define INITIAL_BLOB1_WIDTH 25
+#define INITIAL_BLOB1_HEIGHT 25
 
 #define INIT_BLOB_COORD_MIN {INITIAL_BLOB0_XMIN, INITIAL_BLOB1_XMIN, INITIAL_BLOB0_YMIN, INITIAL_BLOB1_YMIN}
 #define INIT_BLOB_COORD_MAX {INITIAL_BLOB0_XMIN + INITIAL_BLOB0_WIDTH, INITIAL_BLOB1_XMIN + INITIAL_BLOB1_WIDTH, \
@@ -59,16 +59,18 @@
 // APPLICATION-SPECIFIC PARAMETERS
 #define BITS_PER_PIXEL 8
 #define NUM_CHANNELS 1
-#define THRESHOLD 254
+#define THRESHOLD0 12//(20-3)
+#define THRESHOLD1 15//(30-10)
 #define DISPLAY0 "Simple Tracking 0" /**< name of display GUI */
 #define DISPLAY1 "Simple Tracking 1" /**< name of display GUI */
 #define NEXT_IMAGE 1 /**< next valid image to grab */
 #define PORT TEXT("COM5") /**< name of comm port */
 #define SHOW_DISP 0 /**< show display, turn off for accurate timing */
 #define TEXT_BUF 100
-#define OBJ_ERR -1
 #define APP_NUM_ROI 2
 #define PACKET_SIZE 17
+
+char *disp[] = {DISPLAY0, DISPLAY1};
 
 struct {
 	char roi;
@@ -259,6 +261,7 @@ int main()
 	}
 
 	// change priority class
+	/*
 	rc = SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS );
 	if(rc == FALSE) {
       return GetLastError();
@@ -268,6 +271,7 @@ int main()
 	if(rc == FALSE) {
       return GetLastError();
    }
+   */
 
 	// initialize comm port
 	rc = open_comm(PORT);
@@ -278,17 +282,23 @@ int main()
 
 	// following lines are for displaying images only!  See OpenCV doc for more info.
 	// they can be left out, if speed is important.
-	IplImage *cvDisplay0 = NULL;
-	IplImage *cvDisplay1 = NULL;
+	IplImage *cvDisplay[APP_NUM_ROI];
+	IplImage *pyr;
+	IplImage *canny;
 
-	cvDisplay0 = cvCreateImageHeader(cvSize(ROI_BOX, ROI_BOX), 
-		BITS_PER_PIXEL, NUM_CHANNELS);
-	cvDisplay1 = cvCreateImageHeader(cvSize(ROI_BOX, ROI_BOX), 
-		BITS_PER_PIXEL, NUM_CHANNELS);
+
+	for(rc = 0; rc < APP_NUM_ROI; rc++) {
+		cvDisplay[rc] = cvCreateImageHeader(cvSize(ROI_BOX, ROI_BOX), 
+			BITS_PER_PIXEL, NUM_CHANNELS);
+	}
+	pyr = cvCreateImage(cvSize(cvDisplay[0]->width/2, cvDisplay[0]->height/2), 8, 1);
+	canny = cvCreateImage(cvGetSize(cvDisplay[0]), 8, 1);
 
 #if SHOW_DISP
-	cvNamedWindow(DISPLAY0, CV_WINDOW_AUTOSIZE);
-	cvNamedWindow(DISPLAY1, CV_WINDOW_AUTOSIZE);
+	for(rc = 0; rc < APP_NUM_ROI; rc++) {
+		cvNamedWindow(disp[rc], CV_WINDOW_AUTOSIZE);
+		cvNamedWindow(disp[rc], CV_WINDOW_AUTOSIZE);
+	}
 #endif
 
 	// initialize the tracking windows (i.e. blob and ROI positions)
@@ -332,7 +342,6 @@ int main()
 #if !SHOW_DISP
 		if(img_nr - old_img_nr > 1) {
 			printf("\nlost an image %d %d\n", img_nr, old_img_nr);
-			fflush(stdout);
 			break;
 		}
 		old_img_nr++;
@@ -360,9 +369,12 @@ int main()
 
 		// make sure that camera returned a valid image
 		if(cur->img != NULL) {
-			// process image
-			threshold(cur, THRESHOLD);
-			erode(cur);
+			// process image...this takes about 82 us (eyeball estimation)
+			cvDisplay[cur_roi]->imageData = (char *) cur->img;
+			cvDisplay[cur_roi]->imageDataOrigin = (char *) cur->img;
+			cvPyrDown(cvDisplay[cur_roi], pyr, CV_GAUSSIAN_5x5);
+			cvPyrUp(pyr, cvDisplay[cur_roi], CV_GAUSSIAN_5x5);
+			cvCanny(cvDisplay[cur_roi], cvDisplay[cur_roi], THRESHOLD0, THRESHOLD1);
 
 			// update ROI position
 			rc = position(cur);
@@ -370,8 +382,21 @@ int main()
 				roi_packet[cur_roi].roi = cur_roi;
 			}
 			else {
-				roi_packet[cur_roi].roi = -cur_roi;
+				roi_packet[cur_roi].roi = ~cur_roi;
+				printf("loop: object %d lost! too fast.\n", cur_roi);
+#if !SHOW_DISP
+				break;
+#endif
 			}
+
+			if(cur->blob_xmax - cur->blob_xmin > ROI_BOX - 1 && 
+				cur->blob_ymax - cur->blob_ymin > ROI_BOX - 1) {
+				printf("loop: object %d lost! too much noise\n", cur_roi);
+#if !SHOW_DISP
+				break;
+#endif
+			}
+			
 
 			// at this point position(...) has updated the ROI, but it only stores
 			// the updated values internal to the code.  The next step is to flush
@@ -381,6 +406,7 @@ int main()
 			write_roi(fg, cur->roi, cur->roi, !DO_INIT);
 
 			// convert from pixels to units of measurement
+			
 			distorted->data.fl[0] = cur->roi_xoff + 
 				(cur->blob_xmin + cur->blob_xmax) / 2.0f;
 			distorted->data.fl[1] = cur->roi_yoff + 
@@ -405,13 +431,6 @@ int main()
 					memcpy(&packet[rc*PACKET_SIZE + 13], &roi_packet[rc].t, sizeof(unsigned int));
 				}
 
-#if 0
-				printf("V - %d: ! %d_%0.3f_%0.4f_%u * %d_%0.1f_%0.3f_%u\n", img_nr, 
-						roi_packet[0].roi, roi_packet[0].x, roi_packet[0].y, roi_packet[0].t,
-						roi_packet[1].roi, roi_packet[1].x, roi_packet[1].y, roi_packet[1].t);
-				fflush(stdout);
-#endif
-
 				assert(packet[0] == 'R');
 				assert(packet[2] == 'X');
 				assert(packet[7] == 'Y');
@@ -420,22 +439,18 @@ int main()
 				assert(packet[PACKET_SIZE+2] == 'X');
 				assert(packet[PACKET_SIZE+7] == 'Y');
 				assert(packet[PACKET_SIZE+12] == 'T');
-				
+		
 				rc = write_comm(packet, APP_NUM_ROI*PACKET_SIZE);
 				if(rc != FG_OK) {
 					printf("loop comm: error writing to comm port %s\n", PORT);
 					break;
 				}
+				
 			}
 
 			// show image on screen
 #if SHOW_DISP
-			if(cur_roi == ROI_0) {
-				display_tracking(cur, cvDisplay0, DISPLAY0);
-			}
-			else {
-				display_tracking(cur, cvDisplay1, DISPLAY1);
-			}
+			display_tracking(cur, cvDisplay[cur_roi], disp[cur_roi]);
 #endif
 
 			// increment to the next desired frame.
@@ -456,7 +471,11 @@ int main()
 	}
 
 	// free viewer resources
-	cvReleaseImageHeader(&cvDisplay0);
+	for(rc = 0; rc < APP_NUM_ROI; rc++) {
+		cvReleaseImageHeader(&cvDisplay[rc]);
+	}
+	cvReleaseImage(&canny);
+	cvReleaseImage(&pyr);
 
 	// free camera resources
 	rc = deinit_cam(fg);
