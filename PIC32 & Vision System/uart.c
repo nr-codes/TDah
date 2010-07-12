@@ -136,7 +136,7 @@ void __ISR(_UART2_VECTOR, ipl2) IntUart2Handler(void)
 		// wait for start of packet
 		if(rcvbuf[R_POS] == R_VAL) {
 			rcv++;
-			mLED_2_On();
+			//mLED_2_On();
 			PIN_D2 = 1;
 		}
 
@@ -144,15 +144,15 @@ void __ISR(_UART2_VECTOR, ipl2) IntUart2Handler(void)
 		if((rcv-1 == X_POS && rcvbuf[rcv-1] != X_VAL) ||
 			(rcv-1 == Y_POS && rcvbuf[rcv-1] != Y_VAL) ||
 			(rcv-1 == T_POS && rcvbuf[rcv-1] != T_VAL) ||
-			(rcv-1 == ROI_PACKET_SIZE+R_POS && rcvbuf[rcv-1] != R_VAL) ||
+			(rcv-1 == ROI_PACKET_SIZE+R_POS && rcvbuf[rcv-1] != 'P') ||
 			(rcv-1 == ROI_PACKET_SIZE+X_POS && rcvbuf[rcv-1] != X_VAL) ||
 			(rcv-1 == ROI_PACKET_SIZE+Y_POS && rcvbuf[rcv-1] != Y_VAL) ||
 			(rcv-1 == ROI_PACKET_SIZE+T_POS && rcvbuf[rcv-1] != T_VAL)) {
-			// assume bad packet
+			// assume bad packet			
 			rcv = 0;
-			memset((char *) rcvbuf, 0, TOTAL_PACKET_SIZE);	
+			memset((char *) rcvbuf, 0, TOTAL_PACKET_SIZE);
 			
-			mLED_2_Off();
+			//mLED_2_Off();
 			PIN_D2 = 0;
 		}
 		else if(rcv == TOTAL_PACKET_SIZE) {
@@ -168,12 +168,12 @@ void __ISR(_UART2_VECTOR, ipl2) IntUart2Handler(void)
 					(char *) &(rcvbuf[offset+13]), sizeof(unsigned int));
 			}
 			
-			test_code();
+			//test_code();
 
 			rcv = 0;
 			memset((char *) rcvbuf, 0, TOTAL_PACKET_SIZE);
 			
-			mLED_2_Off();
+			//mLED_2_Off();
 			PIN_D2 = 0;
 		}
 		
