@@ -26,8 +26,8 @@
 #include <fcdynamic.h>
 
 // CAMERA PARAMETERS
-#define EXPOSURE (2200) /**< shutter speed in us */
-#define FRAME_TIME (3000) /**< pause between images in us (e.g. 1 / fps) */
+#define EXPOSURE (30) /**< shutter speed in us */
+#define FRAME_TIME (100) /**< pause between images in us (e.g. 1 / fps) */
 #define IMG_WIDTH 1024
 #define IMG_HEIGHT 1024
 #define NUM_BUFFERS 16 /**< typical setting (max is 1,000,000 shouldn't exceed 1.6 GB)*/
@@ -38,34 +38,36 @@
 #define CAMLINK FG_CL_DUALTAP_8_BIT
 
 // CAMERA REGION OF INTEREST
-#define ROI_BOX 52
+#define ROI_BOX 1024
 
 // INITIAL BLOB0 POSITION IN IMG COORD FRAME
-#define INITIAL_BLOB0_XMIN (409)
-#define INITIAL_BLOB0_YMIN (435)
+#define INITIAL_BLOB0_XMIN (391)
+#define INITIAL_BLOB0_YMIN (430)
 #define INITIAL_BLOB0_WIDTH 25
 #define INITIAL_BLOB0_HEIGHT 25
 
 // INITIAL BLOB1 POSITION IN IMG COORD FRAME
-#define INITIAL_BLOB1_XMIN (619)
-#define INITIAL_BLOB1_YMIN (416)
+#define INITIAL_BLOB1_XMIN (602)
+#define INITIAL_BLOB1_YMIN (414)
 #define INITIAL_BLOB1_WIDTH 25
 #define INITIAL_BLOB1_HEIGHT 25
 
+
 #define INIT_BLOB_COORD_MIN {INITIAL_BLOB0_XMIN, INITIAL_BLOB1_XMIN, INITIAL_BLOB0_YMIN, INITIAL_BLOB1_YMIN}
+
 #define INIT_BLOB_COORD_MAX {INITIAL_BLOB0_XMIN + INITIAL_BLOB0_WIDTH, INITIAL_BLOB1_XMIN + INITIAL_BLOB1_WIDTH, \
-	INITIAL_BLOB0_YMIN + INITIAL_BLOB0_HEIGHT, INITIAL_BLOB1_YMIN + INITIAL_BLOB1_HEIGHT}
+								INITIAL_BLOB0_YMIN + INITIAL_BLOB0_HEIGHT, INITIAL_BLOB1_YMIN + INITIAL_BLOB1_HEIGHT}
 
 // APPLICATION-SPECIFIC PARAMETERS
 #define BITS_PER_PIXEL 8
 #define NUM_CHANNELS 1
-#define THRESHOLD0 12//(20-3)
-#define THRESHOLD1 15//(30-10)
+#define THRESHOLD0 12
+#define THRESHOLD1 17
 #define DISPLAY0 "Simple Tracking 0" /**< name of display GUI */
 #define DISPLAY1 "Simple Tracking 1" /**< name of display GUI */
 #define NEXT_IMAGE 1 /**< next valid image to grab */
 #define PORT TEXT("COM5") /**< name of comm port */
-#define SHOW_DISP 0 /**< show display, turn off for accurate timing */
+#define SHOW_DISP 1 /**< show display, turn off for accurate timing */
 #define TEXT_BUF 100
 #define APP_NUM_ROI 2
 #define PACKET_SIZE 17
@@ -79,7 +81,11 @@ struct {
 	unsigned int t;
 } roi_packet[APP_NUM_ROI];
 
+
 char packet[PACKET_SIZE*APP_NUM_ROI];
+
+extern void pad_blob_region(TrackingWindow *win);
+extern int panic(TrackingWindow *win);
 
 /** Sets the initial positions of the camera's window and blob's window
 *
@@ -188,6 +194,32 @@ void display_tracking(TrackingWindow *cur, IplImage *gui, char *name)
 
 	// add a small delay, so OpenCV has time to display to screen
 	cvWaitKey(1);
+}
+
+int cv_position(TrackingWindow *cur)
+{
+	int old_xoff, old_yoff, blob_cx, blob_cy;
+
+	if(blob(cur) != OBJECT_FOUND) {
+		return panic(cur);
+	}
+
+	old_xoff = cur->roi_xoff;
+	old_yoff = cur->roi_yoff;
+
+	// center roi around blob "center"
+	blob_cx = old_xoff + (cur->blob_xmax + cur->blob_xmin) / 2;
+	blob_cy = old_yoff + (cur->blob_ymax + cur->blob_ymin) / 2;
+	set_roi_box(cur, blob_cx, blob_cy);
+	
+	// adjust coords of blob
+	cur->blob_xmin -= (cur->roi_xoff - old_xoff);
+	cur->blob_ymin -= (cur->roi_yoff - old_yoff);
+	cur->blob_xmax -= (cur->roi_xoff - old_xoff);
+	cur->blob_ymax -= (cur->roi_yoff - old_yoff);
+	pad_blob_region(cur);
+
+	return OBJECT_FOUND;
 }
 
 /** Grabs an image from the camera and displays the image on screen
@@ -327,7 +359,7 @@ int main()
 	accum = 0;
 	img_nr = 1;
 	z = CV_MAT_ELEM(*trans, float, 2, 0);
-	int old_img_nr = 0;
+	int old_img_nr = 0, send = 0;
 
 	// start image loop and don't stop until the user presses 'q'
 	printf("press 'q' at any time to quit this demo.\n");
@@ -341,8 +373,8 @@ int main()
 
 #if !SHOW_DISP
 		if(img_nr - old_img_nr > 1) {
-			printf("\nlost an image %d %d\n", img_nr, old_img_nr);
-			break;
+			//printf("\nlost an image %d %d\n", img_nr, old_img_nr);
+			//break;
 		}
 		old_img_nr++;
 #endif
@@ -377,7 +409,7 @@ int main()
 			cvCanny(cvDisplay[cur_roi], cvDisplay[cur_roi], THRESHOLD0, THRESHOLD1);
 
 			// update ROI position
-			rc = position(cur);
+			rc = cv_position(cur);
 			if(rc == OBJECT_FOUND) {
 				roi_packet[cur_roi].roi = cur_roi;
 			}
@@ -423,7 +455,9 @@ int main()
 			roi_packet[cur_roi].y = CV_MAT_ELEM(*world, float, 1, 0);
 			roi_packet[cur_roi].t = ts;
 
+			send++;
 			if(cur_roi == ROI_1) {
+				send = 0;
 				for(rc = 0; rc < APP_NUM_ROI; rc++) {
 					packet[rc*PACKET_SIZE + 1] = (char) roi_packet[rc].roi;
 					memcpy(&packet[rc*PACKET_SIZE + 3], &roi_packet[rc].x, sizeof(float));
@@ -445,7 +479,6 @@ int main()
 					printf("loop comm: error writing to comm port %s\n", PORT);
 					break;
 				}
-				
 			}
 
 			// show image on screen

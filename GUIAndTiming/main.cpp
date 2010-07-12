@@ -8,8 +8,8 @@
 #define RECORD 0
 
 // TRACKCAM
-#define EXPOSURE 2200
-#define FRAME_TIME 30000
+#define EXPOSURE 30
+#define FRAME_TIME 100
 #define IMG_WIDTH 1024
 #define IMG_HEIGHT IMG_WIDTH
 

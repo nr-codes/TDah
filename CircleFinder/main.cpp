@@ -294,11 +294,6 @@ int main(int argc, char *argv[])
 	cvDestroyWindow("templ");
 	cvDestroyWindow("res");
 
-
-
-
-
-
 	cvResetImageROI(gray);
 	while(cvWaitKey(100) != 'q') {
 		break;
@@ -327,6 +322,7 @@ int main(int argc, char *argv[])
 
 
 	cvResetImageROI(gray);
+	CvMat *flow = cvCreateMat(rgb->height, rgb->width, CV_32FC2);
 	while(cvWaitKey(100) != 'q') {
 		break;
 		// grab an image
@@ -338,7 +334,7 @@ int main(int argc, char *argv[])
 
 		QueryPerformanceCounter(&start);
 		cnt = ftr_sz;
-		cvGoodFeaturesToTrack(f1, eig, temp, corns1, &cnt, .01, .5);
+		cvGoodFeaturesToTrack(f1, eig, temp, corns1, &cnt, .01, 10);
 
 		cvFindCornerSubPix(f1, corns1, cnt, 
 			cvSize(5, 5), cvSize(-1, -1), 
@@ -348,6 +344,12 @@ int main(int argc, char *argv[])
 				cvSize(win_size,win_size), 7, features_fnd, feature_errs, 
 				cvTermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 20, 0.3), 0);
 		QueryPerformanceCounter(&stop);
+
+		/*
+		QueryPerformanceCounter(&start);
+		cvCalcOpticalFlowFarneback(f1, f2, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+		QueryPerformanceCounter(&stop);
+		*/
 
 		double time_us = 
 		(stop.QuadPart - start.QuadPart) / (freq.QuadPart * 1.0) * 1e6;
@@ -441,7 +443,7 @@ int main(int argc, char *argv[])
 
 
 	while(cvWaitKey(100) != 'q') {
-		
+		break;
 		rgb = cvQueryFrame(capture);
 		cvCvtColor(rgb, f2, CV_BGR2GRAY);
 
@@ -588,6 +590,25 @@ int main(int argc, char *argv[])
 		position(gray, &wr, w, h, kal, z_k, u_k);
 		draw_position(gray, rgb, wr.seq, kal);
 #endif
+	}
+
+	w = 40;
+	h = 40;
+	x = 301;
+	y = 172;
+
+	cvSetImageROI(gray, cvRect(x-w/2, y-h/2, w, h));
+	while(cvWaitKey(100) != 'q') {
+		// grab an image
+		break;
+		rgb = cvQueryFrame(capture);
+
+		cvSetImageROI(rgb, cvRect(gray->roi->xOffset, gray->roi->yOffset,
+			gray->roi->width, gray->roi->height));
+		cvCvtColor(rgb, gray, CV_BGR2GRAY);
+
+		position(gray, &wr, w, h, kal, z_k, u_k);
+		draw_position(gray, rgb, wr.seq, kal);
 	}
 
 	cvReleaseKalman(&kal);

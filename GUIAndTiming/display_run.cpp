@@ -167,8 +167,21 @@ int display_run(TrackingSequence *tseq, double frame, double exposure)
 			// process image
 			
 			if(do_thresh) {
-				threshold(cur, cvGetTrackbarPos(THRESH_TRACK, MAIN_WIN));
-				erode(cur, 8);
+				
+				CopyTrackingWindowToImage(cur, cvDisplay);
+				IplImage *pyr = cvCreateImage(cvSize(cvDisplay->width/2, cvDisplay->height/2), 8, 1);
+				IplImage *canny = cvCreateImage(cvGetSize(cvDisplay), 8, 1);
+				cvDisplay->imageData = (char *) cur->img;
+				cvDisplay->imageDataOrigin = (char *) cur->img;
+				cvPyrDown(cvDisplay, pyr, CV_GAUSSIAN_5x5);
+				cvPyrUp(pyr, cvDisplay, CV_GAUSSIAN_5x5);
+				cvCanny(cvDisplay, cvDisplay, cvGetTrackbarPos(THRESH_TRACK, MAIN_WIN), cvGetTrackbarPos(THRESH_TRACK, MAIN_WIN)+5);
+				CopyImageToTrackingWindow(cur, cvDisplay);
+				cvReleaseImage(&canny);
+				cvReleaseImage(&pyr);
+				
+				//threshold(cur, cvGetTrackbarPos(THRESH_TRACK, MAIN_WIN));
+				//erode(cur, 8);
 			}
 
 			// copy image processing results
