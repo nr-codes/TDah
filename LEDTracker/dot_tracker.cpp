@@ -134,6 +134,7 @@ void draw_position(IplImage *gray, IplImage *rgb, CvSeq *pts, CvKalman *kal)
 
 	cvResetImageROI(rgb);
 
+	// draw kalman
 	cvCircle(rgb, 
 		cvPoint(cvRound(kal->state_post->data.fl[0]), 
 				cvRound(kal->state_post->data.fl[1])),
