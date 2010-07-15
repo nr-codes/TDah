@@ -51,7 +51,6 @@ void draw_position(IplImage *gray, IplImage *rgb, CvSeq *pts, CvKalman *kal)
 	cvReleaseImage(&temp);
 }
 
-
 int position(IplImage *gray, CvSeqWriter *wr, int w, int h, 
 			 CvKalman *kal, CvMat *z_k, CvMat *u_k)
 {
@@ -253,7 +252,7 @@ int main(int argc, char *argv[])
 	//cvResetImageROI(gray);
 	cvZero(templ);
 	while(cvWaitKey(100) != 'q') {
-		break;
+		//break;
 		// grab an image
 		rgb = cvQueryFrame(capture);	
 		cvCvtColor(rgb, f1, CV_BGR2GRAY);
