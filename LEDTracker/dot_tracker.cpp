@@ -47,10 +47,6 @@ int position(IplImage *gray, CvRect *rect, int thresh, CvSeqWriter *wr)
 
 		rect->x = x - w/2;
 		rect->y = y - h/2;
-
-		if(rad > 20) {
-			return !CV_OK;
-		}
 	}
 	else {
 		return !CV_OK;
@@ -90,6 +86,7 @@ int emergency(CvRect *rect, IplImage *gray, IplImage *templ)
 	rect->y = max_pt.y;
 
 	// NOTE: how fast?
+	QueryPerformanceCounter(&start);
 	cvSetImageROI(gray, *rect);	
 	match = cvMatchShapes(templ, gray, CV_CONTOURS_MATCH_I1);
 	cvReleaseImage(&res);
@@ -101,7 +98,6 @@ int emergency(CvRect *rect, IplImage *gray, IplImage *templ)
 
 	return CV_OK;
 }
-
 
 // modify so window is specified or temp is returned
 void draw_position(IplImage *gray, IplImage *rgb, CvSeq *pts, CvKalman *kal)

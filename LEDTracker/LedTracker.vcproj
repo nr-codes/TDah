@@ -177,6 +177,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\draw_dots.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\main.cpp"
 				>
 			</File>

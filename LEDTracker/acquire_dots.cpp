@@ -1,6 +1,33 @@
 #include "t_dah.h"
 
 static void onclick_center_rect(int e, int x, int y, int flags, void *param);
+static IplImage *gr3chImg(IplImage *img, IplImage *gr);
+
+static IplImage *tempImg = NULL;
+
+//***************************** HELPER FUNCTIONS *********************//
+
+IplImage *gr3chImg(IplImage *img, IplImage *gr)
+{
+	if(img->nChannels == 3 && img->depth == IPL_DEPTH_8U) {
+		cvCvtColor(img, gr, CV_BGR2GRAY);
+		cvCvtColor(gr, img, CV_GRAY2BGR);
+		return img;
+	}
+	else if(img->nChannels == 1 && img->depth == IPL_DEPTH_8U) {
+		cvCopyImage(img, gr);
+
+		if(tempImg) {
+			cvReleaseImage(&tempImg);
+		}
+
+		tempImg = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 3);
+		cvCvtColor(img, tempImg, CV_GRAY2BGR);
+		return tempImg;
+	}
+
+	return NULL;
+}
 
 //***************************** AUTO CALIBRATION *********************//
 
@@ -81,11 +108,8 @@ int manual_acquire(CvCapture *capture, CvRect *r, int *t, int n,
 
 	QueryPerformanceCounter(&start);
 	while(1) {
-		img = cvQueryFrame(capture);
+		img = gr3chImg(cvQueryFrame(capture), gr);
 		QueryPerformanceCounter(&stop);
-
-		cvCvtColor(img, gr, CV_BGR2GRAY);
-		cvCvtColor(gr, img, CV_GRAY2BGR);
 
 		rc = cvWaitKey(100);
 		if(rc == 'q') {
@@ -108,14 +132,6 @@ int manual_acquire(CvCapture *capture, CvRect *r, int *t, int n,
 			if(r[j].x == BAD_ROI) {
 				continue;
 			}
-
-			// hack to get white blob dection
-			/*
-			cvSetImageROI(img, r[j]);
-			cvXorS(img, cvScalarAll(WHITE), img);
-			position(img, &r[j], *t, &wr);
-			cvResetImageROI(img);
-			*/
 
 			x_c = r[j].x + r[j].width/2;
 			y_c = r[j].y + r[j].height/2;

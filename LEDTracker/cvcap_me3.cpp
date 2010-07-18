@@ -7,16 +7,15 @@
 #include "FastConfig.h"
 
 #if defined(WIN32) && defined(_WIN32)
-#define FASTCONFIG_DLL "SingleAreaGray.dll"// "FastConfig.dll"
+#define FASTCONFIG_DLL "FastConfig.dll"
 #endif
 
 #define CV_CAP_me3 -1 // not used
-#define IMG_WIDTH 512
-#define IMG_HEIGHT 512
+#define IMG_WIDTH 1024
+#define IMG_HEIGHT 1024
 #define NUM_BUFFERS 16
 #define MEMSIZE(w, h) ((w) * (h) * NUM_BUFFERS)
-#define TIMEOUT 10
-
+#define TIMEOUT 3
 
 #define me3_err(msg) printf("me3::%s: (%d) %s\n", (msg), Fg_getLastErrorNumber(fg), \
 							Fg_getLastErrorDescription(fg));
@@ -70,12 +69,10 @@ void CvCaptureCAM_me3::close()
 		me3_err("close");
 	}
 
-	/*
 	rc = FastConfigFree(PORT_A);
 	if(rc != FG_OK) {
 		me3_err("close");
 	}
-	*/
 
 	rc = Fg_FreeGrabber(fg);
 	if(rc != FG_OK) {
@@ -90,10 +87,6 @@ bool CvCaptureCAM_me3::open(int index)
 {
 	// int init_cam(Fg_Struct **grabber, int memsize, int buffers, int camlink)
 	int rc, camlink;
-
-	if(fg) {
-		close();
-	}
 
 	frame_nr = 1;
 	frame = cvCreateImage(cvSize(IMG_WIDTH, IMG_HEIGHT), IPL_DEPTH_8U, 1);
@@ -115,13 +108,11 @@ bool CvCaptureCAM_me3::open(int index)
 		return false;
 	}
 
-	/*
 	rc = FastConfigInit(PORT_A);
 	if(rc != FG_OK) {
 		me3_err("open");
 		return false;
 	}
-	*/
 
 	mem = Fg_AllocMem(fg, MEMSIZE(IMG_WIDTH, IMG_HEIGHT), NUM_BUFFERS, PORT_A);
 	if(mem == NULL) {
@@ -153,7 +144,6 @@ bool CvCaptureCAM_me3::grabFrame()
 
     return true;
 }
-
 
 IplImage* CvCaptureCAM_me3::retrieveFrame(int index)
 {
