@@ -29,8 +29,10 @@
 			printf("%s: %g\n", str, time_us); \
 		} while(0)
 
-extern int auto_acquire(CvCapture *capture, CvRect *r, int t, int n = NULL, 
-				 IplImage **tplt = NULL, CvKalman **kal = NULL);
+extern int auto_acquire(CvCapture *capture, IplImage **gr, 
+						int t, double r, int n, 
+						IplImage **tplt = NULL, double m = 0, 
+						CvKalman **kal = NULL, int show_results = 0);
 extern int manual_acquire(CvCapture *capture, IplImage **gr, int *t, int n = 1, 
 				   IplImage **tplt = NULL, CvKalman **kal = NULL);
 
@@ -40,7 +42,8 @@ extern void prediction(CvKalman *kal, float dt_k, float *z_k);
 
 extern double track_ctrd(IplImage *gray, int thresh, CvSeqWriter *wr);
 extern double track_tmplt(IplImage *gray, IplImage *templ);
-extern double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, int lvl = 1);
+extern double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, 
+					   IplImage *temp, int lvl = 1, int offset = 0);
 
 
 extern void show_position(IplImage **roiImg, int n, 

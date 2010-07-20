@@ -7,7 +7,7 @@ static IplImage *tempImg = NULL;
 
 //***************************** HELPER FUNCTIONS *********************//
 
-IplImage *gr3chImg(IplImage *img, IplImage *gr)
+static IplImage *gr3chImg(IplImage *img, IplImage *gr)
 {
 	if(tempImg) {
 		cvReleaseImage(&tempImg);
@@ -40,41 +40,115 @@ IplImage *gr3chImg(IplImage *img, IplImage *gr)
 	return NULL;
 }
 
-//***************************** AUTO CALIBRATION *********************//
-
-int auto_acquire(CvCapture *capture, CvRect *r, int t, int n, 
-				 IplImage **tplt, CvKalman **kal)
+void update_kal_tplt(IplImage *gr, CvKalman *kal, IplImage *tplt)
 {
-	int i;
-	IplImage *img, *gr;
-	CvRect rect;
+	static double dt_k = cvGetTickCount()/cvGetTickFrequency();
+	CvPoint c;
+	float z_k[Z_DIM];
 
-	i = 10;
-	while(i--) {
-		// get rid of any transient image startups
-		img = cvQueryFrame(capture);
+	if(gr->roi == NULL) {
+		return;
 	}
 
-	gr = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1);
-	cvCvtColor(img, gr, CV_BGR2GRAY);
+	// update Kalman filter
+	if(kal != NULL) {
+		dt_k = (cvGetTickCount()/cvGetTickFrequency() - dt_k)*1e-6;
+		c = roi2ctrd(gr);
+		z_k[0] = (float) c.x;
+		z_k[1] = (float) c.y;
 
-	// try template matching
-	rect = cvRect(0, 0, ROI_WIDTH, ROI_HEIGHT);
+		// beware a bad process model will cause a program crash
+		prediction(kal, (float) dt_k, z_k);
+		ctrd2roi(gr, 
+			cvRound(kal->state_post->data.fl[0]), 
+			cvRound(kal->state_post->data.fl[1]),
+			ROI_WIDTH, 
+			ROI_HEIGHT);
+		dt_k = cvGetTickCount()/cvGetTickFrequency();
+	}
+
+	// update template
 	if(tplt != NULL) {
-		for(i = 0; i < n; i++) {
-			track_tmplt(gr, tplt[i]);
-			r[i] = rect;
-			cvResetImageROI(gr);
+		// note: if rect is out of image bounds OpenCV resizes ImageROI
+		// to largest valid bounding box
+		cvSetImageROI(tplt, cvGetImageROI(gr));
+		cvCopyImage(gr, tplt);
+	}
+}
 
-			int x = r[i].x + r[i].width/2;
-			int y = r[i].y + r[i].height/2;
-			cvCircle(gr, cvPoint(x, y), 2, CV_RGB(0,0, 255), -1);
+//***************************** AUTO CALIBRATION *********************//
 
-			cvShowImage("gr", gr);
+int auto_acquire(CvCapture *capture, IplImage **gr, int t, double r, int n, 
+				 IplImage **tplt, double m, CvKalman **kal, int show_results)
+{
+	double score;
+	int found;
+	int last_tplt;
+	IplImage *img;
+	CvSeqWriter wr;
+	CvMemStorage *mem;
+
+	mem = cvCreateMemStorage(0);
+	cvStartWriteSeq(CV_SEQ_ELTYPE_POINT | CV_SEQ_KIND_CURVE, 
+		sizeof(CvSeq), sizeof(CvPoint), mem, &wr);
+
+	found = 0;
+	score = 0;
+	last_tplt = -1;
+	img = gr3chImg(cvQueryFrame(capture), gr[0]);
+	for(int i = 0; i < n; i++) {
+		img = gr3chImg(img, gr[i]);
+		if(gr[i]->roi) {
+			score = track_ctrd(gr[i], t, &wr);
+			printf("%d: centroid radius %0.4g\n", i, score);
+			if(score == 0 || score > r) {
+				// couldn't find dot, redo this img with tmplt matching
+				cvResetImageROI(gr[i]);
+				if(last_tplt == i) {
+					// already tried template matching
+					continue;
+				}
+
+				i--;
+			}
+			else {
+				found++;
+				update_kal_tplt(gr[i], 
+					kal ? kal[i] : NULL, tplt ? tplt[i] : NULL);
+			}
+		}
+		else if(tplt && tplt[i]) {
+			cvCvtColor(img, gr[i], CV_BGR2GRAY);
+			score = track_tmplt(gr[i], tplt[i]);
+			printf("%d: template match %0.4g\n", i, score);
+			if(score < m) {
+				cvResetImageROI(gr[i]);
+			}
+			else {
+				// use template as initial guess
+				last_tplt = i;
+				i--;
+			}
+		}
+		else {
+			printf("missing ROI or template for image %d\n", i);
 		}
 	}
 
-	return CV_OK;
+	if(show_results) {
+		for(int i = 0; i < n; i++) {
+			if(gr[i]->roi) {
+				if(kal && kal[i]) {
+					draw_kal(img, kal[i]);
+				}
+
+				draw_ctrd(img, gr[i], NULL, i);
+			}
+		}
+		cvShowImage("auto_acquire", img);
+	}
+
+	return !(found == n);
 }
 
 //***************************** MANUAL CALIBRATION *********************//
@@ -140,6 +214,17 @@ int manual_acquire(CvCapture *capture, IplImage **gr, int *t, int n,
 				continue;
 			}
 
+			update_kal_tplt(gr[j], 
+					kal ? kal[j] : NULL, 
+					tplt ? tplt[j] : NULL);
+
+			if(kal && kal[j]) {
+				draw_kal(img, kal[j]);
+			}
+
+			draw_ctrd(img, gr[j], NULL, j);
+
+#if 0
 			c = roi2ctrd(gr[j]);
 	
 			// update Kalman filter
@@ -170,6 +255,7 @@ int manual_acquire(CvCapture *capture, IplImage **gr, int *t, int n,
 
 			// draw the (x, y) point and bounding box
 			draw_ctrd(img, gr[j], NULL, j);
+#endif
 		}
 
 		memset(text, 0, sizeof(text));

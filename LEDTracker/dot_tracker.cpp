@@ -48,22 +48,18 @@ double track_ctrd(IplImage *gray, int thresh, CvSeqWriter *wr)
 	return rad;
 }
 
-double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, int lvl)
+double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, 
+					   IplImage *temp, int lvl, int offset)
 {
 	double max;
 	int x, y, w, h, s;
-	IplImage *temp, *g_pyr, *t_pyr;
+	IplImage *g_pyr, *t_pyr;
 
 	g_pyr = cvCloneImage(gr);
 	t_pyr = cvCloneImage(tmplt);
-	temp = cvCreateImage(
-			cvSize(gr->width, gr->height), 
-			gr->depth, gr->nChannels);
 
 	s = 1;
 	for(int i = 1; i <= lvl; i++) {
-		cvResetImageROI(temp);
-		cvZero(temp);
 		// scale factor
 		s = 1 << i;
 
@@ -88,17 +84,17 @@ double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, int lvl)
 
 	max = track_tmplt(g_pyr, t_pyr);
 	cvSetImageROI(gr, 
-			cvRect(g_pyr->roi->xOffset*s,
-					g_pyr->roi->yOffset*s,
-					g_pyr->roi->width*s,
-					g_pyr->roi->height*s));
+			cvRect(g_pyr->roi->xOffset*s - offset,
+					g_pyr->roi->yOffset*s - offset,
+					g_pyr->roi->width*s + offset,
+					g_pyr->roi->height*s + offset));
 
-	cvResetImageROI(temp);
-	cvShowImage("pyr", temp);
+	if(offset) {
+		max = track_tmplt(gr, tmplt);
+	}
 
 	cvReleaseImage(&g_pyr);
 	cvReleaseImage(&t_pyr);
-	cvReleaseImage(&temp);
 
 	return max;
 }
