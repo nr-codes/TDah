@@ -2,22 +2,17 @@
 
 #include "t_dah.h"
 
-int position(IplImage *gray, CvRect *rect, int thresh, CvSeqWriter *wr)
+double track_ctrd(IplImage *gray, int thresh, CvSeqWriter *wr)
 {
-	double time_us;
 	int x, y, w, h;
 	char *pxl;
-	LARGE_INTEGER start, stop, freq;
 	CvPoint pt;
 	float rad;
 	CvPoint2D32f cen;
 	CvSeq *ptr_seq;
 
-	QueryPerformanceFrequency(&freq);
-	QueryPerformanceCounter(&start);
-
-	w = rect->width;
-	h = rect->height;
+	w = gray->roi->width;
+	h = gray->roi->height;
 	cvClearSeq(wr->seq);
 
 	// binarize image
@@ -44,106 +39,121 @@ int position(IplImage *gray, CvRect *rect, int thresh, CvSeqWriter *wr)
 	if(ptr_seq->total && cvMinEnclosingCircle(ptr_seq, &cen, &rad)) {
 		x = gray->roi->xOffset + cvRound(cen.x);
 		y = gray->roi->yOffset + cvRound(cen.y);
-
-		rect->x = x - w/2;
-		rect->y = y - h/2;
+		ctrd2roi(gray, x, y, ROI_WIDTH, ROI_HEIGHT);
 	}
 	else {
-		return !CV_OK;
+		return 0;
 	}
-	QueryPerformanceCounter(&stop);
 
-	time_us = (stop.QuadPart - start.QuadPart) / (freq.QuadPart * 1.0) * 1e6;
-	printf("pos: %g --- ", time_us);
-	printf("%g (%d, %d)\n", rad, x, y);
-
-	return CV_OK;
+	return rad;
 }
 
-int emergency(CvRect *rect, IplImage *gray, IplImage *templ)
+double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, int lvl)
+{
+	double max;
+	int x, y, w, h, s;
+	IplImage *temp, *g_pyr, *t_pyr;
+
+	g_pyr = cvCloneImage(gr);
+	t_pyr = cvCloneImage(tmplt);
+	temp = cvCreateImage(
+			cvSize(gr->width, gr->height), 
+			gr->depth, gr->nChannels);
+
+	s = 1;
+	for(int i = 1; i <= lvl; i++) {
+		// scale factor
+		s = 1 << i;
+
+		// gray image pyramid
+		w = gr->width / s;
+		h = gr->height / s;
+		cvSetImageROI(temp, cvRect(0, 0, w, h));
+		cvPyrDown(g_pyr, temp);
+		cvSetImageROI(g_pyr, cvRect(0, 0, w, h));
+		cvCopyImage(temp, g_pyr);
+
+		// template image pyramid
+		x = tmplt->roi->xOffset / s;
+		y = tmplt->roi->yOffset / s;
+		w = tmplt->roi->width / s;
+		h = tmplt->roi->height / s;
+		//cvSetImageROI(temp, cvRect(gr->width/2, gr->height/2, w, h));
+		cvSetImageROI(temp, cvRect(0, 0, w, h));
+		cvPyrDown(t_pyr, temp);
+		cvSetImageROI(t_pyr, cvRect(x, y, w, h));
+		cvCopyImage(temp, t_pyr);
+	}
+
+	max = track_tmplt(g_pyr, t_pyr);
+	cvSetImageROI(gr, 
+			cvRect(g_pyr->roi->xOffset*s,
+					g_pyr->roi->yOffset*s,
+					g_pyr->roi->width*s,
+					g_pyr->roi->height*s));
+
+	cvReleaseImage(&g_pyr);
+	cvReleaseImage(&t_pyr);
+	cvReleaseImage(&temp);
+
+	return max;
+}
+
+double track_tmplt_pyr2(IplImage *gr, IplImage *tmplt, int lvl)
+{
+	double max;
+	IplImage *gr_pyr, *tmplt_pyr;
+
+	if(lvl) {
+		gr_pyr = cvCreateImage(
+			cvSize(gr->width/2, gr->height/2), 
+			gr->depth, gr->nChannels);
+
+		tmplt_pyr = cvCreateImage(
+			cvSize(tmplt->width/2, tmplt->height/2), 
+			tmplt->depth, tmplt->nChannels);
+
+		cvSetImageROI(tmplt_pyr, 
+			cvRect(tmplt->roi->xOffset/2, tmplt->roi->yOffset/2,
+			tmplt->roi->width/2, tmplt->roi->height/2));
+
+		cvPyrDown(gr, gr_pyr);
+		cvPyrDown(tmplt, tmplt_pyr);
+
+		max = track_tmplt_pyr(gr_pyr, tmplt_pyr, lvl - 1);
+		cvSetImageROI(gr, 
+			cvRect(gr_pyr->roi->xOffset*2,
+					gr_pyr->roi->yOffset*2,
+					gr_pyr->roi->width*2,
+					gr_pyr->roi->height*2));
+
+		cvReleaseImage(&gr_pyr);
+		cvReleaseImage(&tmplt_pyr);
+	}
+	else {
+		max = track_tmplt(gr, tmplt);
+	}
+	
+	return max;
+}
+
+double track_tmplt(IplImage *gray, IplImage *templ)
 {
 	IplImage *res;
 	CvPoint min_pt, max_pt;
-	int w, h;
+	CvRect gr_roi, t_roi;
 	double min, max;
-	double time_us, match;
-	LARGE_INTEGER start, stop, freq;
 
-	QueryPerformanceFrequency(&freq);
-	QueryPerformanceCounter(&start);
-	w = rect->width;
-	h = rect->height;
+	gr_roi = cvGetImageROI(gray);
+	t_roi = cvGetImageROI(templ);
 
-	res = cvCreateImage(
-			cvSize(gray->width - w + 1, gray->height - h + 1), 
-			IPL_DEPTH_32F, 1);
+	res = cvCreateImage(cvSize(gr_roi.width - t_roi.width + 1, 
+				gr_roi.height - t_roi.height + 1), IPL_DEPTH_32F, 1);
 
-	cvResetImageROI(gray);
 	cvMatchTemplate(gray, templ, res, CV_TM_CCOEFF_NORMED);
 	cvMinMaxLoc(res, &min, &max, &min_pt, &max_pt);
-
-	rect->x = max_pt.x;
-	rect->y = max_pt.y;
-
-	// NOTE: how fast?
-	QueryPerformanceCounter(&start);
-	cvSetImageROI(gray, *rect);	
-	match = cvMatchShapes(templ, gray, CV_CONTOURS_MATCH_I1);
+	cvSetImageROI(gray, cvRect(max_pt.x, max_pt.y, t_roi.width, t_roi.height));
 	cvReleaseImage(&res);
-	QueryPerformanceCounter(&stop);
 	
-	time_us = 
-	(stop.QuadPart - start.QuadPart) / (freq.QuadPart * 1.0) * 1e6;
-	printf("emerg: %g us min: %g max: %g match: %g\n", time_us, min, max, match);
-
-	return CV_OK;
-}
-
-// modify so window is specified or temp is returned
-void draw_position(IplImage *gray, IplImage *rgb, CvSeq *pts, CvKalman *kal)
-{
-	IplImage *temp;
-	char text[100];
-	CvFont font;
-	CvPoint2D32f cen;
-	float rad;
-
-	cvInitFont(&font,CV_FONT_HERSHEY_PLAIN,1,1,0,1);
-
-	temp = cvCloneImage(gray);
-	cvZero(temp);
-
-	for(int i = 0; i < pts->total; i++) {
-		CvPoint *p = (CvPoint *) cvGetSeqElem(pts, i);
-		(temp->imageData + 
-					gray->roi->yOffset*gray->widthStep + 
-					gray->roi->xOffset)
-						[p->x + (p->y * gray->widthStep)] = (char) 255;
-
-	}
-
-	// draw min enclosing
-	if(pts->total && cvMinEnclosingCircle(pts, &cen, &rad)) {
-		cvCircle(rgb, cvPoint(cvRound(cen.x), cvRound(cen.y)), cvRound(rad), 
-			CV_RGB(0,0,255), 1);
-	}
-
-	cvResetImageROI(rgb);
-
-	// draw kalman
-	cvCircle(rgb, 
-		cvPoint(cvRound(kal->state_post->data.fl[0]), 
-				cvRound(kal->state_post->data.fl[1])),
-		2, CV_RGB(255,0,0), -1);
-
-	memset(text, 0, 100);
-	sprintf_s(text, 100, "(%d,%d)", gray->roi->xOffset, gray->roi->yOffset);
-	cvPutText(rgb, text, cvPoint(gray->roi->xOffset, gray->roi->yOffset), 
-		&font, CV_RGB(0,255,0));
-
-	cvShowImage("rgb", rgb);
-	cvShowImage("gray", gray);
-	cvShowImage("temp", temp);
-
-	cvReleaseImage(&temp);
+	return max;
 }

@@ -4,8 +4,7 @@
 
 void prediction(CvKalman *kal, float dt_k, float *z_k)
 {
-	CvMat *z = cvCreateMat(kal->MP, 1, CV_32FC1);
-	CvMat *u = cvCreateMat(kal->CP, 1, CV_32FC1);
+	float u_k[] = {1};
 
 	float A_k[] = { 1, 0, dt_k, 0, 
 					0, 1, 0, dt_k, 
@@ -17,18 +16,14 @@ void prediction(CvKalman *kal, float dt_k, float *z_k)
 					0, 
 					GRAVITY*dt_k};
 
-	// u = u(x_prev, dt_k) = 0
-	cvZero(u);
+	CvMat z = cvMat(Z_DIM, 1, CV_32FC1, z_k);
+	CvMat u = cvMat(U_DIM, 1, CV_32FC1, u_k);
 
-	memcpy(z->data.fl, z_k, sizeof(float)*Z_DIM);
 	memcpy(kal->transition_matrix->data.fl, A_k, sizeof(A_k));
 	memcpy(kal->control_matrix->data.fl, B_k, sizeof(B_k));
 
-	cvKalmanPredict(kal, u);
-	cvKalmanCorrect(kal, z);
-
-	cvReleaseMat(&z);
-	cvReleaseMat(&u);
+	cvKalmanPredict(kal, &u);
+	cvKalmanCorrect(kal, &z);
 }
 
 void setup_kalman(CvKalman **kal, int n, float **x0, float **P0)

@@ -4,24 +4,9 @@
 #define CTRD_COLOR CV_RGB(0, 0, 255)
 #define TPLT_COLOR CV_RGB(255, 0, 0)
 
-#define POINT_RADIUS 2
-#define ROI_THICKNESS 4
+#define POINT_RADIUS 1
+#define ROI_THICKNESS 2
 #define TXT_SIZE 100
-
-CV_INLINE CvPoint roi2ctrd(CvRect r)
-{
-	return cvPoint(r.x + r.width/2, r.y + r.height/2);
-}
-
-CV_INLINE CvPoint roi2ctrd(IplImage *img)
-{
-	return roi2ctrd(cvGetImageROI(img));
-}
-
-CV_INLINE CvRect ctrd2roi(int x, int y, int w, int h)
-{
-	return cvRect(x - w/2, y - h/2, w, h);
-}
 
 void draw_ctrd(IplImage *dst, IplImage *src, CvSeq *bndry, int i)
 {
@@ -48,7 +33,7 @@ void draw_ctrd(IplImage *dst, IplImage *src, CvSeq *bndry, int i)
 	
 	// use the src image xoffset and yoffset
 	ctrd = roi2ctrd(src);
-	cvCircle(dst, ctrd,	cvRound(radius), CTRD_COLOR, ROI_THICKNESS);
+	cvCircle(dst, ctrd,	cvRound(radius), CTRD_COLOR);
 
 	cvRectangle(dst, 
 		cvPoint(ctrd.x - w/2, ctrd.y - w/2), 
@@ -58,7 +43,11 @@ void draw_ctrd(IplImage *dst, IplImage *src, CvSeq *bndry, int i)
 
 	memset(text, 0, TXT_SIZE);
 	sprintf_s(text, TXT_SIZE, "%d", i);
-	cvPutText(dst, text, ctrd, &font, CTRD_COLOR);
+	cvPutText(dst, 
+		text, 
+		cvPoint(ctrd.x - 10, ctrd.y - 6), 
+		&font, 
+		CTRD_COLOR);
 }
 
 void draw_kal(IplImage *dst, CvKalman *kal)
@@ -71,7 +60,7 @@ void draw_kal(IplImage *dst, CvKalman *kal)
 		return;
 	}
 
-	cvInitFont(&font,CV_FONT_HERSHEY_PLAIN,1,1,0,1);
+	cvInitFont(&font, CV_FONT_HERSHEY_COMPLEX_SMALL, 0.6, 0.6);
 
 	// get current state
 	pt = cvPoint(cvRound(kal->state_post->data.fl[0]), 

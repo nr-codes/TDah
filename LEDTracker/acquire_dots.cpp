@@ -9,20 +9,31 @@ static IplImage *tempImg = NULL;
 
 IplImage *gr3chImg(IplImage *img, IplImage *gr)
 {
+	if(tempImg) {
+		cvReleaseImage(&tempImg);
+	}
+
 	if(img->nChannels == 3 && img->depth == IPL_DEPTH_8U) {
-		cvCvtColor(img, gr, CV_BGR2GRAY);
-		cvCvtColor(gr, img, CV_GRAY2BGR);
+		tempImg = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1);
+		cvCvtColor(img, tempImg, CV_BGR2GRAY);
+		cvCvtColor(tempImg, img, CV_GRAY2BGR);
+
+		if(gr->roi) {
+			cvSetImageROI(tempImg, cvGetImageROI(gr));
+			cvCopyImage(tempImg, gr);
+		}
+
 		return img;
 	}
 	else if(img->nChannels == 1 && img->depth == IPL_DEPTH_8U) {
-		cvCopyImage(img, gr);
-
-		if(tempImg) {
-			cvReleaseImage(&tempImg);
-		}
-
 		tempImg = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 3);
 		cvCvtColor(img, tempImg, CV_GRAY2BGR);
+
+		if(gr->roi) {
+			cvSetImageROI(img, cvGetImageROI(gr));
+			cvCopyImage(img, gr);
+		}
+
 		return tempImg;
 	}
 
@@ -51,7 +62,7 @@ int auto_acquire(CvCapture *capture, CvRect *r, int t, int n,
 	rect = cvRect(0, 0, ROI_WIDTH, ROI_HEIGHT);
 	if(tplt != NULL) {
 		for(i = 0; i < n; i++) {
-			emergency(&rect, gr, tplt[i]);
+			track_tmplt(gr, tplt[i]);
 			r[i] = rect;
 			cvResetImageROI(gr);
 
@@ -70,23 +81,21 @@ int auto_acquire(CvCapture *capture, CvRect *r, int t, int n,
 
 // shared variables between manual_acquire & mouse callback function
 static int cur_roi;
-static IplImage *img;
 CvPoint mouse_loc;
-static char text[100];
 
-int manual_acquire(CvCapture *capture, CvRect *r, int *t, int n, 
+int manual_acquire(CvCapture *capture, IplImage **gr, int *t, int n, 
 				   IplImage **tplt, CvKalman **kal)
 {
 	int rc;
-	int val, x_c, y_c;
-	float z_k[Z_DIM], dt_k;
-	IplImage *gr;
+	float z_k[Z_DIM];
+	double dt_k;
+	CvPoint c;
 	CvFont font;
 	CvSeqWriter wr;
 	CvMemStorage *mem;
-	LARGE_INTEGER start, stop, freq;
+	IplImage *img;
+	char text[100];
 	
-	QueryPerformanceFrequency(&freq);
 	cvInitFont(&font,CV_FONT_HERSHEY_PLAIN,1,1,0,1);
 
 	mem = cvCreateMemStorage(0);
@@ -95,21 +104,19 @@ int manual_acquire(CvCapture *capture, CvRect *r, int *t, int n,
 
 	cur_roi = 0;
 	img = cvQueryFrame(capture);
-	gr = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1);
 
 	*t = THRESHOLD;
 	cvNamedWindow("manual_acquire");
 	cvCreateTrackbar("manual_acquire_track", "manual_acquire", t, WHITE, NULL);
-	cvSetMouseCallback("manual_acquire", onclick_center_rect, r);
+	cvSetMouseCallback("manual_acquire", onclick_center_rect, gr);
 
 	for(int j = 0; j < n; j++) {
-		r[j] = cvRect(BAD_ROI, BAD_ROI, ROI_WIDTH, ROI_HEIGHT);
+		cvResetImageROI(gr[j]);
 	}
 
-	QueryPerformanceCounter(&start);
+	dt_k = cvGetTickCount()/cvGetTickFrequency();
 	while(1) {
-		img = gr3chImg(cvQueryFrame(capture), gr);
-		QueryPerformanceCounter(&stop);
+		img = gr3chImg(cvQueryFrame(capture), gr[cur_roi]);
 
 		rc = cvWaitKey(100);
 		if(rc == 'q') {
@@ -129,62 +136,40 @@ int manual_acquire(CvCapture *capture, CvRect *r, int *t, int n,
 		}
 
 		for(int j = 0; j < n; j++) {
-			if(r[j].x == BAD_ROI) {
+			if(gr[j]->roi == NULL) {
 				continue;
 			}
 
-			x_c = r[j].x + r[j].width/2;
-			y_c = r[j].y + r[j].height/2;
-
+			c = roi2ctrd(gr[j]);
+	
 			// update Kalman filter
 			if(kal != NULL && kal[j] != NULL) {
-				z_k[0] = (float) x_c;
-				z_k[1] = (float) y_c;
-				dt_k = (float) ((stop.QuadPart - start.QuadPart) / 
-					((double) freq.QuadPart));
+				z_k[0] = (float) c.x;
+				z_k[1] = (float) c.y;
+				dt_k = (cvGetTickCount()/cvGetTickFrequency() - dt_k)*1e-6;
 
 				// beware a bad process model will cause a program crash
-				prediction(kal[j], dt_k, z_k);
+				prediction(kal[j], (float) dt_k, z_k);
+				ctrd2roi(gr[j], 
+					cvRound(kal[j]->state_post->data.fl[0]), 
+					cvRound(kal[j]->state_post->data.fl[1]),
+					ROI_WIDTH, 
+					ROI_HEIGHT);
 
-				r[j].x = cvRound(
-					kal[j]->state_post->data.fl[0] - r[j].width/2);
-				r[j].y = cvRound(
-					kal[j]->state_post->data.fl[1] - r[j].height/2);
-
-				QueryPerformanceCounter(&start);
+				draw_kal(img, kal[j]);
+				dt_k = cvGetTickCount()/cvGetTickFrequency();
 			}
 
 			// update template
 			if(tplt != NULL && tplt[j] != NULL) {
 				// note: if rect is out of image bounds OpenCV resizes ImageROI
 				// to largest valid bounding box
-				cvSetImageROI(gr, r[j]);
-				cvSetImageROI(tplt[j], r[j]);
-				cvCopyImage(gr, tplt[j]);
-				cvResetImageROI(gr);
+				cvSetImageROI(tplt[j], cvGetImageROI(gr[j]));
+				cvCopyImage(gr[j], tplt[j]);
 			}
 
-			// draw the (x, y) points and bounding boxes
-			val = CV_IMAGE_ELEM(img, unsigned char, y_c, img->nChannels*x_c);
-			cvCircle(img, 
-				cvPoint(x_c, y_c),
-				2,
-				val > 150 ? cvScalarAll(BLACK) : cvScalarAll(WHITE),
-				CV_FILLED);
-
-			cvRectangle(img, 
-				cvPoint(r[j].x, r[j].y), 
-				cvPoint(r[j].x + r[j].width, r[j].y + r[j].height),
-				CV_RGB(0, 0, 255),
-				4);
-
-			memset(text, 0, sizeof(text));
-			sprintf(text, "%d", j);
-			cvPutText(img, 
-				text, 
-				cvPoint(x_c, y_c), 
-				&font, 
-				CV_RGB(0, 255, 0));
+			// draw the (x, y) point and bounding box
+			draw_ctrd(img, gr[j], NULL, j);
 		}
 
 		memset(text, 0, sizeof(text));
@@ -199,19 +184,16 @@ int manual_acquire(CvCapture *capture, CvRect *r, int *t, int n,
 	}
 
 	cvDestroyWindow("manual_acquire");
-	cvReleaseImage(&gr);
-
 	return CV_OK;
 }
 
 void onclick_center_rect(int e, int x, int y, int flags, void *param)
 {
-	CvRect *r;
+	IplImage **gr;
 
 	if(e == CV_EVENT_LBUTTONDOWN) {
-		r = (CvRect *) param;
-		r[cur_roi].x = x - r[cur_roi].width/2;
-		r[cur_roi].y = y - r[cur_roi].height/2;
+		gr = (IplImage **) param;
+		ctrd2roi(gr[cur_roi], x, y, ROI_WIDTH, ROI_HEIGHT);
 	}
 	else if(e == CV_EVENT_MOUSEMOVE) {
 		mouse_loc.x = x;
