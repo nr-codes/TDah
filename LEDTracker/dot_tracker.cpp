@@ -62,6 +62,8 @@ double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, int lvl)
 
 	s = 1;
 	for(int i = 1; i <= lvl; i++) {
+		cvResetImageROI(temp);
+		cvZero(temp);
 		// scale factor
 		s = 1 << i;
 
@@ -78,8 +80,7 @@ double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, int lvl)
 		y = tmplt->roi->yOffset / s;
 		w = tmplt->roi->width / s;
 		h = tmplt->roi->height / s;
-		//cvSetImageROI(temp, cvRect(gr->width/2, gr->height/2, w, h));
-		cvSetImageROI(temp, cvRect(0, 0, w, h));
+		cvSetImageROI(temp, cvRect(gr->width/2, gr->height/2, w, h));
 		cvPyrDown(t_pyr, temp);
 		cvSetImageROI(t_pyr, cvRect(x, y, w, h));
 		cvCopyImage(temp, t_pyr);
@@ -92,48 +93,13 @@ double track_tmplt_pyr(IplImage *gr, IplImage *tmplt, int lvl)
 					g_pyr->roi->width*s,
 					g_pyr->roi->height*s));
 
+	cvResetImageROI(temp);
+	cvShowImage("pyr", temp);
+
 	cvReleaseImage(&g_pyr);
 	cvReleaseImage(&t_pyr);
 	cvReleaseImage(&temp);
 
-	return max;
-}
-
-double track_tmplt_pyr2(IplImage *gr, IplImage *tmplt, int lvl)
-{
-	double max;
-	IplImage *gr_pyr, *tmplt_pyr;
-
-	if(lvl) {
-		gr_pyr = cvCreateImage(
-			cvSize(gr->width/2, gr->height/2), 
-			gr->depth, gr->nChannels);
-
-		tmplt_pyr = cvCreateImage(
-			cvSize(tmplt->width/2, tmplt->height/2), 
-			tmplt->depth, tmplt->nChannels);
-
-		cvSetImageROI(tmplt_pyr, 
-			cvRect(tmplt->roi->xOffset/2, tmplt->roi->yOffset/2,
-			tmplt->roi->width/2, tmplt->roi->height/2));
-
-		cvPyrDown(gr, gr_pyr);
-		cvPyrDown(tmplt, tmplt_pyr);
-
-		max = track_tmplt_pyr(gr_pyr, tmplt_pyr, lvl - 1);
-		cvSetImageROI(gr, 
-			cvRect(gr_pyr->roi->xOffset*2,
-					gr_pyr->roi->yOffset*2,
-					gr_pyr->roi->width*2,
-					gr_pyr->roi->height*2));
-
-		cvReleaseImage(&gr_pyr);
-		cvReleaseImage(&tmplt_pyr);
-	}
-	else {
-		max = track_tmplt(gr, tmplt);
-	}
-	
 	return max;
 }
 
@@ -152,7 +118,13 @@ double track_tmplt(IplImage *gray, IplImage *templ)
 
 	cvMatchTemplate(gray, templ, res, CV_TM_CCOEFF_NORMED);
 	cvMinMaxLoc(res, &min, &max, &min_pt, &max_pt);
-	cvSetImageROI(gray, cvRect(max_pt.x, max_pt.y, t_roi.width, t_roi.height));
+
+	gr_roi.x += max_pt.x;
+	gr_roi.y += max_pt.y;
+	gr_roi.width = t_roi.width;
+	gr_roi.height = t_roi.height;
+
+	cvSetImageROI(gray, gr_roi);
 	cvReleaseImage(&res);
 	
 	return max;

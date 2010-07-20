@@ -60,27 +60,21 @@ int main()
 			cvResetImageROI(img);
 			cvCvtColor(img, gr[j], CV_BGR2GRAY);
 
+#if 0
 			double score2 = track_tmplt(gr[j], tplt[j]);
-			printf("x %d y %d w %d h %d (%g) -- ", 
+			printf("%d: x %d y %d w %d h %d (%0.3g) -- ", j,
 				gr[j]->roi->xOffset, gr[j]->roi->yOffset, 
 				gr[j]->roi->width, gr[j]->roi->height, score2);
-			CvRect r = cvGetImageROI(gr[j]);
-
+#endif
+TIME_CODE("tracking loop", 					  
 			cvResetImageROI(gr[j]);
-TIME_CODE("tracking loop", 			
 			score = track_tmplt_pyr(gr[j], tplt[j], 3);
 ); /* end timing */
-			printf("x %d y %d w %d h %d (%g) -- ", 
-				gr[j]->roi->xOffset, gr[j]->roi->yOffset, 
-				gr[j]->roi->width, gr[j]->roi->height, score);
-
-
-			printf("x %2.3g y %2.3g w %2.3g h %2.3g (%2.3g)\n", 
-				gr[j]->roi->xOffset/(r.x*1.0), 
-				gr[j]->roi->yOffset/(r.y*1.0), 
-				gr[j]->roi->width/(r.width*1.0), 
-				gr[j]->roi->height/(r.height*1.0), 
-				score/score2);
+#if 0
+			printf("%d: x %d y %d w %d h %d (%0.9g)\n", j,
+			gr[j]->roi->xOffset, gr[j]->roi->yOffset, 
+			gr[j]->roi->width, gr[j]->roi->height, score);
+#endif
 		}
 
 		c = roi2ctrd(gr[j]);
