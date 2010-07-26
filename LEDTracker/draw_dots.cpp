@@ -36,8 +36,8 @@ void draw_ctrd(IplImage *dst, IplImage *src, CvSeq *bndry, int i)
 	cvCircle(dst, ctrd,	cvRound(radius), CTRD_COLOR);
 
 	cvRectangle(dst, 
-		cvPoint(ctrd.x - w/2, ctrd.y - w/2), 
-		cvPoint(ctrd.x + w/2, ctrd.y + w/2),
+		cvPoint(ctrd.x - w/2, ctrd.y - h/2), 
+		cvPoint(ctrd.x + w/2, ctrd.y + h/2),
 		CTRD_COLOR,
 		ROI_THICKNESS);
 
@@ -74,7 +74,7 @@ void draw_kal(IplImage *dst, CvKalman *kal)
 	cvPutText(dst, text, pt, &font, KAL_COLOR);
 }
 
-void show_tplts(IplImage **tplt, int rows, int cols, int n)
+void show_tplts(IplImage **tplt, int roi_w, int roi_h, int rows, int cols, int n)
 {
 	char text[TXT_SIZE];
 	CvFont font;
@@ -85,7 +85,7 @@ void show_tplts(IplImage **tplt, int rows, int cols, int n)
 		return;
 	}
 
-	dst = cvCreateImage(cvSize(ROI_WIDTH*cols, ROI_HEIGHT*rows), 
+	dst = cvCreateImage(cvSize(roi_w*cols, roi_h*rows), 
 		IPL_DEPTH_8U, 3);
 
 	cvInitFont(&font,CV_FONT_HERSHEY_PLAIN,1,1,0,1);
@@ -121,7 +121,7 @@ void show_tplts(IplImage **tplt, int rows, int cols, int n)
 	cvReleaseImage(&dst);
 }
 
-void show_seqs(CvSeqWriter *bndry, int rows, int cols, int n)
+void show_seqs(CvSeqWriter *bndry, int roi_w, int roi_h, int rows, int cols, int n)
 {
 	char text[TXT_SIZE];
 	CvFont font;
@@ -134,8 +134,8 @@ void show_seqs(CvSeqWriter *bndry, int rows, int cols, int n)
 		return;
 	}
 
-	w = ROI_WIDTH;
-	h = ROI_HEIGHT;
+	w = roi_w;
+	h = roi_h;
 	dst = cvCreateImage(cvSize(w*cols, h*rows), 
 		IPL_DEPTH_8U, 3);
 	cvZero(dst);

@@ -2,9 +2,11 @@
 
 #define GRAVITY 9.8f
 
+
+// TODO: figure out correct interface for kalman filter, should it predict k+1?
 void prediction(CvKalman *kal, float dt_k, float *z_k)
 {
-	float u_k[] = {1};
+	float u_k[] = {0};
 
 	float A_k[] = { 1, 0, dt_k, 0, 
 					0, 1, 0, dt_k, 
@@ -24,12 +26,32 @@ void prediction(CvKalman *kal, float dt_k, float *z_k)
 
 	cvKalmanPredict(kal, &u);
 	cvKalmanCorrect(kal, &z);
+
+	printf("pred: \npre ");
+	for(int i = 0; i < X_DIM; i++) {
+		printf("%1.5g ", kal->state_pre->data.fl[i]);
+	}
+	printf(" \npost ");
+	for(int i = 0; i < X_DIM; i++) {
+		printf("%1.5g ", kal->state_post->data.fl[i]);
+	}
+	printf("\n");
+
+	printf("K ");
+	for(int i = 0; i < kal->gain->rows; i++) {
+		for(int j = 0; j < kal->gain->cols; j++) {
+			printf("%1.5g ", kal->gain->data.fl[j]);
+		}
+		printf("\n");
+	}
 }
 
 void setup_kalman(CvKalman **kal, int n, float **x0, float **P0)
 {
 	int i;
 	CvKalman *k;
+
+	if(!kal) return;
 
 	for(i = 0; i < n; i++) {
 		k = kal[i];

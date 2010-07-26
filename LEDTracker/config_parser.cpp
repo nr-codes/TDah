@@ -54,6 +54,8 @@ void write_templates(CvFileStorage *fs, IplImage **tmplt, int n, char *dir)
 	char path[500];
 	char key[100];
 	int len;
+
+	if(!tmplt) return;
 	
 	memset(path, 0, sizeof(path));
 	len = snprintf(path, 50, "%s", dir);
@@ -77,6 +79,8 @@ void write_obj_loc(CvFileStorage *fs, IplImage **obj, int n)
 	char key[100];
 	CvRect rect;
 
+	if(!obj) return;
+
 	cvStartWriteStruct(fs, ROILOC_STRUCT, CV_NODE_MAP);
 	for(int i = 0; i < n; i++) {
 		if(obj[i]->roi) {
@@ -98,6 +102,9 @@ void write_obj_loc(CvFileStorage *fs, IplImage **obj, int n)
 void write_kalman(CvFileStorage *fs, CvKalman **kal, int n)
 {
 	char key[100];
+
+	if(!kal) return;
+
 	cvStartWriteStruct(fs, KAL_STRUCT, CV_NODE_MAP);
 	for(int i = 0; i < n; i++) {
 		memset(key, 0, sizeof(key));

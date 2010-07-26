@@ -37,19 +37,15 @@ int TDahOpenCV::getROILoc(int index, ROILoc *r)
 	r->obj_found = true; // assume found
 
 	score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
-	printf("ctrd\n");
 	if(score <= 0 || score > max_radius) {
 		// ctrd couldn't find object
 		if(tplt) {
-			printf("template0\n");
 			// try downsampled template matching
 			cvResetImageROI(img);
 			cvSetImageROI(gr[j], cvGetImageROI(img));
 			cvCvtColor(img, gr[j], CV_BGR2GRAY);
-			// TODO: why is pyr_temp NULL?  probably b/c of deinit in alloc_mbrs
 			score = track_tmplt_pyr(gr[j], tplt[j], pyr_temp, PYR_LVL, PYR_OFFSET);
 			if(score < min_match) {
-				printf("template1\n");
 				// try full image template matching
 				score = track_tmplt(gr[j], tplt[j], tplt_temp);
 				if(score < min_match) {
@@ -62,15 +58,13 @@ int TDahOpenCV::getROILoc(int index, ROILoc *r)
 		}
 	}
 
-	if(kal) {
-		printf("kal\n");
+	if(kal && false) { // TODO debug kalman...printfs look suspicious
 		c = roi2ctrd(gr[j]);
 		z[0] = (float) c.x;
 		z[1] = (float) c.y;
 		prediction(kal[j], (float) ((r->ts - prev_ts[j])*1e-6), z);
 
 		if(!r->obj_found) {
-			printf("kal lost\n");
 			// only trust process dynamics
 			cvCopy(kal[j]->error_cov_pre, kal[j]->error_cov_post);
 			cvCopy(kal[j]->state_pre, kal[j]->state_post);
@@ -83,7 +77,10 @@ int TDahOpenCV::getROILoc(int index, ROILoc *r)
 	}
 	r->loc = roi2ctrd(gr[j]);
 
-	if(r->img) cvCopyImage(gr[j], r->img);
+	if(r->img) {
+		cvSetImageROI(r->img, cvGetImageROI(gr[j]));
+		cvCopyImage(gr[j], r->img);
+	}
 
 	j++;
 	j %= n_roi;

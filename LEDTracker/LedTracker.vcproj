@@ -169,7 +169,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\cvcap_me3.cpp"
+				RelativePath=".\config_parser.cpp"
 				>
 			</File>
 			<File
@@ -185,6 +185,30 @@
 				>
 			</File>
 			<File
+				RelativePath=".\me3.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\roi.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\t_dah.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TDah.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\tdah_opencv.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TDahOpenCV.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\xtal_ball.cpp"
 				>
 			</File>
@@ -195,11 +219,35 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\config_parser.h"
+				>
+			</File>
+			<File
+				RelativePath=".\dot_tracker.h"
+				>
+			</File>
+			<File
+				RelativePath=".\draw_dots.h"
+				>
+			</File>
+			<File
 				RelativePath="..\t-dah\fcdynamic.h"
 				>
 			</File>
 			<File
+				RelativePath=".\me3.h"
+				>
+			</File>
+			<File
 				RelativePath=".\t_dah.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TDah.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TDahOpenCV.h"
 				>
 			</File>
 		</Filter>

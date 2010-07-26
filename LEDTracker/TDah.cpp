@@ -29,7 +29,7 @@ TDah::TDah()
 	prev_ts = NULL;
 }
 
-int TDah::initROIs(int n, int rw, int rh, char *s)
+int TDah::initROIs(int n, int rw, int rh, char *s, bool use_kal, bool use_tmplt)
 {
 	double val;
 	IplImage *img;
@@ -43,11 +43,11 @@ int TDah::initROIs(int n, int rw, int rh, char *s)
 	roi_h = rh;
 	img_w = img->width;
 	img_h = img->height;
-	if(alloc_mbrs(true, true) != CV_OK) return !CV_OK;
+	if(alloc_mbrs(use_kal, use_tmplt) != CV_OK) return !CV_OK;
 
 	// set ROIs for each object
 	setup_kalman(kal, n_roi);
-	manual_acquire(this, gr, roi_w, roi_h, &threshold, n_roi, tplt, kal);
+	manual_acquire(this, gr, roi_w, roi_h, &threshold, wr, n_roi, tplt, kal);
 
 	max_radius = 0.;
 	min_match = 1.;
@@ -61,14 +61,24 @@ int TDah::initROIs(int n, int rw, int rh, char *s)
 		val = track_ctrd(gr[i], roi_w, roi_h, threshold, &wr[i]);
 		max_radius = std::max(val, max_radius);
 
-		// copy entire image and tmplt match
-		cvResetImageROI(gr[i]);
-		cvResetImageROI(img);
-		cvCvtColor(img, gr[i], CV_BGR2GRAY);
+		if(tplt) {
+			// copy entire image and tmplt match
+			cvResetImageROI(gr[i]);
+			cvResetImageROI(img);
+			cvCvtColor(img, gr[i], CV_BGR2GRAY);
 
-		val = track_tmplt(gr[i], tplt[i], tplt_temp);
-		min_match = std::min(val, min_match);
+			val = track_tmplt(gr[i], tplt[i], tplt_temp);
+			min_match = std::min(val, min_match);
+		}
+
+		if(kal) {
+			// TODO: should we update kalman here?
+		}
 	}
+
+	// add a fudge factor for safety
+	max_radius += R_PAD;
+	min_match -= M_PAD;
 
 	if(s) {
 		fs = cvOpenFileStorage(s, NULL, CV_STORAGE_WRITE);
@@ -77,11 +87,11 @@ int TDah::initROIs(int n, int rw, int rh, char *s)
 			return !CV_OK;
 		}
 
-		write_track_params(fs, threshold, min_match - M_PAD, 
-			max_radius + R_PAD, roi_w, roi_h, img_w, img_h);
-		write_templates(fs, tplt, n_roi);
+		write_track_params(fs, threshold, min_match, 
+			max_radius, roi_w, roi_h, img_w, img_h);
 		write_obj_loc(fs, gr, n_roi);
-		write_kalman(fs, kal, n_roi);
+		if(use_tmplt) write_templates(fs, tplt, n_roi);
+		if(use_kal) write_kalman(fs, kal, n_roi);
 		cvReleaseFileStorage(&fs);
 	}
 
@@ -122,10 +132,10 @@ int TDah::initROIs(int num_roi, char *conf_file, bool use_kal, bool use_tmplt)
 
 	// get dots
 	rc = auto_acquire(this, gr, roi_w, roi_h, 
-		threshold, max_radius, n_roi, tplt, min_match, kal, SHOW_IMGS);
+		threshold, wr, max_radius, n_roi, tplt, min_match, kal, SHOW_IMGS);
 	if(rc != CV_OK) {
 		rc = manual_acquire(this, gr, roi_w, roi_h, 
-			&threshold, n_roi, tplt, kal);
+			&threshold, wr, n_roi, tplt, kal);
 	}
 
 	cvReleaseFileStorage(&fs);

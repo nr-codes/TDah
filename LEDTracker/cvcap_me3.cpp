@@ -7,7 +7,8 @@
 #include "FastConfig.h"
 
 #if defined(WIN32) && defined(_WIN32)
-#define FASTCONFIG_DLL "FastConfig.dll"
+#define DEFAULT_APPLET "FastConfig.dll"
+#define FAST_CONFIG "FastConfig.dll"
 #endif
 
 #define CV_CAP_me3 -1 // not used
@@ -32,6 +33,7 @@ public:
     }
 
     virtual bool open( int index );
+	virtual bool open( char *applet );
     virtual void close();
     virtual double getProperty(int);
     virtual bool setProperty(int, double);
@@ -47,6 +49,7 @@ protected:
 	const unsigned long *mem;
     IplImage *frame;
 	int frame_nr;
+	bool fast_config;
 };
 
 
@@ -69,9 +72,11 @@ void CvCaptureCAM_me3::close()
 		me3_err("close");
 	}
 
-	rc = FastConfigFree(PORT_A);
-	if(rc != FG_OK) {
-		me3_err("close");
+	if(fast_config) {
+		rc = FastConfigFree(PORT_A);
+		if(rc != FG_OK) {
+			me3_err("close");
+		}
 	}
 
 	rc = Fg_FreeGrabber(fg);
@@ -85,6 +90,11 @@ void CvCaptureCAM_me3::close()
 // Initialize camera input
 bool CvCaptureCAM_me3::open(int index)
 {
+	return open(DEFAULT_APPLET);
+}
+
+bool CvCaptureCAM_me3::open(char *applet)
+{
 	// int init_cam(Fg_Struct **grabber, int memsize, int buffers, int camlink)
 	int rc, camlink;
 
@@ -95,7 +105,7 @@ bool CvCaptureCAM_me3::open(int index)
 		return false;
 	}
 
-	fg = Fg_Init(FASTCONFIG_DLL, PORT_A);
+	fg = Fg_Init(applet, PORT_A);
 	if(fg == NULL) {
 		me3_err("open");
 		return false;
@@ -108,10 +118,13 @@ bool CvCaptureCAM_me3::open(int index)
 		return false;
 	}
 
-	rc = FastConfigInit(PORT_A);
-	if(rc != FG_OK) {
-		me3_err("open");
-		return false;
+	fast_config = !strcmp(applet, FAST_CONFIG);
+	if(fast_config) {
+		rc = FastConfigInit(PORT_A);
+		if(rc != FG_OK) {
+			me3_err("open");
+			return false;
+		}
 	}
 
 	mem = Fg_AllocMem(fg, MEMSIZE(IMG_WIDTH, IMG_HEIGHT), NUM_BUFFERS, PORT_A);
@@ -182,6 +195,17 @@ CvCapture* cvCreateCameraCapture_me3(int index)
     CvCaptureCAM_me3 *capture = new CvCaptureCAM_me3;
 
     if (capture->open(index))
+        return capture;
+
+    delete capture;
+    return NULL;
+}
+
+CvCapture* cvCreateCameraCapture_me3(char *applet)
+{
+    CvCaptureCAM_me3 *capture = new CvCaptureCAM_me3;
+
+    if (capture->open(applet))
         return capture;
 
     delete capture;

@@ -1,8 +1,11 @@
 //http://www.parashift.com/c++-faq-lite/inline-functions.html
 
+// should warn users that roi 0x0 is bad and pyrdown will divide by roi/2^lvl
+
 #include "t_dah.h"
 
-double track_ctrd(IplImage *gray, int thresh, CvSeqWriter *wr)
+double track_ctrd(IplImage *gray, int roi_w, int roi_h, 
+				  int thresh, CvSeqWriter *wr)
 {
 	int x, y, w, h;
 	char *pxl;
@@ -39,7 +42,7 @@ double track_ctrd(IplImage *gray, int thresh, CvSeqWriter *wr)
 	if(ptr_seq->total && cvMinEnclosingCircle(ptr_seq, &cen, &rad)) {
 		x = gray->roi->xOffset + cvRound(cen.x);
 		y = gray->roi->yOffset + cvRound(cen.y);
-		ctrd2roi(gray, x, y, ROI_WIDTH, ROI_HEIGHT);
+		ctrd2roi(gray, x, y, roi_w, roi_h);
 	}
 	else {
 		return 0;
@@ -76,20 +79,44 @@ double track_tmplt_pyr(IplImage *gr, IplImage *tmplt,
 		y = tmplt->roi->yOffset / s;
 		w = tmplt->roi->width / s;
 		h = tmplt->roi->height / s;
-		cvSetImageROI(temp, cvRect(gr->width/2, gr->height/2, w, h));
-		cvPyrDown(t_pyr, temp);
+		cvSetImageROI(temp, cvRect(temp->width/2, temp->height/2, w, h));
+		cvPyrDown(t_pyr, temp); // TODO maybe a bug in fcn when roi = 0 (w or h or both)
 		cvSetImageROI(t_pyr, cvRect(x, y, w, h));
 		cvCopyImage(temp, t_pyr);
 	}
 
 	max = track_tmplt(g_pyr, t_pyr);
 	cvSetImageROI(gr, 
-			cvRect(g_pyr->roi->xOffset*s - offset,
-					g_pyr->roi->yOffset*s - offset,
-					g_pyr->roi->width*s + offset,
-					g_pyr->roi->height*s + offset));
+			cvRect(g_pyr->roi->xOffset*s, g_pyr->roi->yOffset*s,
+					tmplt->roi->width, tmplt->roi->height));
 
 	if(offset) {
+		x = gr->roi->xOffset - offset;
+		y = gr->roi->yOffset - offset;
+		w = tmplt->roi->width + 2*offset;
+		h = tmplt->roi->height + 2*offset;
+
+		if(x < 0) {
+			// add amount x is -'ve by to x and w
+			w = w - x;
+			x = 0;
+		}
+
+		if(y < 0) {
+			// same with y and h
+			h = h - y;
+			y = 0;
+		}
+
+		if(x + w >= gr->width) {
+			x = gr->width - w;
+		}
+
+		if(y + h >= gr->height) {
+			y = gr->height - h;
+		}
+
+		cvSetImageROI(gr, cvRect(x, y, w, h));
 		max = track_tmplt(gr, tmplt);
 	}
 
@@ -99,7 +126,7 @@ double track_tmplt_pyr(IplImage *gr, IplImage *tmplt,
 	return max;
 }
 
-double track_tmplt(IplImage *gray, IplImage *templ)
+double track_tmplt(IplImage *gray, IplImage *templ, IplImage *temp)
 {
 	IplImage *res;
 	CvPoint min_pt, max_pt;
@@ -109,8 +136,15 @@ double track_tmplt(IplImage *gray, IplImage *templ)
 	gr_roi = cvGetImageROI(gray);
 	t_roi = cvGetImageROI(templ);
 
-	res = cvCreateImage(cvSize(gr_roi.width - t_roi.width + 1, 
-				gr_roi.height - t_roi.height + 1), IPL_DEPTH_32F, 1);
+	if(temp) {
+		res = temp;
+		cvSetImageROI(res, cvRect(0, 0, gr_roi.width - t_roi.width + 1, 
+			gr_roi.height - t_roi.height + 1));
+	}
+	else {
+		res = cvCreateImage(cvSize(gr_roi.width - t_roi.width + 1, 
+					gr_roi.height - t_roi.height + 1), IPL_DEPTH_32F, 1);
+	}
 
 	cvMatchTemplate(gray, templ, res, CV_TM_CCOEFF_NORMED);
 	cvMinMaxLoc(res, &min, &max, &min_pt, &max_pt);
@@ -121,7 +155,9 @@ double track_tmplt(IplImage *gray, IplImage *templ)
 	gr_roi.height = t_roi.height;
 
 	cvSetImageROI(gray, gr_roi);
-	cvReleaseImage(&res);
+	if(temp == NULL) {
+		cvReleaseImage(&res);
+	}
 	
 	return max;
 }

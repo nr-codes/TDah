@@ -15,7 +15,8 @@ public:
 	virtual int getROILoc(int i, ROILoc *r) { return -1; };
 	virtual void showROILoc(void) { show_position(gr, n_roi, kal, wr); };
 	void deinitROIs(void);
-	int initROIs(int num_roi, int roi_w, int roi_h, char *save_conf_as = NULL);
+	int initROIs(int num_roi, int roi_w, int roi_h, char *save_conf_as = NULL, 
+		bool use_kal = true, bool use_tmplt = true);
 	int initROIs(int num_roi, char *conf_file, 
 		bool use_kal = true, bool use_tmplt = true);
 
