@@ -219,6 +219,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\acquire_dots.h"
+				>
+			</File>
+			<File
 				RelativePath=".\config_parser.h"
 				>
 			</File>
@@ -248,6 +252,10 @@
 			</File>
 			<File
 				RelativePath=".\TDahOpenCV.h"
+				>
+			</File>
+			<File
+				RelativePath=".\xtal_ball.h"
 				>
 			</File>
 		</Filter>

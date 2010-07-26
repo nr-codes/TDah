@@ -2,7 +2,6 @@
 
 #define GRAVITY 9.8f
 
-
 // TODO: figure out correct interface for kalman filter, should it predict k+1?
 void prediction(CvKalman *kal, float dt_k, float *z_k)
 {
@@ -37,12 +36,30 @@ void prediction(CvKalman *kal, float dt_k, float *z_k)
 	}
 	printf("\n");
 
-	printf("K ");
+	printf("K\t");
 	for(int i = 0; i < kal->gain->rows; i++) {
 		for(int j = 0; j < kal->gain->cols; j++) {
-			printf("%1.5g ", kal->gain->data.fl[j]);
+			printf("%1.5g ", kal->gain->data.fl[i*kal->gain->cols + j]);
 		}
-		printf("\n");
+		printf("\n\t");
+	}
+
+	printf("\nA\t");
+	for(int i = 0; i < kal->transition_matrix->rows; i++) {
+		for(int j = 0; j < kal->transition_matrix->cols; j++) {
+			printf("%1.5g ", 
+				kal->transition_matrix->data.fl[i*kal->transition_matrix->cols + j]);
+		}
+		printf("\n\t");
+	}
+
+	printf("\nB\t");
+	for(int i = 0; i < kal->control_matrix->rows; i++) {
+		for(int j = 0; j < kal->control_matrix->cols; j++) {
+			printf("%1.5g ", 
+				kal->control_matrix->data.fl[i*kal->control_matrix->cols + j]);
+		}
+		printf("\n\t");
 	}
 }
 
@@ -65,10 +82,12 @@ void setup_kalman(CvKalman **kal, int n, float **x0, float **P0)
 		cvSetIdentity(k->measurement_matrix, cvRealScalar(1));
 
 		// might be able to tune based on off-line analysis
-		cvSetIdentity(k->process_noise_cov, cvRealScalar(1e-1));
+		cvSetIdentity(k->process_noise_cov, cvRealScalar(1e-0));
+		//cvSetIdentity(k->process_noise_cov, cvRealScalar(1e-1));
 
 		// should know after experiments
-		cvSetIdentity(k->measurement_noise_cov, cvRealScalar(1e-5));
+		cvSetIdentity(k->measurement_noise_cov, cvRealScalar(1e-0));
+		//cvSetIdentity(k->measurement_noise_cov, cvRealScalar(1e-5));
 
 		// initial state
 		if(x0 && x0[i]) {
@@ -84,7 +103,8 @@ void setup_kalman(CvKalman **kal, int n, float **x0, float **P0)
 		}
 		else {
 			// don't trust initial guess
-			cvSetIdentity(k->error_cov_post, cvRealScalar(100));
+			cvSetIdentity(k->error_cov_post, cvRealScalar(1));
+			//cvSetIdentity(k->error_cov_post, cvRealScalar(100));
 		}
 	}
 }

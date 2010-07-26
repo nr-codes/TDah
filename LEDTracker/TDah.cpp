@@ -20,7 +20,7 @@ TDah::TDah()
 	mem = NULL;
 
 	// template matching
-	min_match = 0; // max value
+	min_match = 1; // max value
 	tplt = NULL;
 	pyr_temp = tplt_temp = NULL;
 

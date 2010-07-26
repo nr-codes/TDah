@@ -1,46 +1,30 @@
 #include "t_dah.h"
 
-static void onclick_center_rect(int e, int x, int y, int flags, void *param);
-static IplImage *gr3chImg(IplImage *img, IplImage *gr);
+// TODO note that if rect is out of image bounds OpenCV resizes ImageROI
+// to largest valid bounding box
 
-static IplImage *tempImg = NULL;
+#define AUTOACQ_NUM_ATTEMPTS 20
 
 //***************************** HELPER FUNCTIONS *********************//
-//TODO: Get rid of gr3chImg, if queryFrame is used then image must be bgr
-static IplImage *gr3chImg(IplImage *img, IplImage *gr)
+
+static IplImage *cvt_bgr2gr(IplImage *img, IplImage *gr)
 {
-	if(tempImg) {
-		cvReleaseImage(&tempImg);
-	}
+	CvRect roi;
+	int is_roi_set;
 
-	if(img->nChannels == 3 && img->depth == IPL_DEPTH_8U) {
-		tempImg = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1);
-		cvCvtColor(img, tempImg, CV_BGR2GRAY);
-		cvCvtColor(tempImg, img, CV_GRAY2BGR);
+	is_roi_set = !!gr->roi;
+	
+	roi = cvGetImageROI(gr);
+	cvResetImageROI(gr);
+	cvCvtColor(img, gr, CV_BGR2GRAY);
+	cvCvtColor(gr, img, CV_GRAY2BGR);
 
-		if(gr->roi) {
-			cvSetImageROI(tempImg, cvGetImageROI(gr));
-			cvCopyImage(tempImg, gr);
-		}
+	if(is_roi_set) cvSetImageROI(gr, roi);
 
-		return img;
-	}
-	else if(img->nChannels == 1 && img->depth == IPL_DEPTH_8U) {
-		tempImg = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 3);
-		cvCvtColor(img, tempImg, CV_GRAY2BGR);
-
-		if(gr->roi) {
-			cvSetImageROI(img, cvGetImageROI(gr));
-			cvCopyImage(img, gr);
-		}
-
-		return tempImg;
-	}
-
-	return NULL;
+	return img;
 }
 
-void update_kal_tplt(IplImage *gr, int roi_w, int roi_h, 
+static void update_kal_tplt(IplImage *gr, int roi_w, int roi_h, 
 					 CvKalman *kal, IplImage *tplt)
 {
 	static double dt_k = cvGetTickCount()/cvGetTickFrequency();
@@ -70,8 +54,6 @@ void update_kal_tplt(IplImage *gr, int roi_w, int roi_h,
 
 	// update template
 	if(tplt != NULL) {
-		// note: if rect is out of image bounds OpenCV resizes ImageROI
-		// to largest valid bounding box
 		cvSetImageROI(tplt, cvGetImageROI(gr));
 		cvCopyImage(gr, tplt);
 	}
@@ -88,15 +70,20 @@ int auto_acquire(CvCapture *capture, IplImage **gr,
 	int found;
 	int last_tplt;
 	IplImage *img;
-	int tries = 20;
+	int tries = AUTOACQ_NUM_ATTEMPTS;
 
 	while(tries--) {
+		// reset state
 		found = 0;
 		score = 0;
 		last_tplt = -1;
-		img = gr3chImg(cvQueryFrame(capture), gr[0]);
+
+		// take a new image
+		img = cvt_bgr2gr(cvQueryFrame(capture), gr[0]);
+
+		// find dots
 		for(int i = 0; i < n; i++) {
-			img = gr3chImg(img, gr[i]);
+			img = cvt_bgr2gr(img, gr[i]);
 			if(gr[i]->roi) {
 				score = track_ctrd(gr[i], roi_w, roi_h, t, &wr[i]);
 				printf("%d: centroid radius %0.4g\n", i, score);
@@ -112,13 +99,15 @@ int auto_acquire(CvCapture *capture, IplImage **gr,
 				}
 				else {
 					found++;
-					gr3chImg(img, gr[i]);
+
+					// copy orig img to gr[i] for tmplt matching
+					cvt_bgr2gr(img, gr[i]);
 					update_kal_tplt(gr[i], roi_w, roi_h,
 						kal ? kal[i] : NULL, tplt ? tplt[i] : NULL);
 				}
 			}
 			else if(tplt && tplt[i]) {
-				cvCvtColor(img, gr[i], CV_BGR2GRAY);
+				cvt_bgr2gr(img, gr[i]);
 				score = track_tmplt(gr[i], tplt[i]);
 				printf("%d: template match %0.4g\n", i, score);
 				if(score < m) {
@@ -134,6 +123,8 @@ int auto_acquire(CvCapture *capture, IplImage **gr,
 				printf("missing ROI or template for image %d\n", i);
 			}
 		}
+
+		// have all dots been found?
 		if(found == n) {
 			break;
 		}
@@ -163,6 +154,20 @@ int auto_acquire(CvCapture *capture, IplImage **gr,
 static int cur_roi;
 static CvPoint mouse_loc;
 static int roi_width, roi_height;
+
+void onclick_center_rect(int e, int x, int y, int flags, void *param)
+{
+	IplImage **gr;
+
+	if(e == CV_EVENT_LBUTTONDOWN) {
+		gr = (IplImage **) param;
+		ctrd2roi(gr[cur_roi], x, y, roi_width, roi_height);
+	}
+	else if(e == CV_EVENT_MOUSEMOVE) {
+		mouse_loc.x = x;
+		mouse_loc.y = y;
+	}
+}
 
 int manual_acquire(CvCapture *capture, IplImage **gr, int roi_w, int roi_h,
 				   int *t, CvSeqWriter *wr, int n, 
@@ -196,7 +201,7 @@ int manual_acquire(CvCapture *capture, IplImage **gr, int roi_w, int roi_h,
 	}
 
 	while(1) {
-		img = gr3chImg(cvQueryFrame(capture), gr[cur_roi]);
+		img = cvt_bgr2gr(cvQueryFrame(capture), gr[cur_roi]);
 
 		rc = cvWaitKey(100);
 		if(rc == 'q') {
@@ -251,18 +256,4 @@ int manual_acquire(CvCapture *capture, IplImage **gr, int roi_w, int roi_h,
 	cvDestroyWindow("manual_acquire");
 	cvReleaseImage(&gr_temp);
 	return CV_OK;
-}
-
-void onclick_center_rect(int e, int x, int y, int flags, void *param)
-{
-	IplImage **gr;
-
-	if(e == CV_EVENT_LBUTTONDOWN) {
-		gr = (IplImage **) param;
-		ctrd2roi(gr[cur_roi], x, y, roi_width, roi_height);
-	}
-	else if(e == CV_EVENT_MOUSEMOVE) {
-		mouse_loc.x = x;
-		mouse_loc.y = y;
-	}
 }

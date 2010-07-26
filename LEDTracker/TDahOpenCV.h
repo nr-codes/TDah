@@ -19,7 +19,9 @@ public:
 	virtual int getCaptureDomain() { return cap->getCaptureDomain(); };
 	virtual IplImage* retrieveFrame(int) 
 	{ 
-		return cvRetrieveFrame(cap); 
+		IplImage *img = cvRetrieveFrame(cap);
+		cvResetImageROI(img);
+		return img;
 	};
 
 	virtual double getProperty(int prop) 

@@ -1,7 +1,4 @@
 #include "t_dah.h"
-#include "me3.h"
-
-//TODO what should be default values for missing parameters?
 
 #if defined(WIN32) && defined(_WIN32)
 #define snprintf _snprintf

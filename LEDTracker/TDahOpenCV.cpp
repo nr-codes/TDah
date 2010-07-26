@@ -1,11 +1,7 @@
-#include <cv.h>
-#include <cxcore.h>
-#include <highgui.h>
-#include "TDahOpenCV.h"
+#include "t_dah.h"
 
 #define PYR_LVL 2
 #define PYR_OFFSET 5
-
 
 void TDahOpenCV::showROILoc(void)
 {
@@ -26,7 +22,6 @@ int TDahOpenCV::getROILoc(int index, ROILoc *r)
 
 	OPENCV_ASSERT(gr[j]->roi, __FUNCTION__, "ROI not set");
 
-	// TODO: interesting side effect is queryFrame() gets img ROI.  should i keep this?
 	img = cvRetrieveFrame(cap);
 	cvSetImageROI(img, cvGetImageROI(gr[j]));
 	cvCvtColor(img, gr[j], CV_BGR2GRAY);
