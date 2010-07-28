@@ -21,9 +21,11 @@ int TDahOpenCV::getROILoc(ROILoc *r)
 	r->img_nr = cnt++;
 	r->ts = cvGetTickCount()/cvGetTickFrequency();
 
-	avg_frame_time += ((r->ts - prev_ts[j])*1e-6 - avg_frame_time)/cnt;
-	updateROILoc(j, img, r, (float) avg_frame_time);
+	if(kal) {
+		avg_frame_time += ((r->ts - prev_ts[j])*1e-6 - avg_frame_time)/cnt;
+	}
 
+	updateROILoc(j, img, r, (float) avg_frame_time);
 	j++;
 	j %= n_roi;
 

@@ -1,5 +1,34 @@
 #include "t_dah.h"
 
+#if 1
+int main()
+{
+	int i = 0;
+	ROILoc r;
+	IplImage *img;
+	TDahMe3Fc *capture = new TDahMe3Fc(GRABBER_CONTROLLED, 10000, 50000, 16);
+
+	capture->initROIs(2, 25, 25, "myopencv.yaml", false, true);
+	//capture->initROIs(1, "myopencv.yaml", true, false);
+
+	img = cvQueryFrame(capture);
+	img = cvCreateImage(cvSize(img->width, img->height), 8, 1);
+	r.img = img;
+
+	while(cvWaitKey(100) != 'q') {
+		capture->grabFrame();
+		capture->getROILoc(++i, &r);
+		capture->showROILoc();
+
+		cvShowImage("img", img);
+		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
+	}
+
+	delete capture;
+	return 0;
+}
+
+#else
 int main()
 {
 	ROILoc r;
@@ -22,3 +51,4 @@ int main()
 	delete capture;
 	return 0;
 }
+#endif
