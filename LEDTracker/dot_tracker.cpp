@@ -8,6 +8,7 @@ double track_ctrd(IplImage *gray, int roi_w, int roi_h,
 				  int thresh, CvSeqWriter *wr)
 {
 	int x, y, w, h;
+	int y0;
 	char *pxl;
 	CvPoint pt;
 	float rad;
@@ -24,8 +25,11 @@ double track_ctrd(IplImage *gray, int roi_w, int roi_h,
 	cvStartAppendToSeq(wr->seq, wr);
 	pxl = gray->imageData + gray->roi->yOffset*gray->widthStep + 
 		gray->roi->xOffset*gray->nChannels;
+
+	// avoid boundary problem at yOffset = 0
+	y0 = gray->roi->yOffset == 0;
 	for(x = 0; x < w; x++) {
-		for(y = 0; y < h; y++) {
+		for(y = y0; y < h; y++) {
 			// does I(x, y) = WHITE && dI(x, y)/dy != 0
 			if(pxl[x*gray->nChannels + (y * gray->widthStep)] &&
 				pxl[x*gray->nChannels + ((y-1) * gray->widthStep)] -

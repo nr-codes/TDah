@@ -1,25 +1,10 @@
 #include "t_dah.h"
-#include "TDahOpenCV.h"
 
 int main()
 {
-	TDahOpenCV *capture;// = new TDahOpenCV(CV_CAP_ANY);
 	ROILoc r;
 	IplImage *img;
-	float z[Z_DIM];
-
-
-	CvKalman *kal = cvCreateKalman(X_DIM, Z_DIM, U_DIM);
-	setup_kalman(&kal);
-	z[0] = 0; z[1] = 0;
-	prediction(kal, 1, z);
-
-
-	cvNamedWindow("f");
-	cvWaitKey();
-	cvReleaseKalman(&kal);
-	return 0;
-
+	TDahOpenCV *capture = new TDahOpenCV(CV_CAP_ANY);
 
 	//capture->initROIs(1, 20, 20, "myopencv.yaml", true, true);
 	capture->initROIs(1, "myopencv.yaml", true, true);
@@ -29,7 +14,7 @@ int main()
 	while(cvWaitKey(100) != 'q') {
 		capture->showROILoc();
 		capture->grabFrame();
-		capture->getROILoc(3, &r);
+		capture->getROILoc(&r);
 		cvShowImage("img", img);
 		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
 	}

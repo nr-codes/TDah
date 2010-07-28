@@ -185,7 +185,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\me3.cpp"
+				RelativePath=".\me3_fc.cpp"
 				>
 			</File>
 			<File
@@ -202,6 +202,10 @@
 			</File>
 			<File
 				RelativePath=".\tdah_opencv.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TDahMe3Fc.cpp"
 				>
 			</File>
 			<File
@@ -239,7 +243,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\me3.h"
+				RelativePath=".\me3_fc.h"
 				>
 			</File>
 			<File
@@ -248,6 +252,10 @@
 			</File>
 			<File
 				RelativePath=".\TDah.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TDahMe3Fc.h"
 				>
 			</File>
 			<File

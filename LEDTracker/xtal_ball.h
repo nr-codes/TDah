@@ -1,14 +1,21 @@
 #ifndef _XTAL_BALL_H_
 #define _XTAL_BALL_H_
 
+#define X_DIM 4
+#define Z_DIM 2
+#define U_DIM 1
+
 extern void setup_kalman(CvKalman **kal, int n = 1, 
 						 float **x0 = NULL, float **P0 = NULL);
-extern void prediction(CvKalman *kal, float dt_k, float *z_k);
+extern void estimate_and_predict(CvKalman *kal, float dt_k, float *z_k);
 
-CV_INLINE void kal_assert(IplImage *img, CvKalman *kal, int roi_w, int roi_h)
+CV_INLINE void kal_assert(IplImage *img, CvMat *state, int roi_w, int roi_h)
 {
-	int x = cvRound(kal->state_post->data.fl[0]);
-	int y = cvRound(kal->state_post->data.fl[1]);
+	int x;
+	int y;
+	
+	x = cvRound(state->data.fl[0]);
+	y = cvRound(state->data.fl[1]);
 
 	// modified from cvSetImageROI function, 
 	// which would raise the same, but less informative, error.

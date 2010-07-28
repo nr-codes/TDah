@@ -12,7 +12,6 @@ class TDah : public CvCapture
 public:
 	TDah();
 	virtual ~TDah() { deinitROIs(); };
-	virtual int getROILoc(int i, ROILoc *r) { return -1; };
 	virtual void showROILoc(void) { show_position(gr, n_roi, kal, wr); };
 	void deinitROIs(void);
 	int initROIs(int num_roi, int roi_w, int roi_h, char *save_conf_as = NULL, 
@@ -47,6 +46,9 @@ protected:
 
 	// helper functions
 	int alloc_mbrs(bool init_kal, bool init_tmplt);
+	void updateROILoc(int roi_nr, IplImage *img, ROILoc *r);
+	bool find_ctrd(int roi_nr);
+	bool find_tmplt(int roi_nr, IplImage *img);
 };
 
 #endif /* TDAH_H_ */

@@ -9,15 +9,18 @@ public:
 	TDahOpenCV(int index) { is_cap_open = open(index); };
 	virtual ~TDahOpenCV() { close(); };
 	bool isCapOpen(void) { return is_cap_open; };
-	int getROILoc(int index, ROILoc *r);
+	int getROILoc(ROILoc *r);
 	void showROILoc(void);
+	virtual void close() { cvReleaseCapture(&cap); };
+	virtual bool open(int index) 
+	{ 
+		return !!(cap = cvCaptureFromCAM(index)); 
+	};
 
 	// CvCapture Inherited Fcns
 	virtual bool grabFrame() { return !!cvGrabFrame(cap); };
-	virtual bool open( int index ) { return !!(cap = cvCaptureFromCAM(index)); };
-	virtual void close() { cvReleaseCapture(&cap); };
 	virtual int getCaptureDomain() { return cap->getCaptureDomain(); };
-	virtual IplImage* retrieveFrame(int) 
+	virtual IplImage *retrieveFrame(int) 
 	{ 
 		IplImage *img = cvRetrieveFrame(cap);
 		cvResetImageROI(img);
@@ -31,7 +34,6 @@ public:
 
     virtual bool setProperty(int prop, double val) 
 	{
-		// TODO check to see if bool gets typedcast to int in src code
 		return !!cvSetCaptureProperty(cap, prop, val); 
 	};
 

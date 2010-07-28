@@ -20,16 +20,13 @@ struct ROILoc {
 #include "config_parser.h"
 #include "dot_tracker.h"
 #include "draw_dots.h"
-#include "me3.h"
 #include "xtal_ball.h"
 
 #include "TDah.h"
 #include "TDahOpenCV.h"
+#include "TDahMe3Fc.h"
 
 #define THRESHOLD 101
-#define X_DIM 4
-#define Z_DIM 2
-#define U_DIM 1
 
 #define WHITE 255
 #define GRAY 128

@@ -42,8 +42,8 @@ static void update_kal_tplt(IplImage *gr, int roi_w, int roi_h,
 		z_k[0] = (float) c.x;
 		z_k[1] = (float) c.y;
 
-		// beware a bad process model will cause a program crash
-		prediction(kal, (float) dt_k, z_k);
+		estimate_and_predict(kal, (float) dt_k, z_k);
+		kal_assert(gr, kal->state_post, roi_w, roi_h);
 		ctrd2roi(gr, 
 			cvRound(kal->state_post->data.fl[0]), 
 			cvRound(kal->state_post->data.fl[1]),
@@ -228,6 +228,7 @@ int manual_acquire(CvCapture *capture, IplImage **gr, int roi_w, int roi_h,
 			// preserve gr[j] for tmplt copying
 			cvSetImageROI(gr_temp, cvGetImageROI(gr[j]));
 			cvCopyImage(gr[j], gr_temp);
+
 			track_ctrd(gr_temp, roi_width, roi_height, *t, &wr[j]);
 			cvSetImageROI(gr[j], cvGetImageROI(gr_temp));
 
