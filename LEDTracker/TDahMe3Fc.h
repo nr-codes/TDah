@@ -23,8 +23,10 @@ public:
 	virtual IplImage *retrieveFrame(int);
 
 protected:
+	double frame_time;
 	Fg_Struct *fg;
-	IplImage *img;
+	IplImage *bgr_img;
+	IplImage *gr_img;
 };
 
 #endif /* TDAH_ME3_H_ */

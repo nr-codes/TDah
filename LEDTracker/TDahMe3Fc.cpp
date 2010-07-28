@@ -1,6 +1,7 @@
 #include "t_dah.h"
 
 #define BGR_CHANS 3
+#define GRAY_CHAN 1
 #define PYR_LVL 2
 #define PYR_OFFSET 5
 
@@ -17,8 +18,11 @@ bool TDahMe3Fc::open(int tt, double e, double f, int iw, int ih, int b)
 	// initialize certain class members
 	img_w = iw;
 	img_h = ih;
-	img = cvCreateImage(cvSize(iw, ih), IPL_DEPTH_8U, BGR_CHANS);
-	if(!img) return false;
+	frame_time = f;
+	bgr_img = cvCreateImage(cvSize(iw, ih), IPL_DEPTH_8U, BGR_CHANS);
+	if(!bgr_img) return false;
+	gr_img = cvCreateImageHeader(cvSize(iw, ih), IPL_DEPTH_8U, GRAY_CHAN);
+	if(!gr_img) return false;
 
 	// initialize me3 and fastconfig
 	if(me3_fc_init(&fg, tt, iw*ih*b, b) != FG_OK) {
@@ -51,7 +55,8 @@ bool TDahMe3Fc::open(int tt, double e, double f, int iw, int ih, int b)
 
 void TDahMe3Fc::close()
 {
-	cvReleaseImage(&img);
+	cvReleaseImage(&bgr_img);
+	cvReleaseImageHeader(&gr_img);
 
 	if(me3_fc_deinit(fg) != FG_OK) {
 		me3_err("close");
@@ -90,41 +95,46 @@ IplImage *TDahMe3Fc::retrieveFrame(int img_nr)
 	imgData = cvMat(img_h, img_w, CV_8UC1, 
 		Fg_getImagePtr(fg, act_nr, PORT_A));
 
-	cvResetImageROI(img);
-	cvMerge(&imgData, &imgData, &imgData, NULL, img);
+	cvResetImageROI(bgr_img);
+	cvMerge(&imgData, &imgData, &imgData, NULL, bgr_img);
 
-	return img;
+	return bgr_img;
 }
 
-int TDahMe3Fc::getROILoc(int index, ROILoc *r)
+int TDahMe3Fc::getROILoc(int img_nr, ROILoc *r)
 {
-#if 0
-	
+	int act_nr, cur_roi;
+	uint64 ts;
+
+	act_nr = Fg_getLastPicNumberBlocking(fg, img_nr, PORT_A, TIMEOUT);
+	if(act_nr < FG_OK) {
+		me3_err("retrieveFrame");
+		return Fg_getLastErrorNumber(fg);
+	}
+
 	// get image tag, tag == X => ROI_X
 	cur_roi = act_nr;
 	if(Fg_getParameter(fg, FG_IMAGE_TAG, &cur_roi, PORT_A) != FG_OK) {
 		me3_err("grabFrame");
-		return NULL;
+		return Fg_getLastErrorNumber(fg);
 	}
 	cur_roi = cur_roi >> 16;
 
-	r.img_nr = act_nr;
-	r.ts = (double) act_nr;
-	if(Fg_getParameter(fg, FG_TIMESTAMP_LONG, &dots[cur_roi].r.ts, PORT_A)
+	ts = act_nr;
+	if(Fg_getParameter(fg, FG_TIMESTAMP_LONG, &ts, PORT_A)
 		!= FG_OK) {
 		me3_err("grabFrame");
 		return Fg_getLastErrorNumber(fg);
 	}
-	
-	// get roi associated with image and point to image data
-	img->imageData = img->imageDataOrigin = 
-		(char *) Fg_getImagePtr(fg, img_nr, PORT_A);
 
-	cvSetImageROI(img, cvGetImageROI(dots[cur_roi].gr));
-	cvCopyImage(img, dots[cur_roi].gr);
+	cvSetData(gr_img, Fg_getImagePtr(fg, img_nr, PORT_A), CV_AUTOSTEP);
+	cvSetImageROI(gr_img, cvGetImageROI(gr[cur_roi]));
+	cvCopyImage(gr_img, gr[cur_roi]);
 
+	r->ts = (double) ts;
+	r->img_nr = act_nr;
+	r->roi_nr = cur_roi;
+
+	updateROILoc(cur_roi, gr_img, r, (float) frame_time);
 	return act_nr;
-#endif
-
-	return CV_OK;
 }

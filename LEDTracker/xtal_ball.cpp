@@ -24,7 +24,8 @@ void print_mat(char *str, CvMat *mat)
 // TODO: beware a bad process model will cause a program crash
 void estimate_and_predict(CvKalman *kal, float dt_k, float *z_k)
 {
-	CvMat z;
+	CvMat z, u;
+	float u_k[] = {0};
 
 	float A_k[] = { 1, 0, dt_k, 0, 
 					0, 1, 0, dt_k, 
@@ -46,20 +47,8 @@ void estimate_and_predict(CvKalman *kal, float dt_k, float *z_k)
 	}
 
 	// predict state at step k + 1
-	float u_k[] = {0};
-	CvMat u = cvMat(U_DIM, 1, CV_32FC1, u_k);
+	u = cvMat(U_DIM, 1, CV_32FC1, u_k);
 	cvKalmanPredict(kal, &u);
-
-	printf("dt @ k: %0.3g\n", dt_k);
-	print_mat("Mea @ k", &z);
-	print_mat("Cor @ k", kal->state_post);
-	print_mat("P @ k", kal->error_cov_post);
-	print_mat("Gain @ k", kal->gain);
-	print_mat("Pred @ k+1", kal->state_pre);
-	print_mat("P @ k+1", kal->error_cov_pre);
-	print_mat("A @ k+1", kal->transition_matrix);
-	print_mat("B @ k+1", kal->control_matrix);
-	print_mat("u @ k+1", &u);
 }
 
 void setup_kalman(CvKalman **kal, int n, float **x0, float **P0)

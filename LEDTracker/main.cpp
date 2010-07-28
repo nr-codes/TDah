@@ -6,8 +6,8 @@ int main()
 	IplImage *img;
 	TDahOpenCV *capture = new TDahOpenCV(CV_CAP_ANY);
 
-	//capture->initROIs(1, 20, 20, "myopencv.yaml", true, true);
-	capture->initROIs(1, "myopencv.yaml", true, true);
+	//capture->initROIs(1, 15, 15, "myopencv.yaml", true, false);
+	capture->initROIs(1, "myopencv.yaml", true, false);
 	img = cvQueryFrame(capture);
 	img = cvCreateImage(cvSize(img->width, img->height), 8, 1);
 	r.img = img;

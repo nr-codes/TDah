@@ -277,9 +277,9 @@ inline bool TDah::find_tmplt(int j, IplImage *img)
 	return tplt != NULL;
 }
 
-void TDah::updateROILoc(int j, IplImage *img, ROILoc *r)
+void TDah::updateROILoc(int j, IplImage *img, ROILoc *r, float dt_k_plus_1)
 {
-	float z[Z_DIM], dt;
+	float z[Z_DIM];
 	CvPoint c;
 
 	OPENCV_ASSERT(gr[j]->roi, __FUNCTION__, "ROI not set");
@@ -294,9 +294,7 @@ void TDah::updateROILoc(int j, IplImage *img, ROILoc *r)
 		c = roi2ctrd(gr[j]);
 		z[0] = (float) c.x;
 		z[1] = (float) c.y;
-		printf("Mea: (%0.3g, %0.3g)\n", z[0], z[1]);
-		dt = (float) ((r->ts - prev_ts[j])*1e-6);
-		estimate_and_predict(kal[j], dt, r->obj_found ? z : NULL);
+		estimate_and_predict(kal[j], dt_k_plus_1, r->obj_found ? z : NULL);
 		
 		// use the prediction for step k+1
 		kal_assert(gr[j], kal[j]->state_pre, roi_w, roi_h);

@@ -46,7 +46,7 @@ protected:
 
 	// helper functions
 	int alloc_mbrs(bool init_kal, bool init_tmplt);
-	void updateROILoc(int roi_nr, IplImage *img, ROILoc *r);
+	void updateROILoc(int roi_nr, IplImage *img, ROILoc *r, float dt_k_plus_1);
 	bool find_ctrd(int roi_nr);
 	bool find_tmplt(int roi_nr, IplImage *img);
 };
