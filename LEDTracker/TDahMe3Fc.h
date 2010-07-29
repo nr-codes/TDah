@@ -32,9 +32,12 @@ public:
 
 protected:
 	double frame_time;
+	double exposure;
 	Fg_Struct *fg;
 	IplImage *bgr_img;
 	IplImage *gr_img;
+
+	int setupFullFrame();
 };
 
 #endif /* TDAH_ME3_H_ */
