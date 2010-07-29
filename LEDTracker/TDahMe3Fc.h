@@ -37,7 +37,7 @@ protected:
 	IplImage *bgr_img;
 	IplImage *gr_img;
 
-	int setupFullFrame();
+	int setupNextFrame(int roi_nr, IplImage *img);
 };
 
 #endif /* TDAH_ME3_H_ */

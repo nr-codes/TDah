@@ -17,6 +17,12 @@
 #define FC_MAX_WIDTH 1024
 #define FC_MAX_HEIGHT 1024
 #define TIMEOUT 2
+#define IMG_DELAY_UNTIL_ROI_ACTIVE 2
+#define MIN_ROI_WIDTH 8
+#define MULT_OF_FOUR_MASK 0xfffffffc
+#define GET_CLOSEST_ROI_WIDTH(roi_w) ((roi_w) & MULT_OF_FOUR_MASK);
+#define IS_ROI_WIDTH_INVALID(roi_w) ((roi_w) % 4)
+#define IS_ROI_WIDTH_VALID(roi_w) (!IS_ROI_WIDTH_INVALID(roi_w))
 #define me3_err(msg) printf("me3::%s: (%d) %s\n", (msg), Fg_getLastErrorNumber(fg), \
 							Fg_getLastErrorDescription(fg));
 
