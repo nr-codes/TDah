@@ -35,9 +35,17 @@ protected:
 	double exposure;
 	Fg_Struct *fg;
 	IplImage *bgr_img;
-	IplImage *gr_img;
+	//IplImage *gr_img;
 
-	int setupNextFrame(int roi_nr, IplImage *img);
+	int make_img_tag(int roi_nr, int tracking_mode);
+	int get_roi_nr(int img_tag);
+	int get_tracking_mode(int img_tag);
+	bool find_ctrd(int roi_nr);
+	bool find_tmplt(int roi_nr);
+	int grabROIImage(int img_nr, ROILoc *r);
+	int updateROILoc(int mode, ROILoc *r);
+	int setupNextROIFrame(int roi_nr, int mode);
+	int setupFullFrameROI(int roi_nr, int mode);
 };
 
 #endif /* TDAH_ME3_H_ */

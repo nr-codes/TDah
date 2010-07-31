@@ -1,8 +1,37 @@
 #include "t_dah.h"
 
-void TDahOpenCV::showROILoc(void)
+#define PYR_LVL 2
+#define PYR_OFFSET 5
+
+bool TDahOpenCV::find_ctrd(int j)
 {
-	show_position(gr, n_roi, kal, wr, NULL, retrieveFrame(0));
+	double score;
+	
+	score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
+	return (score > 0 && score <= max_radius);
+}
+
+bool TDahOpenCV::find_tmplt(int j, IplImage *img)
+{
+	double score;
+
+	if(tplt) {
+		// try downsampled template matching
+		cvResetImageROI(img);
+		cvSetImageROI(gr[j], cvGetImageROI(img));
+		cvCvtColor(img, gr[j], CV_BGR2GRAY);
+
+		score = track_tmplt_pyr(gr[j], tplt[j], pyr_temp, PYR_LVL, PYR_OFFSET);
+		if(score < min_match) {
+			// try full image template matching
+			score = track_tmplt(gr[j], tplt[j], tplt_temp);
+			if(score < min_match) {
+				return false;
+			}
+		}
+	}
+
+	return tplt != NULL;
 }
 
 int TDahOpenCV::getROILoc(ROILoc *r)
@@ -10,7 +39,9 @@ int TDahOpenCV::getROILoc(ROILoc *r)
 	static int j = 0;
 	static int cnt = 0;
 	static double avg_frame_time = 0;
+	float z[Z_DIM];
 	IplImage *img;
+	CvPoint c;
 
 	OPENCV_ASSERT(gr[j]->roi, __FUNCTION__, "ROI not set");
 
@@ -21,11 +52,34 @@ int TDahOpenCV::getROILoc(ROILoc *r)
 	r->img_nr = cnt++;
 	r->ts = cvGetTickCount()/cvGetTickFrequency();
 
-	if(kal) {
-		avg_frame_time += ((r->ts - prev_ts[j])*1e-6 - avg_frame_time)/cnt;
+	r->obj_found = find_ctrd(j);
+	if(!r->obj_found) {
+		// centroid couldn't find object, try template matching
+		r->obj_found = find_tmplt(j, img);
 	}
 
-	updateROILoc(j, img, r, (float) avg_frame_time);
+	if(kal) {
+		c = roi2ctrd(gr[j]);
+		z[0] = (float) c.x;
+		z[1] = (float) c.y;
+
+		// use the prediction for step k+1
+		avg_frame_time += ((r->ts - prev_ts[j])*1e-6 - avg_frame_time) / cnt;
+		estimate_and_predict(kal[j], (float) avg_frame_time, 
+			r->obj_found ? z : NULL);
+		kal_assert(gr[j], kal[j]->state_pre, roi_w, roi_h);
+		ctrd2roi(gr[j], cvRound(kal[j]->state_pre->data.fl[0]), 
+				cvRound(kal[j]->state_pre->data.fl[1]), roi_w, roi_h);
+
+		prev_ts[j] = r->ts;
+	}
+
+	r->loc = roi2ctrd(gr[j]);
+	if(r->img) {
+		cvSetImageROI(r->img, cvGetImageROI(gr[j]));
+		cvCopyImage(gr[j], r->img);
+	}
+
 	j++;
 	j %= n_roi;
 

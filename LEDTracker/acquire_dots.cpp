@@ -217,7 +217,7 @@ int manual_acquire(CvCapture *capture, IplImage **gr, int roi_w, int roi_h,
 				img, 
 				cvGetTrackbarPos("manual_acquire_track", "manual_acquire"), 
 				WHITE,
-				CV_THRESH_BINARY_INV);
+				THRESHOLD_TYPE);
 		}
 
 		for(int j = 0; j < n; j++) {

@@ -27,6 +27,7 @@ struct ROILoc {
 #include "TDahMe3Fc.h"
 
 #define THRESHOLD 101
+#define THRESHOLD_TYPE CV_THRESH_BINARY
 
 #define WHITE 255
 #define GRAY 128

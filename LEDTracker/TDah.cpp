@@ -6,8 +6,6 @@
 #define CHANS 1
 #define R_PAD 3
 #define M_PAD .03
-#define PYR_LVL 2
-#define PYR_OFFSET 5
 
 TDah::TDah()
 {
@@ -59,6 +57,7 @@ int TDah::initROIs(int n, int rw, int rh, char *s, bool use_kal, bool use_tmplt)
 		// convert to gray and calc ctrd
 		cvSetImageROI(img, cvGetImageROI(gr[i]));
 		cvCvtColor(img, gr[i], CV_BGR2GRAY);
+		cvResetImageROI(img);
 
 		val = track_ctrd(gr[i], roi_w, roi_h, threshold, &wr[i]);
 		max_radius = std::max(val, max_radius);
@@ -66,7 +65,6 @@ int TDah::initROIs(int n, int rw, int rh, char *s, bool use_kal, bool use_tmplt)
 		if(tplt) {
 			// copy entire image and tmplt match
 			cvResetImageROI(gr[i]);
-			cvResetImageROI(img);
 			cvCvtColor(img, gr[i], CV_BGR2GRAY);
 
 			val = track_tmplt(gr[i], tplt[i], tplt_temp);
@@ -238,75 +236,4 @@ __BEGIN__;
 __END__;
 	deinitROIs();
 	return !CV_OK;
-}
-
-inline bool TDah::find_ctrd(int j)
-{
-	double score;
-	
-	score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
-	return (score > 0 && score <= max_radius);
-}
-
-inline bool TDah::find_tmplt(int j, IplImage *img)
-{
-	double score;
-
-	if(tplt) {
-		// try downsampled template matching
-		cvResetImageROI(img);
-		cvSetImageROI(gr[j], cvGetImageROI(img));
-
-		if(img->nChannels == 3) {
-			cvCvtColor(img, gr[j], CV_BGR2GRAY);
-		}
-		else {
-			cvCopyImage(img, gr[j]);
-		}
-
-		score = track_tmplt_pyr(gr[j], tplt[j], pyr_temp, PYR_LVL, PYR_OFFSET);
-		if(score < min_match) {
-			// try full image template matching
-			score = track_tmplt(gr[j], tplt[j], tplt_temp);
-			if(score < min_match) {
-				return false;
-			}
-		}
-	}
-
-	return tplt != NULL;
-}
-
-void TDah::updateROILoc(int j, IplImage *img, ROILoc *r, float dt_k_plus_1)
-{
-	float z[Z_DIM];
-	CvPoint c;
-
-	OPENCV_ASSERT(gr[j]->roi, __FUNCTION__, "ROI not set");
-
-	r->obj_found = find_ctrd(j);
-	if(!r->obj_found) {
-		// centroid couldn't find object, try template matching
-		r->obj_found = find_tmplt(j, img);
-	}
-
-	if(kal) {
-		c = roi2ctrd(gr[j]);
-		z[0] = (float) c.x;
-		z[1] = (float) c.y;
-		estimate_and_predict(kal[j], dt_k_plus_1, r->obj_found ? z : NULL);
-		
-		// use the prediction for step k+1
-		kal_assert(gr[j], kal[j]->state_pre, roi_w, roi_h);
-		ctrd2roi(gr[j], cvRound(kal[j]->state_pre->data.fl[0]), 
-				cvRound(kal[j]->state_pre->data.fl[1]), roi_w, roi_h);
-
-		prev_ts[j] = r->ts;
-	}
-
-	r->loc = roi2ctrd(gr[j]);
-	if(r->img) {
-		cvSetImageROI(r->img, cvGetImageROI(gr[j]));
-		cvCopyImage(gr[j], r->img);
-	}
 }

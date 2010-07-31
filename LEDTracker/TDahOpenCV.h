@@ -10,11 +10,15 @@ public:
 	virtual ~TDahOpenCV() { close(); };
 	bool isCapOpen(void) { return is_cap_open; };
 	int getROILoc(ROILoc *r);
-	void showROILoc(void);
 	virtual void close() { cvReleaseCapture(&cap); };
 	virtual bool open(int index) 
 	{ 
 		return !!(cap = cvCaptureFromCAM(index)); 
+	};
+
+	void showROILoc(void) 
+	{
+		show_position(gr, n_roi, kal, wr, NULL, retrieveFrame(0));
 	};
 
 	// CvCapture Inherited Fcns
@@ -40,6 +44,9 @@ public:
 protected:
 	bool is_cap_open;
 	CvCapture *cap;
+
+	bool find_ctrd(int roi_nr);
+	bool find_tmplt(int roi_nr, IplImage *img);
 };
 
 #endif /* TDAH_OPENCV_H_ */
