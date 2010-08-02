@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="OpenCV"
-	ProjectGUID="{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}"
-	RootNamespace="LedTracker"
+	Name="Me3FC Example"
+	ProjectGUID="{CCF613C7-6515-489E-A50F-2909AA3FD942}"
+	RootNamespace="Me3FCExample"
 	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\OpenCV2.1\include\opencv;&quot;C:\Users\nr\Documents\hsv\t-dah&quot;;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\OpenCV2.1\src\highgui"
+				AdditionalIncludeDirectories="C:\Users\nr\Documents\hsv\LEDTracker\me3;C:\Users\nr\Documents\hsv\LEDTracker\tdah\classes;C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\Users\nr\Documents\hsv\LEDTracker\tdah\include"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -58,8 +58,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib fglib3.1.lib display_lib.lib fastconfig.lib clsersisome3.lib clserme3.lib"
-				AdditionalLibraryDirectories="C:\OpenCV2.1\lib;&quot;C:\Program Files\SiliconSoftware3.2\lib\visualc&quot;"
+				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib TDahMe3Fc.lib tdah.lib fglib3.1.lib display_lib.lib fastconfig.lib clsersisome3.lib clserme3.lib"
+				AdditionalLibraryDirectories="&quot;C:\Program Files\SiliconSoftware3.2\lib\visualc&quot;;C:\OpenCV2.1\lib;C:\Users\nr\Documents\hsv\LEDTracker\tdah\lib"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
 			/>
@@ -174,10 +174,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath=".\tdah\classes\TDahOpenCV.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

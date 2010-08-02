@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="OpenCV"
-	ProjectGUID="{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}"
-	RootNamespace="LedTracker"
+	Name="OpenCV Example"
+	ProjectGUID="{AE26C82D-D664-4334-B619-44EB60EE1AAD}"
+	RootNamespace="OpenCVExample"
 	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\OpenCV2.1\include\opencv;&quot;C:\Users\nr\Documents\hsv\t-dah&quot;;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\OpenCV2.1\src\highgui"
+				AdditionalIncludeDirectories="C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;C:\Users\nr\Documents\hsv\LEDTracker\tdah\include;C:\Users\nr\Documents\hsv\LEDTracker\tdah\classes"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -58,8 +58,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib fglib3.1.lib display_lib.lib fastconfig.lib clsersisome3.lib clserme3.lib"
-				AdditionalLibraryDirectories="C:\OpenCV2.1\lib;&quot;C:\Program Files\SiliconSoftware3.2\lib\visualc&quot;"
+				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib TDahOpenCV.lib tdah.lib"
+				AdditionalLibraryDirectories="C:\Users\nr\Documents\hsv\LEDTracker\tdah\lib;C:\OpenCV2.1\lib"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
 			/>
@@ -175,7 +175,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\tdah\classes\TDahOpenCV.h"
+				RelativePath="..\..\tdah\include\t_dah.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\tdah\classes\TDahOpenCV.h"
 				>
 			</File>
 		</Filter>

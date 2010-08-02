@@ -5,26 +5,11 @@
 #include <cxcore.h>
 #include <highgui.h>
 
-struct ROILoc {
-	ROILoc() { img = 0; ts = 0.; roi_nr = img_nr = loc.x = loc.y = 0; };
-
-	int obj_found;
-	int roi_nr;
-	int img_nr;
-	CvPoint loc;
-	double ts;
-	IplImage *img;
-};
-
 #include "acquire_dots.h"
 #include "config_parser.h"
 #include "dot_tracker.h"
 #include "draw_dots.h"
 #include "xtal_ball.h"
-
-#include "TDah.h"
-#include "TDahOpenCV.h"
-#include "TDahMe3Fc.h"
 
 #define THRESHOLD 101
 #define THRESHOLD_TYPE CV_THRESH_BINARY
@@ -42,6 +27,17 @@ struct ROILoc {
 			time_us = cvGetTickCount()/cvGetTickFrequency() - time_us; \
 			printf("%s: %g\n", str, time_us); \
 		} while(0)
+
+struct ROILoc {
+	ROILoc() { img = 0; ts = 0.; roi_nr = img_nr = loc.x = loc.y = 0; };
+
+	int obj_found;
+	int roi_nr;
+	int img_nr;
+	CvPoint loc;
+	double ts;
+	IplImage *img;
+};
 
 CV_INLINE CvPoint roi2ctrd(CvRect r)
 {

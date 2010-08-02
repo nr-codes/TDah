@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="OpenCV"
-	ProjectGUID="{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}"
-	RootNamespace="LedTracker"
+	Name="tdah"
+	ProjectGUID="{446F011D-D2A0-433F-A696-27E4BDFD93FC}"
+	RootNamespace="tdah"
 	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
@@ -17,9 +17,9 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory=".\lib"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="2"
 			>
 			<Tool
@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\OpenCV2.1\include\opencv;&quot;C:\Users\nr\Documents\hsv\t-dah&quot;;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\OpenCV2.1\src\highgui"
+				AdditionalIncludeDirectories="C:\OpenCV2.1\include\opencv;C:\OpenCV2.1\src\highgui;C:\Users\nr\Documents\hsv\LEDTracker\tdah\include"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -57,17 +57,11 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib fglib3.1.lib display_lib.lib fastconfig.lib clsersisome3.lib clserme3.lib"
-				AdditionalLibraryDirectories="C:\OpenCV2.1\lib;&quot;C:\Program Files\SiliconSoftware3.2\lib\visualc&quot;"
-				GenerateDebugInformation="true"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
+				AdditionalLibraryDirectories=""
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -77,9 +71,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -165,7 +156,23 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\main.cpp"
+				RelativePath=".\core\acquire_dots.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\core\config_parser.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\core\dot_tracker.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\core\draw_dots.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\core\xtal_ball.cpp"
 				>
 			</File>
 		</Filter>
@@ -175,7 +182,27 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\tdah\classes\TDahOpenCV.h"
+				RelativePath=".\include\acquire_dots.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\config_parser.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\dot_tracker.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\draw_dots.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\t_dah.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\xtal_ball.h"
 				>
 			</File>
 		</Filter>

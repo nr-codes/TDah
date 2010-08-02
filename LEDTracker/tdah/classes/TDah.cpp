@@ -1,5 +1,3 @@
-#include <cv.h>
-#include "t_dah.h"
 #include "TDah.h"
 
 #define SHOW_IMGS 0

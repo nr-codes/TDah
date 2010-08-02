@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="OpenCV"
-	ProjectGUID="{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}"
-	RootNamespace="LedTracker"
+	Name="TDahMe3Fc"
+	ProjectGUID="{C0735C79-64E7-467E-B159-E33FE7529BFD}"
+	RootNamespace="TDahOpenCV"
 	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
@@ -17,9 +17,9 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory=".\lib"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="2"
 			>
 			<Tool
@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\OpenCV2.1\include\opencv;&quot;C:\Users\nr\Documents\hsv\t-dah&quot;;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\OpenCV2.1\src\highgui"
+				AdditionalIncludeDirectories="&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\Users\nr\Documents\hsv\LEDTracker\me3;C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;C:\Users\nr\Documents\hsv\LEDTracker\tdah\include;C:\Users\nr\Documents\hsv\LEDTracker\tdah\classes"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -57,17 +57,10 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib fglib3.1.lib display_lib.lib fastconfig.lib clsersisome3.lib clserme3.lib"
-				AdditionalLibraryDirectories="C:\OpenCV2.1\lib;&quot;C:\Program Files\SiliconSoftware3.2\lib\visualc&quot;"
-				GenerateDebugInformation="true"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -77,9 +70,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -165,7 +155,19 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\main.cpp"
+				RelativePath="..\me3\me3_fc.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\me3\roi.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\classes\TDah.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\classes\TDahMe3Fc.cpp"
 				>
 			</File>
 		</Filter>
@@ -175,7 +177,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\tdah\classes\TDahOpenCV.h"
+				RelativePath="..\me3\me3_fc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\classes\TDah.h"
+				>
+			</File>
+			<File
+				RelativePath=".\classes\TDahMe3Fc.h"
 				>
 			</File>
 		</Filter>

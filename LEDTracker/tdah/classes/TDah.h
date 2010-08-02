@@ -1,10 +1,10 @@
 #ifndef TDAH_H_
 #define TDAH_H_
 
-#include <_highgui.h>
 #include <cv.h>
 #include <cxcore.h>
 #include <highgui.h>
+#include <_highgui.h>
 #include "t_dah.h"
 
 class TDah : public CvCapture

@@ -1,7 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual C++ Express 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LedTracker", "LedTracker.vcproj", "{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tdah", "tdah\tdah.vcproj", "{446F011D-D2A0-433F-A696-27E4BDFD93FC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Me3FC Example", "examples\Me3FC Example\Me3FC Example.vcproj", "{CCF613C7-6515-489E-A50F-2909AA3FD942}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenCV Example", "examples\OpenCV Example\OpenCV Example.vcproj", "{AE26C82D-D664-4334-B619-44EB60EE1AAD}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TDahOpenCV", "tdah\TDahOpenCV.vcproj", "{8C568404-96A7-4C75-8CD1-1A7FB17CE028}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TDahMe3Fc", "tdah\TDahMe3Fc.vcproj", "{C0735C79-64E7-467E-B159-E33FE7529BFD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,10 +17,26 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}.Debug|Win32.ActiveCfg = Debug|Win32
-		{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}.Debug|Win32.Build.0 = Debug|Win32
-		{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}.Release|Win32.ActiveCfg = Release|Win32
-		{2B12AF74-139F-411F-BA6C-8E94DF8A2F82}.Release|Win32.Build.0 = Release|Win32
+		{446F011D-D2A0-433F-A696-27E4BDFD93FC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{446F011D-D2A0-433F-A696-27E4BDFD93FC}.Debug|Win32.Build.0 = Debug|Win32
+		{446F011D-D2A0-433F-A696-27E4BDFD93FC}.Release|Win32.ActiveCfg = Release|Win32
+		{446F011D-D2A0-433F-A696-27E4BDFD93FC}.Release|Win32.Build.0 = Release|Win32
+		{CCF613C7-6515-489E-A50F-2909AA3FD942}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CCF613C7-6515-489E-A50F-2909AA3FD942}.Debug|Win32.Build.0 = Debug|Win32
+		{CCF613C7-6515-489E-A50F-2909AA3FD942}.Release|Win32.ActiveCfg = Release|Win32
+		{CCF613C7-6515-489E-A50F-2909AA3FD942}.Release|Win32.Build.0 = Release|Win32
+		{AE26C82D-D664-4334-B619-44EB60EE1AAD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AE26C82D-D664-4334-B619-44EB60EE1AAD}.Debug|Win32.Build.0 = Debug|Win32
+		{AE26C82D-D664-4334-B619-44EB60EE1AAD}.Release|Win32.ActiveCfg = Release|Win32
+		{AE26C82D-D664-4334-B619-44EB60EE1AAD}.Release|Win32.Build.0 = Release|Win32
+		{8C568404-96A7-4C75-8CD1-1A7FB17CE028}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8C568404-96A7-4C75-8CD1-1A7FB17CE028}.Debug|Win32.Build.0 = Debug|Win32
+		{8C568404-96A7-4C75-8CD1-1A7FB17CE028}.Release|Win32.ActiveCfg = Release|Win32
+		{8C568404-96A7-4C75-8CD1-1A7FB17CE028}.Release|Win32.Build.0 = Release|Win32
+		{C0735C79-64E7-467E-B159-E33FE7529BFD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C0735C79-64E7-467E-B159-E33FE7529BFD}.Debug|Win32.Build.0 = Debug|Win32
+		{C0735C79-64E7-467E-B159-E33FE7529BFD}.Release|Win32.ActiveCfg = Release|Win32
+		{C0735C79-64E7-467E-B159-E33FE7529BFD}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
