@@ -7,6 +7,8 @@ int main()
 	IplImage *img;
 	TDahOpenCV *capture = new TDahOpenCV(CV_CAP_ANY);
 
+	get_camera_intrinsics(capture, 3, 6, 50);
+#if 0
 	capture->initROIs(1, 30, 30, "myopencv.yaml", true, true);
 	//capture->initROIs(1, "myopencv.yaml", true, false);
 	img = cvQueryFrame(capture);
@@ -19,7 +21,7 @@ int main()
 		cvShowImage("img", img);
 		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
 	}
-
+#endif
 	delete capture;
 	return 0;
 }

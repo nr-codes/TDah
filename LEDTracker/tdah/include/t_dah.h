@@ -7,6 +7,7 @@
 
 #include "acquire_dots.h"
 #include "config_parser.h"
+#include "dot_coords.h"
 #include "dot_tracker.h"
 #include "draw_dots.h"
 #include "xtal_ball.h"

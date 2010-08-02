@@ -8,8 +8,14 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenCV Example", "examples\OpenCV Example\OpenCV Example.vcproj", "{AE26C82D-D664-4334-B619-44EB60EE1AAD}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TDahOpenCV", "tdah\TDahOpenCV.vcproj", "{8C568404-96A7-4C75-8CD1-1A7FB17CE028}"
+	ProjectSection(ProjectDependencies) = postProject
+		{446F011D-D2A0-433F-A696-27E4BDFD93FC} = {446F011D-D2A0-433F-A696-27E4BDFD93FC}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TDahMe3Fc", "tdah\TDahMe3Fc.vcproj", "{C0735C79-64E7-467E-B159-E33FE7529BFD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{446F011D-D2A0-433F-A696-27E4BDFD93FC} = {446F011D-D2A0-433F-A696-27E4BDFD93FC}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

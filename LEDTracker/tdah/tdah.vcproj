@@ -44,6 +44,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				ProgramDataBaseFileName="$(OutDir)\vc90.pdb"
 				WarningLevel="3"
 				DebugInformationFormat="4"
 			/>
@@ -164,6 +165,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\core\dot_coords.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\core\dot_tracker.cpp"
 				>
 			</File>
@@ -187,6 +192,10 @@
 			</File>
 			<File
 				RelativePath=".\include\config_parser.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\dot_coords.h"
 				>
 			</File>
 			<File
