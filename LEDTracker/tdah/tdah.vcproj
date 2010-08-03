@@ -40,11 +40,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\OpenCV2.1\include\opencv;C:\OpenCV2.1\src\highgui;C:\Users\nr\Documents\hsv\LEDTracker\tdah\include"
+				AdditionalIncludeDirectories="C:\OpenCV2.1\include\opencv;C:\OpenCV2.1\src\highgui;&quot;$(SolutionDir)\tdah\include&quot;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				ProgramDataBaseFileName="$(OutDir)\vc90.pdb"
+				ProgramDataBaseFileName="$(OutDir)\tdah.pdb"
 				WarningLevel="3"
 				DebugInformationFormat="4"
 			/>

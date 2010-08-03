@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;C:\Users\nr\Documents\hsv\LEDTracker\tdah\include;C:\Users\nr\Documents\hsv\LEDTracker\tdah\classes"
+				AdditionalIncludeDirectories="C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;&quot;$(SolutionDir)\tdah\include&quot;;&quot;$(SolutionDir)\tdah\classes&quot;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -59,7 +59,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib TDahOpenCV.lib tdah.lib"
-				AdditionalLibraryDirectories="C:\Users\nr\Documents\hsv\LEDTracker\tdah\lib;C:\OpenCV2.1\lib"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\tdah\lib&quot;;C:\OpenCV2.1\lib"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
 			/>

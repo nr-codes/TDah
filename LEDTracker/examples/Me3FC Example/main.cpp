@@ -10,22 +10,15 @@ int main()
 
 	img = cvQueryFrame(capture);
 	img = cvCreateImage(cvSize(img->width, img->height), 8, 1);
-
-	capture->initROIs(1, 12, 12, "myme3.yaml", true, false);
-	//capture->initROIs(1, "myme3.yaml", true, false);
-
 	r.img = img;
 
+	capture->initROIs(1, 12, 12, "myme3.yaml", false, false);
+	//capture->initROIs(1, "myme3.yaml", true, false);
+
 	while(cvWaitKey(100) != 'q') {
-		cvZero(img);
 		capture->grabFrame();
-	TIME_CODE("getROILOC",
 		capture->getROILoc(++i, &r);
-	);
 		capture->showROILoc();
-
-		//img = cvQueryFrame(capture);
-
 		cvShowImage("img", img);
 		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
 	}

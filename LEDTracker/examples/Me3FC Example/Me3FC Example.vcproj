@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\Users\nr\Documents\hsv\LEDTracker\me3;C:\Users\nr\Documents\hsv\LEDTracker\tdah\classes;C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\Users\nr\Documents\hsv\LEDTracker\tdah\include"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\me3&quot;;&quot;$(SolutionDir)\tdah\classes&quot;;C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;&quot;$(SolutionDir)\tdah\include&quot;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -59,7 +59,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib TDahMe3Fc.lib tdah.lib fglib3.1.lib display_lib.lib fastconfig.lib clsersisome3.lib clserme3.lib"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\SiliconSoftware3.2\lib\visualc&quot;;C:\OpenCV2.1\lib;C:\Users\nr\Documents\hsv\LEDTracker\tdah\lib"
+				AdditionalLibraryDirectories="&quot;C:\Program Files\SiliconSoftware3.2\lib\visualc&quot;;C:\OpenCV2.1\lib;&quot;$(SolutionDir)\tdah\lib&quot;"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
 			/>
@@ -174,6 +174,14 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\tdah\include\t_dah.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\tdah\classes\TDahMe3Fc.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

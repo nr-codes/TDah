@@ -40,11 +40,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\Users\nr\Documents\hsv\LEDTracker\me3;C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;C:\Users\nr\Documents\hsv\LEDTracker\tdah\include;C:\Users\nr\Documents\hsv\LEDTracker\tdah\classes"
+				AdditionalIncludeDirectories="&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;&quot;$(SolutionDir)\me3&quot;;C:\OpenCV2.1\src\highgui;C:\OpenCV2.1\include\opencv;&quot;$(SolutionDir)\tdah\include&quot;;&quot;$(SolutionDir)\tdah\classes&quot;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				ProgramDataBaseFileName="$(OutDir)\vc90.pdb"
+				ProgramDataBaseFileName="$(OutDir)\TDahMe3Fc.pdb"
 				WarningLevel="3"
 				DebugInformationFormat="4"
 			/>
