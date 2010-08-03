@@ -10,4 +10,7 @@ extern int get_camera_intrinsics(CvCapture *capture,
 								 CvPoint2D32f origin = cvPoint2D32f(0, 0), 
 								 float theta = 0);
 
+extern int get_camera_extrinsics(CvCapture *capture, int rows, int cols, 
+						  CvPoint2D32f origin, float theta);
+
 #endif /* _DOT_COORD_H_ */

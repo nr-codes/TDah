@@ -4,6 +4,8 @@
 #define WIN_SIZE cvSize(5, 5)
 #define ZERO_ZNE cvSize(-1, -1)
 #define ERR_TOL cvTermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1)
+#define NUM_IMGS_EXTRINSIC 1
+#define PROMPT 1
 
 static CvMat *A, *k, *R, *T;
 static CvMat *world, *distorted, *normalized;
@@ -151,7 +153,7 @@ int get_camera_intrinsics(CvCapture *capture, int rows, int cols, int num_images
 	point_counts = cvCreateMat(num_images, 1, CV_32SC1);
 
 	cvReshape(object_points, &obj_pts2, 3);
-	trans = cvMat(3, 3, CV_32FC1, trans_elem);
+	trans = cvMat(3, 4, CV_32FC1, trans_elem);
 
 	// grab an image so we know the image size
 	img = cvQueryFrame(capture);
@@ -162,15 +164,15 @@ int get_camera_intrinsics(CvCapture *capture, int rows, int cols, int num_images
 	if(rc != num_images) {
 		// smart thing would be to resize everything, but...
 		printf("didn't get all images, got %d out of %d\n", rc, num_images);
-		return -rc;
+		return !CV_OK;
 	}
 
 	distortion_coeffs = cvCreateMat(4, 1, CV_32FC1);
 	intrinsic_matrix = cvCreateMat(3, 3, CV_32FC1);
 	cvZero(intrinsic_matrix);
 	cvZero(distortion_coeffs);
-
-	//cvTransform(&obj_pts2, &obj_pts2, &trans);
+	
+	cvTransform(&obj_pts2, &obj_pts2, &trans);
 	cvCalibrateCamera2(object_points, image_points, point_counts, img_size, 
 		intrinsic_matrix, distortion_coeffs);
 
@@ -185,4 +187,179 @@ int get_camera_intrinsics(CvCapture *capture, int rows, int cols, int num_images
 	cvReleaseMat(&distortion_coeffs);
 
 	return CV_OK;
+}
+
+int get_camera_extrinsics(CvCapture *capture, int rows, int cols, 
+						  CvPoint2D32f origin, float theta)
+{
+	int rc;
+	int num_pts;
+	CvSize grid_size;
+	IplImage *img;
+
+	num_pts = rows * cols;
+	grid_size = cvSize(cols, rows);
+	
+	// world features and coordinates
+	CvMat *Rvec = cvCreateMat(3, 1, CV_32FC1);
+	CvMat *Rmat = cvCreateMat(3, 3, CV_32FC1);
+	CvMat *Tvec = cvCreateMat(3, 1, CV_32FC1);
+
+	CvMat *wip = cvCreateMat(NUM_IMGS_EXTRINSIC*num_pts, 2, CV_32FC1);
+	CvMat *wop = cvCreateMat(NUM_IMGS_EXTRINSIC*num_pts, 3, CV_32FC1);
+	CvMat *wpc = cvCreateMat(NUM_IMGS_EXTRINSIC, 1, CV_32SC1);
+	
+	
+	// get image and world points
+	rc = grab_calib_grid(capture, grid_size, wip, wop, wpc, 
+		NUM_IMGS_EXTRINSIC, PROMPT, &img);
+	if(rc != NUM_IMGS_EXTRINSIC) {
+		// smart thing would be to resize everything, but...
+		printf("didn't get all images, got %d out of %d\n", rc, NUM_IMGS_EXTRINSIC);
+		return !CV_OK;
+	}
+
+	// camera model
+	CvMat *intrinsic = (CvMat*)cvLoad( "Intrinsics.xml" );
+	CvMat *distortion = (CvMat*)cvLoad( "Distortion.xml" );
+
+	// get extrinsic parameters
+	cvFindExtrinsicCameraParams2(wop, wip, intrinsic, distortion, Rvec, Tvec);
+
+	CvMat *wpp = cvCreateMat(num_pts, 2, CV_32FC1);
+	cvProjectPoints2(wop, Rvec, Tvec, intrinsic, distortion, wpp);
+
+	char text[100];
+	CvFont font;
+	cvInitFont(&font,CV_FONT_HERSHEY_PLAIN|CV_FONT_ITALIC,1,1,0,1);
+
+	CvPoint2D32f *corners = (CvPoint2D32f *) cvAlloc(num_pts * sizeof(CvPoint2D32f));
+	for(int i = 0; i < num_pts; i++) {
+		corners[i].x = (float) cvmGet(wip, i, 0);
+		corners[i].y = (float) cvmGet(wip, i, 1);
+	}
+
+	cvDrawChessboardCorners(img, grid_size, corners, num_pts, rc);
+
+	for(int i = 0; i < num_pts; i++) {
+		int px = cvRound(cvmGet(wpp, i, 0));
+		int py = cvRound(cvmGet(wpp, i, 1));
+		cvDrawRect(img, cvPoint(px - 10, py - 10), 
+			cvPoint(px + 10, py + 10), CV_RGB(128, 128, 128));
+		cvDrawCircle(img, cvPoint(px, py), 2, CV_RGB(0,255, 255), CV_FILLED);
+
+		int ox = cvRound(cvmGet(wop, i, 0));
+		int oy = cvRound(cvmGet(wop, i, 1));
+		memset(text, 0, 100);
+		sprintf_s(text, 100, "(%d,%d)", ox, oy);
+		cvPutText(img, text, cvPoint(px, py), &font, CV_RGB(0,255,0));
+	}
+
+	cvNamedWindow("reprojected");
+	cvShowImage("reprojected", img);
+
+	CvMat *normalized = cvCreateMat(1, 1, CV_32FC2);
+	CvMat *distorted = cvCreateMat(1, 1, CV_32FC2);
+	CvMat *world = cvCreateMat(3, 1, CV_32FC1);
+	CvMat *zero_vec = cvCreateMat(3, 1, CV_32FC1);
+	cvZero(zero_vec);
+	
+	float fx = CV_MAT_ELEM(*intrinsic, float, 0, 0);
+	float cx = CV_MAT_ELEM(*intrinsic, float, 0, 2);
+	float fy = CV_MAT_ELEM(*intrinsic, float, 1, 1);
+	float cy = CV_MAT_ELEM(*intrinsic, float, 1, 2);
+
+
+	float Z = 13.679170513009492f;
+	cvRodrigues2(Rvec, Rmat);
+	CvMat *world_Rt = cvCloneMat(Rmat);
+	cvTranspose(Rmat, world_Rt);
+
+	cvDrawCircle(img, cvPoint(img->width/2, img->height/2), 4, 
+		CV_RGB(255,0, 255), CV_FILLED);
+	cvDrawCircle(img, cvPoint(cvRound(cx), cvRound(cy)), 4, 
+		CV_RGB(255,0, 255), CV_FILLED);
+	cvDrawCircle(img, cvPoint(cvRound(CV_MAT_ELEM(*wip, float, 0, 0)), 
+		cvRound(CV_MAT_ELEM(*wip, float, 0, 1))), 4, 
+		CV_RGB(255,0, 255), CV_FILLED);
+	cvShowImage("reprojected", img);
+
+	CvMat *pp = cvCreateMat(1,1, CV_32FC3);
+	CvMat *wp = cvCreateMat(1,1, CV_32FC3);
+
+	for(int i = 0; i < num_pts; i++) {
+		float u = CV_MAT_ELEM(*wip, float, i, 0);
+		float v = CV_MAT_ELEM(*wip, float, i, 1);
+
+		
+		printf("%d (%f, %f, %f) -> (%f, %f)\n", i,
+			CV_MAT_ELEM(*wop, float, i, 0),
+			CV_MAT_ELEM(*wop, float, i, 1), 
+			CV_MAT_ELEM(*wop, float, i, 2),
+			u, v);
+
+		float xp = u;
+		float yp = v;
+
+		// distorted to undistorted normalized coordinates
+		distorted->data.fl[0] = xp;
+		distorted->data.fl[1] = yp;
+		cvUndistortPoints(distorted, normalized, intrinsic, distortion);
+
+		CV_MAT_ELEM(*world, float, 0, 0) = normalized->data.fl[0];
+		CV_MAT_ELEM(*world, float, 1, 0) = normalized->data.fl[1];
+		CV_MAT_ELEM(*world, float, 2, 0) = 1;
+
+		printf("(%f, %f) -> (%f, %f)\n", 
+			distorted->data.fl[0], distorted->data.fl[1], 
+			normalized->data.fl[0], normalized->data.fl[1]);
+
+		wp->data.fl[0] = CV_MAT_ELEM(*world, float, 0, 0);
+		wp->data.fl[1] = CV_MAT_ELEM(*world, float, 1, 0);
+		wp->data.fl[2] = CV_MAT_ELEM(*world, float, 2, 0);
+		cvProjectPoints2(wp, zero_vec, zero_vec, intrinsic, distortion, pp);
+
+		printf("(%f, %f) <- (%f, %f)\n", 
+			pp->data.fl[0], 
+			pp->data.fl[1], 
+			wp->data.fl[0], 
+			wp->data.fl[1]);
+
+		
+		// world to image plane
+		CV_MAT_ELEM(*world, float, 0, 0) = Z*normalized->data.fl[0];
+		CV_MAT_ELEM(*world, float, 1, 0) = Z*normalized->data.fl[1];
+		CV_MAT_ELEM(*world, float, 2, 0) = Z*1;
+		cvSub(world, Tvec, world);
+		cvGEMM(Rmat, world, 1, NULL, 0, world, CV_GEMM_A_T);
+		wp->data.fl[0] = CV_MAT_ELEM(*world, float, 0, 0);
+		wp->data.fl[1] = CV_MAT_ELEM(*world, float, 1, 0);
+		wp->data.fl[2] = CV_MAT_ELEM(*world, float, 2, 0);
+
+		cvProjectPoints2(wp, Rvec, Tvec, 
+			intrinsic, distortion, pp);
+		printf("(%f, %f) <- %f %f %f\n",
+			fx*pp->data.fl[0] + cx, 
+			fy*pp->data.fl[1] + cy, 
+			wp->data.fl[0], 
+			wp->data.fl[1], 
+			wp->data.fl[2]);
+
+		printf("\n");
+	}
+
+	cvWaitKey(0);
+
+	cvFree(&corners);
+	cvReleaseMat(&wop);
+	cvReleaseMat(&wip);
+	cvReleaseMat(&wpc);
+	cvReleaseMat(&Rvec);
+	cvReleaseMat(&Rmat);
+	cvReleaseMat(&Tvec);
+	cvReleaseMat(&normalized);
+	cvReleaseMat(&distorted);
+	cvReleaseMat(&world);
+
+	return 0;
 }
