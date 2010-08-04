@@ -12,6 +12,10 @@
 #include "draw_dots.h"
 #include "xtal_ball.h"
 
+#if defined(WIN32) && defined(_WIN32)
+#define snprintf _snprintf
+#endif
+
 #define THRESHOLD 101
 #define THRESHOLD_TYPE CV_THRESH_BINARY
 

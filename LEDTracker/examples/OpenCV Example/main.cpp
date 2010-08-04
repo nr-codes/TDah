@@ -7,8 +7,8 @@ int main()
 	IplImage *img;
 	TDahOpenCV *capture = new TDahOpenCV(CV_CAP_ANY);
 
-	//get_camera_intrinsics(capture, 3, 6, 1);
-	get_camera_extrinsics(capture, 3, 6, cvPoint2D32f(0,0), 0);
+	//get_camera_intrinsics(capture, 3, 6, 75);
+	get_camera_extrinsics(capture, 3, 6, cvPoint2D32f(10,30), CV_PI, 34);
 #if 0
 	capture->initROIs(1, 30, 30, "myopencv.yaml", true, true);
 	//capture->initROIs(1, "myopencv.yaml", true, false);

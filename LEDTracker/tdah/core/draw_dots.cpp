@@ -74,6 +74,56 @@ void draw_kal(IplImage *dst, CvKalman *kal)
 	cvPutText(dst, text, pt, &font, KAL_COLOR);
 }
 
+void draw_wrld2pxl(IplImage *dst, int rows, int cols, CvPoint principle_pt,
+				   CvMat *wrld_pts, CvMat *prj_wrld_pts, CvMat *img_pts)
+{
+	char text[100];
+	int num_pts;
+	CvFont font;
+	CvPoint p, w;
+	CvPoint2D32f *corners;
+
+	// draw the first point found on the checkerboard
+	p.x = cvRound(cvmGet(img_pts, 0, 0));
+	p.y = cvRound(cvmGet(img_pts, 0, 1));
+	cvDrawCircle(dst, p, 6, CV_RGB(255, 0, 0), CV_FILLED);
+
+	// draw the original image points on the checkerboard
+	num_pts = rows * cols;
+	corners = (CvPoint2D32f *) cvAlloc(num_pts * sizeof(CvPoint2D32f));
+	if(!corners) return;
+
+	for(int i = 0; i < num_pts; i++) {
+		corners[i].x = (float) cvmGet(img_pts, i, 0);
+		corners[i].y = (float) cvmGet(img_pts, i, 1);
+	}
+	cvDrawChessboardCorners(dst, cvSize(cols, rows), corners, num_pts, true);
+
+	// draw world points to their projected points in the image
+	cvInitFont(&font, CV_FONT_HERSHEY_PLAIN|CV_FONT_ITALIC, 0.5, 0.5, 0, 1);
+	for(int i = 0; i < num_pts; i++) {
+		p.x = cvRound(cvmGet(prj_wrld_pts, i, 0));
+		p.y = cvRound(cvmGet(prj_wrld_pts, i, 1));
+		cvDrawRect(dst, cvPoint(p.x - 10, p.y - 10), 
+			cvPoint(p.x + 10, p.y + 10), CV_RGB(128, 128, 128));
+		cvDrawCircle(dst, cvPoint(p.x, p.y), 2, CV_RGB(0,255, 255), CV_FILLED);
+
+		w.x = cvRound(cvmGet(wrld_pts, i, 0));
+		w.y = cvRound(cvmGet(wrld_pts, i, 1));
+		memset(text, 0, sizeof(text));
+		snprintf(text, sizeof(text), "(%d,%d)", w.x, w.y);
+		cvPutText(dst, text, p, &font, CV_RGB(0,255,0));
+	}
+
+	// draw image center and principal point
+	p.x = dst->width/2;
+	p.y = dst->height/2;
+	cvDrawCircle(dst, p, 4, CV_RGB(255,0, 255), CV_FILLED);
+	cvDrawCircle(dst, principle_pt, 4, CV_RGB(255,0, 255), CV_FILLED);
+
+	cvFree(&corners);
+}
+
 void show_tplts(IplImage **tplt, int roi_w, int roi_h, int rows, int cols, int n)
 {
 	char text[TXT_SIZE];

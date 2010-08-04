@@ -12,4 +12,7 @@ extern void show_seqs(CvSeqWriter *bndry, int roi_w, int roi_h,
 extern void draw_ctrd(IplImage *dst, IplImage *src, CvSeq *bndry, int i);
 extern void draw_kal(IplImage *dst, CvKalman *kal);
 
+extern void draw_wrld2pxl(IplImage *dst, int rows, int cols, CvPoint principle_pt,
+				   CvMat *wrld_pts, CvMat *prj_wrld_pts, CvMat *img_pts);
+
 #endif /* DRAW_DOTS_H_ */

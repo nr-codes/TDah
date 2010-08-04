@@ -1,9 +1,5 @@
 #include "t_dah.h"
 
-#if defined(WIN32) && defined(_WIN32)
-#define snprintf _snprintf
-#endif
-
 #define DEFAULT_MATCH 1
 #define DEFAULT_VALUE 0
 
