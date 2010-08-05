@@ -207,7 +207,8 @@ int TDahMe3Fc::setupFullFrameROI(int roi_nr, int mode)
 }
 
 // TODO make sure to note that camera must be acquiring before calling initROIs
-int TDahMe3Fc::initROIs(int n, int rw, int rh, char *s, bool uk, bool ut)
+int TDahMe3Fc::initROIs(int n, int rw, int rh, char *s, bool uk, bool ut,
+						char *intr, char *extr)
 {
 	int img_nr;
 	int seq[] = {ROI_0, ROI_1, ROI_2, ROI_3, ROI_4, ROI_5, ROI_6, ROI_7};
@@ -237,7 +238,7 @@ int TDahMe3Fc::initROIs(int n, int rw, int rh, char *s, bool uk, bool ut)
 	}
 
 	// setup ROIs
-	if(TDah::initROIs(n, rw, rh, s, uk, ut) != CV_OK) {
+	if(TDah::initROIs(n, rw, rh, s, uk, ut, intr, extr) != CV_OK) {
 		return !CV_OK;
 	}
 
@@ -333,6 +334,7 @@ int TDahMe3Fc::grabROIImage(int img_nr, ROILoc *r)
 int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 {
 	CvPoint c;
+	CvPoint2D32f w;
 	float z[Z_DIM];
 	int j;
 
@@ -361,20 +363,30 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 		OPENCV_ASSERT(false, __FUNCTION__, "tracking mode not supported");
 	}
 
-	if(kal) {
+	if(kal && cam_mat) {
 		c = roi2ctrd(gr[j]);
-		z[0] = (float) c.x;
-		z[1] = (float) c.y;
+		w = pixel2world(c, cam_mat, cam_dist, world_r, world_t);
+		z[0] = w.x;
+		z[1] = w.y;
 
 		// use the prediction for step k+1
 		estimate_and_predict(kal[j], (float) frame_time, 
 			r->obj_found ? z : NULL);
 		kal_assert(gr[j], kal[j]->state_pre, roi_w, roi_h);
-		ctrd2roi(gr[j], cvRound(kal[j]->state_pre->data.fl[0]), 
-				cvRound(kal[j]->state_pre->data.fl[1]), roi_w, roi_h);
+
+		w.x = kal[j]->state_pre->data.fl[0];
+		w.y = kal[j]->state_pre->data.fl[1];
+		c = world2pixel(w, cam_mat, cam_dist, world_r, world_t);
+		ctrd2roi(gr[j], c.x, c.y, roi_w, roi_h);
 	}
 
 	r->loc = roi2ctrd(gr[j]);
+	if(cam_mat) {
+		w = pixel2world(r->loc, cam_mat, cam_dist, world_r, world_t);		
+		r->loc.x = cvRound(w.x);
+		r->loc.y = cvRound(w.y);
+	}
+
 	if(setupNextROIFrame(j, mode) != CV_OK) {
 		return CV_BADROI_ERR;
 	}

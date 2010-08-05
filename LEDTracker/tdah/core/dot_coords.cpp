@@ -9,24 +9,59 @@
 
 CvPoint world2pixel(CvPoint2D32f w, CvMat *A, CvMat *k, CvMat *R, CvMat *T)
 {
+	// all code based on OpenCV cvProjectPoints2 function
 	CvPoint p_i;
-	CvMat world_coord, img_coord, Rvec;
-	float rvec[3];
-	float img_crd[2];
-	float w_crd[3] = {w.x, w.y, 0};
+	double _A[9], _k[5] = {0, 0, 0, 0, 0}, _R[9], _T[3];
+    CvMat matA, matk, matR, matT;
+	double X, Y, Z, x, y, z;
+    double r2, r4, r6, a1, a2, a3, cdist;
+    double xd, yd, fx, fy, cx , cy;
 
-	world_coord = cvMat(1, 1, CV_32FC3, w_crd);
-	img_coord = cvMat(1, 1, CV_32FC2, img_crd);
-	Rvec = cvMat(3, 1, CV_32FC1, rvec);
+	// convert matrices from float to double
+	matA = cvMat(3, 3, CV_64F, _A);
+	cvConvert(A, &matA);
 
-TIME_CODE("rod",
-	cvRodrigues2(R, &Rvec);
-);
-TIME_CODE("proj",
-	cvProjectPoints2(&world_coord, &Rvec, T, A, k, &img_coord);
-);
-	p_i.x = cvRound(img_coord.data.fl[0]);
-	p_i.y = cvRound(img_coord.data.fl[1]);
+	matk = cvMat(4, 1, CV_64F, _k);
+	cvConvert(k, &matk);
+
+	matR = cvMat(3, 3, CV_64F, _R);
+	cvConvert(R, &matR);
+
+	matT = cvMat(3, 1, CV_64F, _T);
+	cvConvert(T, &matT);
+
+	// world frame
+	X = (double) w.x;
+	Y = (double) w.y;
+	Z = 0;
+
+	// camera frame
+    x = _R[0]*X + _R[1]*Y + _R[2]*Z + _T[0];
+    y = _R[3]*X + _R[4]*Y + _R[5]*Z + _T[1];
+    z = _R[6]*X + _R[7]*Y + _R[8]*Z + _T[2];
+
+	// image frame
+    z = z ? 1./z : 1;
+    x *= z; 
+	y *= z;
+
+	fx = _A[0];
+	fy = _A[4];
+    cx = _A[2];
+	cy = _A[5];
+
+    r2 = x*x + y*y;
+    r4 = r2*r2;
+    r6 = r4*r2;
+    a1 = 2*x*y;
+    a2 = r2 + 2*x*x;
+    a3 = r2 + 2*y*y;
+    cdist = 1 + _k[0]*r2 + _k[1]*r4 + _k[4]*r6;
+    xd = x*cdist + _k[2]*a1 + _k[3]*a2;
+    yd = y*cdist + _k[2]*a3 + _k[3]*a1;
+
+    p_i.x = cvRound(xd*fx + cx);
+    p_i.y = cvRound(yd*fy + cy);
 
 	return p_i;
 }
@@ -46,11 +81,11 @@ CvPoint2D32f pixel2world(CvPoint p, CvMat *A, CvMat *k, CvMat *R, CvMat *T)
 	// convert from camera frame to world frame
 	z = T->data.fl[2];
 	world_coord = cvMat(3, 1, CV_32FC1, w_crd);
-	cvmSet(&world_coord, 0, 0, z*img_coord.data.fl[0]);
-	cvmSet(&world_coord, 1, 0, z*img_coord.data.fl[1]);
-	cvmSet(&world_coord, 2, 0, z);
+	cvmSet(&world_coord, 0, 0, z*img_coord.data.fl[0] - T->data.fl[0]);
+	cvmSet(&world_coord, 1, 0, z*img_coord.data.fl[1] - T->data.fl[1]);
+	cvmSet(&world_coord, 2, 0, 0);
 
-	cvSub(&world_coord, T, &world_coord);
+	//cvSub(&world_coord, T, &world_coord);
 	cvGEMM(R, &world_coord, 1, NULL, 0, &world_coord, CV_GEMM_A_T);
 
 	p_w.x = world_coord.data.fl[0];

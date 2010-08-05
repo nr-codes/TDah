@@ -1,8 +1,24 @@
 #include "t_dah.h"
 #include "TDahOpenCV.h"
 
+#define HAVE_CONF 0
+
+// calib parameters
+#define INTRINSIC 1
+#define EXTRINSIC 2
+#define CALIB 0
+
+#define GRID_W 3
+#define GRID_H 6
+#define NUM_IMGS 75
+
 #define INTRINS_FILE "Logitech Webcam Intrinsics.yaml"
 #define EXTRINS_FILE "Logitech Webcam Extrinsics.yaml"
+
+// ROI parameters
+#define NUM_ROI 2
+#define ROI_W 15
+#define ROI_H 15
 
 int main()
 {
@@ -10,19 +26,27 @@ int main()
 	IplImage *img;
 	TDahOpenCV *capture = new TDahOpenCV(CV_CAP_ANY);
 
-#if 0
-#if 0
-	if(capture->initROIs(2, 15, 15, "myopencv.yaml", true, true, 
+	if(CALIB == INTRINSIC) {
+		return get_camera_intrinsics(capture, INTRINS_FILE, 
+			GRID_W, GRID_H, NUM_IMGS);
+	}
+	else if(CALIB == EXTRINSIC) {
+		return get_camera_extrinsics(capture, EXTRINS_FILE, INTRINS_FILE, 
+			GRID_W, GRID_H);
+	}
+
+	// setup ROIs
+	if(HAVE_CONF && capture->initROIs(NUM_ROI, "myopencv.yaml", true, true, 
 		INTRINS_FILE, EXTRINS_FILE) != CV_OK) {
 		printf("couldn't initROIs\n");
 		return -1;
 	}
-#else
-	if(capture->initROIs(2, "myopencv.yaml", true, true) != CV_OK) {
+	else if(capture->initROIs(NUM_ROI, ROI_W, ROI_H, "myopencv.yaml", 
+		true, true, INTRINS_FILE, EXTRINS_FILE) != CV_OK) {
 		printf("couldn't initROIs\n");
 		return -1;
 	}
-#endif
+
 	img = cvQueryFrame(capture);
 	if(img == NULL) {
 		printf("couldn't get an image from capture device\n");
@@ -37,67 +61,16 @@ int main()
 
 	r.img = img;
 	while(cvWaitKey(100) != 'q') {
-		capture->showROILoc();
+		// grab and process next image
 		capture->grabFrame();
 		capture->getROILoc(&r);
+
+		// visualize tracking
+		capture->showROILoc();
 		cvShowImage("img", img);
 		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
 	}
-#else
-	//get_camera_intrinsics(capture, INTRINS_FILE, 3, 6, 75);
-	//get_camera_extrinsics(capture, EXTRINS_FILE, INTRINS_FILE, 3, 6, 1.34);
-	
-	img = cvQueryFrame(capture);
 
-	CvMat *A, *k;
-	CvFileStorage *fs = cvOpenFileStorage(INTRINS_FILE, NULL, CV_STORAGE_READ);
-	read_intrinsic_params(fs, &A, &k);
-	cvReleaseFileStorage(&fs);
-
-	CvMat *R, *t;
-	fs = cvOpenFileStorage(EXTRINS_FILE, NULL, CV_STORAGE_READ);
-	read_extrinsic_params(fs, &R, &t);
-	cvReleaseFileStorage(&fs);
-
-	CvMat *pp = cvCreateMat(1,1, CV_32FC3);
-	CvMat *wp = cvCreateMat(1,1, CV_32FC3);
-	CvMat *Rvec = cvCreateMat(3, 1, CV_32FC1);
-
-	IplImage *mapx = cvCreateImage( cvGetSize( img ), IPL_DEPTH_32F, 1 );
-	IplImage *mapy = cvCreateImage( cvGetSize( img ), IPL_DEPTH_32F, 1 );
-	cvInitUndistortMap(A, k, mapx, mapy);
-
-
-	wp->data.fl[0] = 0;
-	wp->data.fl[1] = 0;
-	wp->data.fl[2] = 0;
-
-	cvRodrigues2(R, Rvec);
-	cvProjectPoints2(wp, Rvec, t, A, k, pp);
-		printf("(%0.3f, %0.3f) <- %0.3f %0.3f %0.3f\n",
-			pp->data.fl[0], 
-			pp->data.fl[1], 
-			wp->data.fl[0], 
-			wp->data.fl[1], 
-			wp->data.fl[2]);
-
-	CvMat temp1, temp2;
-	cvZero(k);
-	cvProjectPoints2(wp, Rvec, t, A, k, pp);
-	int ix = cvRound(pp->data.fl[0]);
-	int iy = cvRound(pp->data.fl[1]);
-	printf("(0,0) -> (%d, %d) -> (%g, %g)\n", ix, iy,
-		cvmGet(cvGetMat(mapx, &temp1), ix, iy), 
-		cvmGet(cvGetMat(mapy, &temp2), ix, iy));
-
-	
-
-
-	cvShowImage("temp", img);
-	cvWaitKey(0);
-
-
-#endif
 	delete capture;
 	return 0;
 }

@@ -44,7 +44,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				ProgramDataBaseFileName="$(OutDir)\tdah.pdb"
+				ProgramDataBaseFileName="$(OutDir)\$(ProjectName).pdb"
 				WarningLevel="3"
 				DebugInformationFormat="4"
 			/>

@@ -22,7 +22,8 @@ public:
 
 	// TDah inherited fcns
 	int initROIs(int num_roi, int roi_w, int roi_h, char *save_conf_as = NULL, 
-		bool use_kal = true, bool use_tmplt = true);
+		bool use_kal = true, bool use_tmplt = true, 
+		char *intr_param_file = NULL, char *extr_param_file = NULL);
 	int getROILoc(int img_nr, ROILoc *r);
 	void showROILoc(void);
 

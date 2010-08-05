@@ -1,25 +1,69 @@
 #include "t_dah.h"
 #include "TDahMe3Fc.h"
 
+// me3 parametesr
+#define TRIG GRABBER_CONTROLLED
+#define EXPOSURE 20 // us
+#define FRAME 50 // us
+#define BUFS 16
+
+// calib parameters
+#define INTRINSIC 1
+#define EXTRINSIC 2
+#define CALIB 0
+#define INTRINS_FILE "TrackCam Intrinsics.yaml"
+#define EXTRINS_FILE "TrackCam Extrinsics.yaml"
+
+#define GRID_W 3
+#define GRID_H 6
+#define NUM_IMGS 75
+
+// ROI parameters
+#define NUM_ROI 1
+#define ROI_W 12
+#define ROI_H 12
+
+#define HAVE_CONF 0
+#define CONF "myme3.yaml"
+#define USE_KAL false
+#define USE_TPT false
+
+#define GR_CH 1
+
 int main()
 {
 	int i = 0;
 	ROILoc r;
-	IplImage *img;
-	TDahMe3Fc *capture = new TDahMe3Fc(GRABBER_CONTROLLED, 20, 50, 16);
+	TDahMe3Fc *capture = new TDahMe3Fc(TRIG, EXPOSURE, FRAME, BUFS);
 
-	img = cvQueryFrame(capture);
-	img = cvCreateImage(cvSize(img->width, img->height), 8, 1);
-	r.img = img;
+	if(CALIB == INTRINSIC) {
+		return get_camera_intrinsics(capture, INTRINS_FILE, 
+			GRID_W, GRID_H, NUM_IMGS);
+	}
+	else if(CALIB == EXTRINSIC) {
+		return get_camera_extrinsics(capture, EXTRINS_FILE, INTRINS_FILE, 
+			GRID_W, GRID_H);
+	}
 
-	capture->initROIs(1, 12, 12, "myme3.yaml", false, false);
-	//capture->initROIs(1, "myme3.yaml", true, false);
+	if(HAVE_CONF) {
+		// explicitly give ROI info and save config for later use
+		capture->initROIs(NUM_ROI, ROI_W, ROI_H, CONF, USE_KAL, USE_TPT,
+			INTRINS_FILE, EXTRINS_FILE);
+	}
+	else {
+		// a config file exists, use it to auto-acquire dots
+		//(NOT YET IMPLEMENTED) 
+		// capture->initROIs(NUM_ROI, CONF, USE_KAL, USE_TPT);
+	}
 
+	i = 0;
 	while(cvWaitKey(100) != 'q') {
+		// get and process next image
 		capture->grabFrame();
 		capture->getROILoc(++i, &r);
+
+		// visualize tracking
 		capture->showROILoc();
-		cvShowImage("img", img);
 		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
 	}
 
