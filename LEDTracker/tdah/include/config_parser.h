@@ -8,6 +8,8 @@ extern void write_templates(CvFileStorage *fs, IplImage **tmplt, int n = 1,
 							char *dir = ".");
 extern void write_obj_loc(CvFileStorage *fs, IplImage **obj, int n = 1);
 extern void write_kalman(CvFileStorage *fs, CvKalman **kal, int n = 1);
+extern void write_intrinsic_params(CvFileStorage *fs, CvMat *A, CvMat *k);
+extern void write_extrinsic_params(CvFileStorage *fs, CvMat *R, CvMat *T);
 
 extern void read_track_params(CvFileStorage *fs, int *threshold, 
 						double *min_m, double *max_r, int *roi_w, int *roi_h,
@@ -15,5 +17,7 @@ extern void read_track_params(CvFileStorage *fs, int *threshold,
 extern void read_templates(CvFileStorage *fs, IplImage **tmplt, int n = 1);
 extern void read_obj_loc(CvFileStorage *fs, IplImage **obj, int n = 1);
 extern void read_kalman(CvFileStorage *fs, CvKalman **kal, int n = 1);
+extern void read_intrinsic_params(CvFileStorage *fs, CvMat **A, CvMat **k);
+extern void read_extrinsic_params(CvFileStorage *fs, CvMat **R, CvMat **T);
 
 #endif /* CONFIG_PARSER_H_ */

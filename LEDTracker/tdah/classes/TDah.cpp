@@ -25,9 +25,13 @@ TDah::TDah()
 	// predictive tracking
 	kal = NULL;
 	prev_ts = NULL;
+
+	// world frame conversion
+	cam_mat = cam_dist = world_r = world_t = NULL;
 }
 
-int TDah::initROIs(int n, int rw, int rh, char *s, bool use_kal, bool use_tmplt)
+int TDah::initROIs(int n, int rw, int rh, char *s, 
+				   bool uk, bool ut, char *intr, char *extr)
 {
 	double val;
 	IplImage *img;
@@ -41,7 +45,7 @@ int TDah::initROIs(int n, int rw, int rh, char *s, bool use_kal, bool use_tmplt)
 	roi_h = rh;
 	img_w = img->width;
 	img_h = img->height;
-	if(alloc_mbrs(use_kal, use_tmplt) != CV_OK) return !CV_OK;
+	if(alloc_mbrs(uk, ut, intr, extr) != CV_OK) return !CV_OK;
 
 	// set ROIs for each object
 	setup_kalman(kal, n_roi);
@@ -88,15 +92,16 @@ int TDah::initROIs(int n, int rw, int rh, char *s, bool use_kal, bool use_tmplt)
 		write_track_params(fs, threshold, min_match, 
 			max_radius, roi_w, roi_h, img_w, img_h);
 		write_obj_loc(fs, gr, n_roi);
-		if(use_tmplt) write_templates(fs, tplt, n_roi);
-		if(use_kal) write_kalman(fs, kal, n_roi);
+		if(ut) write_templates(fs, tplt, n_roi);
+		if(uk) write_kalman(fs, kal, n_roi);
 		cvReleaseFileStorage(&fs);
 	}
 
 	return CV_OK;
 }
 
-int TDah::initROIs(int num_roi, char *conf_file, bool use_kal, bool use_tmplt)
+int TDah::initROIs(int num_roi, char *conf_file, 
+				   bool uk, bool ut, char *intr, char *extr)
 {
 	int rc;
 	CvFileStorage *fs;
@@ -115,18 +120,18 @@ int TDah::initROIs(int num_roi, char *conf_file, bool use_kal, bool use_tmplt)
 		&img_w, 
 		&img_h);
 
-	if(alloc_mbrs(use_kal, use_tmplt) != CV_OK) {
+	if(alloc_mbrs(uk, ut, intr, extr) != CV_OK) {
 		cvReleaseFileStorage(&fs);
 		return !CV_OK;
 	}
 	
 	read_obj_loc(fs, gr, n_roi);
-	if(use_kal)	{
+	if(uk)	{
 		setup_kalman(kal, n_roi);
 		read_kalman(fs, kal, n_roi);
 	}
 
-	if(use_tmplt) read_templates(fs, tplt, n_roi);
+	if(ut) read_templates(fs, tplt, n_roi);
 
 	// get dots
 	rc = auto_acquire(this, gr, roi_w, roi_h, 
@@ -159,58 +164,64 @@ void TDah::deinitROIs(void)
 	cvReleaseImage(&pyr_temp);
 	cvReleaseImage(&tplt_temp);
 
+	cvReleaseMat(&cam_mat);
+	cvReleaseMat(&cam_dist);
+	cvReleaseMat(&world_r);
+	cvReleaseMat(&world_t);
+
 	n_roi = 0;
 }
 
-int TDah::alloc_mbrs(bool init_kal, bool init_tmplt)
+int TDah::alloc_mbrs(bool init_kal, bool init_tmplt, char *intr, char *extr)
 {
 	int n;
 	CvSize sz;
+	CvFileStorage *fs;
 	
 	sz = cvSize(img_w, img_h);
 	n = n_roi;
 	deinitROIs();
 	n_roi = n;
 
-__BEGIN__;
+__CV_BEGIN__;
 	
 	gr = (IplImage **) cvAlloc(sizeof(IplImage *) * n_roi);
-	if(!gr) EXIT;
+	if(!gr) __CV_EXIT__;
 
 	wr = (CvSeqWriter *) cvAlloc(sizeof(CvSeqWriter) * n_roi);
-	if(!wr) EXIT;
+	if(!wr) __CV_EXIT__;
 
 	mem = (CvMemStorage **) cvAlloc(sizeof(CvMemStorage *) * n_roi);
-	if(!mem) EXIT;
+	if(!mem) __CV_EXIT__;
 
 	kal = NULL;
 	if(init_kal) {
 		prev_ts = (double *) cvAlloc(sizeof(double) * n_roi);
-		if(!prev_ts) EXIT;
+		if(!prev_ts) __CV_EXIT__;
 
 		kal = (CvKalman **) cvAlloc(sizeof(CvKalman *) * n_roi);
-		if(!kal) EXIT;
+		if(!kal) __CV_EXIT__;
 	}
 	
 	tplt = NULL;
 	if(init_tmplt) {
 		pyr_temp = cvCreateImage(sz, IPL_DEPTH_8U, CHANS);
-		if(!pyr_temp) EXIT;
+		if(!pyr_temp) __CV_EXIT__;
 		
 		tplt_temp = cvCreateImage(sz, IPL_DEPTH_32F, CHANS);
-		if(!tplt_temp) EXIT;
+		if(!tplt_temp) __CV_EXIT__;
 
 		tplt = (IplImage **) cvAlloc(sizeof(IplImage *) * n_roi);
-		if(!tplt) EXIT;
+		if(!tplt) __CV_EXIT__;
 	}
 
 	for(int i = 0; i < n_roi; i++) {
 		gr[i] = cvCreateImage(sz, IPL_DEPTH_8U, CHANS);
-		if(!gr[i]) EXIT;
+		if(!gr[i]) __CV_EXIT__;
 		cvSetImageROI(gr[i], cvRect(0, 0, sz.width, sz.height));
 
 		mem[i] = cvCreateMemStorage(0);
-		if(!mem[i]) EXIT;
+		if(!mem[i]) __CV_EXIT__;
 		cvStartWriteSeq(CV_SEQ_ELTYPE_POINT | CV_SEQ_KIND_CURVE, 
 			sizeof(CvSeq), 
 			sizeof(CvPoint), 
@@ -220,18 +231,30 @@ __BEGIN__;
 		if(init_kal) {
 			prev_ts[i] = cvGetTickCount()/cvGetTickFrequency();
 			kal[i] = cvCreateKalman(X_DIM, Z_DIM, U_DIM);
-			if(!kal[i]) EXIT;
+			if(!kal[i]) __CV_EXIT__;
 		}
 
 		if(init_tmplt) {
 			tplt[i] = cvCreateImage(sz, IPL_DEPTH_8U, CHANS);
-			if(!tplt[i]) EXIT;
+			if(!tplt[i]) __CV_EXIT__;
 			cvSetImageROI(tplt[i], cvRect(0, 0, sz.width, sz.height));
 		}
 	}
 
+	if(intr && extr) {
+		fs = cvOpenFileStorage(intr, NULL, CV_STORAGE_READ);
+		if(!fs) __CV_EXIT__;
+		read_intrinsic_params(fs, &cam_mat, &cam_dist);
+		cvReleaseFileStorage(&fs);
+
+		fs = cvOpenFileStorage(extr, NULL, CV_STORAGE_READ);
+		if(!fs) __CV_EXIT__;
+		read_extrinsic_params(fs, &world_r, &world_t);
+		cvReleaseFileStorage(&fs);
+	}
+
 	return CV_OK;
-__END__;
+__CV_END__;
 	deinitROIs();
 	return !CV_OK;
 }

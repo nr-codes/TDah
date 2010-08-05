@@ -27,6 +27,14 @@
 #define KAL_STATE_FMT "KalmanState%d"
 #define KAL_COV_FMT "KalmanCov%d"
 
+#define INTRINSIC_STRUCT "Intrinsic Parameters"
+#define INTRINSIC_MAT "Intrinsic Camera Matrix"
+#define INTRINSIC_DIST "Distortion Coefficients"
+
+#define EXTRINSIC_STRUCT "Extrinsic Parameters"
+#define EXTRINSIC_ROT "Rotation Matrix"
+#define EXTRINSIC_TRN "Translation Vector"
+
 void write_track_params(CvFileStorage *fs, int threshold, 
 						double min_m, double max_r, int roi_w, int roi_h,
 						int img_w, int img_h)
@@ -108,6 +116,26 @@ void write_kalman(CvFileStorage *fs, CvKalman **kal, int n)
 		snprintf(key, sizeof(key), KAL_COV_FMT, i);
 		cvWrite(fs, key, kal[i]->error_cov_post);
 	}
+	cvEndWriteStruct(fs);
+}
+
+void write_intrinsic_params(CvFileStorage *fs, CvMat *A, CvMat *k)
+{
+	if(!A || !k) return;
+
+	cvStartWriteStruct(fs, INTRINSIC_STRUCT, CV_NODE_MAP);
+	cvWrite(fs, INTRINSIC_MAT, A);
+	cvWrite(fs, INTRINSIC_DIST, k);
+	cvEndWriteStruct(fs);
+}
+
+void write_extrinsic_params(CvFileStorage *fs, CvMat *R, CvMat *T)
+{
+	if(!R || !T) return;
+
+	cvStartWriteStruct(fs, EXTRINSIC_STRUCT, CV_NODE_MAP);
+	cvWrite(fs, EXTRINSIC_ROT, R);
+	cvWrite(fs, EXTRINSIC_TRN, T);
 	cvEndWriteStruct(fs);
 }
 
@@ -197,4 +225,20 @@ void read_kalman(CvFileStorage *fs, CvKalman **kal, int n)
 			cvCopy(mat, kal[i]->error_cov_post);
 		}
 	}
+}
+
+void read_intrinsic_params(CvFileStorage *fs, CvMat **A, CvMat **k)
+{
+	CvFileNode *node = cvGetFileNodeByName(fs, NULL, INTRINSIC_STRUCT);
+
+	*A = (CvMat *) cvReadByName(fs, node, INTRINSIC_MAT);
+	*k = (CvMat *) cvReadByName(fs, node, INTRINSIC_DIST);
+}
+
+void read_extrinsic_params(CvFileStorage *fs, CvMat **R, CvMat **T)
+{
+	CvFileNode *node = cvGetFileNodeByName(fs, NULL, EXTRINSIC_STRUCT);
+
+	*R = (CvMat *) cvReadByName(fs, node, EXTRINSIC_ROT);
+	*T = (CvMat *) cvReadByName(fs, node, EXTRINSIC_TRN);
 }

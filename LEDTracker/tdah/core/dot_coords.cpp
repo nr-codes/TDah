@@ -7,54 +7,54 @@
 #define ONE_EXTRINSIC_IMG 1
 #define PROMPT 1
 
-static CvMat *A, *k, *R, *T;
-static CvMat *world, *distorted, *normalized;
-
-int setup_world_frame(char *A_file, char *k_file, char *R_file, char *T_file)
+CvPoint world2pixel(CvPoint2D32f w, CvMat *A, CvMat *k, CvMat *R, CvMat *T)
 {
-	// load camera model
-	A = (CvMat *) cvLoad(A_file);
-	if(A == NULL) return -EBADF;
+	CvPoint p_i;
+	CvMat world_coord, img_coord, Rvec;
+	float rvec[3];
+	float img_crd[2];
+	float w_crd[3] = {w.x, w.y, 0};
 
-	k = (CvMat *) cvLoad(k_file);
-	if(k == NULL) return -EBADF;
+	world_coord = cvMat(1, 1, CV_32FC3, w_crd);
+	img_coord = cvMat(1, 1, CV_32FC2, img_crd);
+	Rvec = cvMat(3, 1, CV_32FC1, rvec);
 
-	R = (CvMat *) cvLoad(R_file);
-	if(R == NULL) return -EBADF;
+TIME_CODE("rod",
+	cvRodrigues2(R, &Rvec);
+);
+TIME_CODE("proj",
+	cvProjectPoints2(&world_coord, &Rvec, T, A, k, &img_coord);
+);
+	p_i.x = cvRound(img_coord.data.fl[0]);
+	p_i.y = cvRound(img_coord.data.fl[1]);
 
-	T = (CvMat *) cvLoad(T_file);
-	if(T == NULL) return -EBADF;
-
-	world = cvCreateMat(3, 1, CV_32FC1);
-	if(world == NULL) return -ENOMEM;
-
-	normalized = cvCreateMat(1, 1, CV_32FC2);
-	if(normalized == NULL) return -ENOMEM;
-
-	distorted = cvCreateMat(1, 1, CV_32FC2);
-	if(distorted == NULL) return -ENOMEM;
-
-	return CV_OK;
+	return p_i;
 }
 
-CvPoint2D32f pixel2world(CvPoint p, float z)
+CvPoint2D32f pixel2world(CvPoint p, CvMat *A, CvMat *k, CvMat *R, CvMat *T)
 {
 	CvPoint2D32f p_w;
+	CvMat world_coord, img_coord;
+	float img_crd[2] = {(float) p.x, (float) p.y};
+	float w_crd[3];
+	float z;
 
-	// convert from pixels to units of measurement
-	distorted->data.fl[0] = (float) p.x;
-	distorted->data.fl[1] = (float) p.y;
-	cvUndistortPoints(distorted, normalized, A, k);
+	// convert from distorted pixels to normalized camera frame
+	img_coord = cvMat(1, 1, CV_32FC2, img_crd);
+	cvUndistortPoints(&img_coord, &img_coord, A, k);
 
-	cvmSet(world, 0, 0, z*normalized->data.fl[0]);
-	cvmSet(world, 1, 0, z*normalized->data.fl[1]);
-	cvmSet(world, 2, 0, z);
+	// convert from camera frame to world frame
+	z = T->data.fl[2];
+	world_coord = cvMat(3, 1, CV_32FC1, w_crd);
+	cvmSet(&world_coord, 0, 0, z*img_coord.data.fl[0]);
+	cvmSet(&world_coord, 1, 0, z*img_coord.data.fl[1]);
+	cvmSet(&world_coord, 2, 0, z);
 
-	cvSub(world, T, world);
-	cvGEMM(R, world, 1, NULL, 0, world, CV_GEMM_A_T);
+	cvSub(&world_coord, T, &world_coord);
+	cvGEMM(R, &world_coord, 1, NULL, 0, &world_coord, CV_GEMM_A_T);
 
-	p_w.x = world->data.fl[0];
-	p_w.y = world->data.fl[1];
+	p_w.x = world_coord.data.fl[0];
+	p_w.y = world_coord.data.fl[1];
 
 	return p_w;
 }
@@ -102,8 +102,9 @@ int grab_calib_grid(CvCapture *capture, CvSize grid_size,
 				cvmSet(ip, row0 + i, 1, corners[i].y);
 
 				if(op != NULL) {
-					cvmSet(op, row0 + i, 0, i / cols);
-					cvmSet(op, row0 + i, 1, i % cols);
+					// by default use normal cartesian coord system
+					cvmSet(op, row0 + i, 0, i % cols); // x goes left to right
+					cvmSet(op, row0 + i, 1, -i / cols); // y goes top to bottom
 					cvmSet(op, row0 + i, 2, 0);
 				}
 			}
@@ -136,10 +137,13 @@ int grab_calib_grid(CvCapture *capture, CvSize grid_size,
 	return good_imgs;
 }
 
-int get_camera_intrinsics(CvCapture *capture, int rows, int cols, int num_images)
+// TODO consider using initial guess
+int get_camera_intrinsics(CvCapture *capture, char *file, 
+						  int rows, int cols, int num_images)
 {
 	int rc, num_points;
 	IplImage *img = NULL;
+	CvFileStorage *fs = NULL;
 	CvSize size, img_size;
 	CvMat *image_points, *object_points, *point_counts;
 	CvMat *intrinsic_matrix, *distortion_coeffs;
@@ -148,57 +152,82 @@ int get_camera_intrinsics(CvCapture *capture, int rows, int cols, int num_images
 	num_points = rows * cols;
 	size = cvSize(cols, rows);
 
+	// assume error
+	rc = !CV_OK;
+
+__CV_BEGIN__;
+
 	image_points = cvCreateMat(num_images*num_points, 2, CV_32FC1);
 	object_points = cvCreateMat(num_images*num_points, 3, CV_32FC1);
 	point_counts = cvCreateMat(num_images, 1, CV_32SC1);
-
-	// grab an image so we know the image size
-	img = cvQueryFrame(capture);
-	img_size = cvGetSize(img);
-
-	rc = grab_calib_grid(capture, size, image_points, object_points, 
-		point_counts, num_images);
-	if(rc != num_images) {
-		// smart thing would be to resize everything, but...
-		printf("didn't get all images, got %d out of %d\n", rc, num_images);
-		return !CV_OK;
-	}
+	if(!image_points || !object_points || !point_counts) __CV_EXIT__;
 
 	distortion_coeffs = cvCreateMat(4, 1, CV_32FC1);
 	intrinsic_matrix = cvCreateMat(3, 3, CV_32FC1);
+	if(!distortion_coeffs || !intrinsic_matrix) __CV_EXIT__;
+
+	// grab an image so we know the image size
+	img = cvQueryFrame(capture);
+	if(!img) __CV_EXIT__;
+	img_size = cvGetSize(img);
+
+	if(grab_calib_grid(capture, size, image_points, object_points, 
+		point_counts, num_images) != num_images) {
+		// smart thing would be to resize everything, but...
+		printf("didn't get all images, got %d out of %d\n", rc, num_images);
+		__CV_EXIT__;
+	}
+
 	cvZero(intrinsic_matrix);
 	cvZero(distortion_coeffs);
-
 	cvCalibrateCamera2(object_points, image_points, point_counts, img_size, 
 		intrinsic_matrix, distortion_coeffs);
 
 	// Save the intrinsics and distortions
-	cvSave("Intrinsics.xml", intrinsic_matrix );
-	cvSave("Distortion.xml", distortion_coeffs );
+	if(file == NULL) {
+		//cvSave("Intrinsics.xml", intrinsic_matrix );
+		//cvSave("Distortion.xml", distortion_coeffs );
+	}
+	else {
+		fs = cvOpenFileStorage(file, NULL, CV_STORAGE_WRITE);
+		if(!fs) __CV_EXIT__;
+		write_intrinsic_params(fs, intrinsic_matrix, distortion_coeffs);
+	}
 
+	rc = CV_OK;
+
+__CV_END__;
+	cvReleaseFileStorage(&fs);
 	cvReleaseMat(&image_points);
 	cvReleaseMat(&object_points);
 	cvReleaseMat(&point_counts);
 	cvReleaseMat(&intrinsic_matrix);
 	cvReleaseMat(&distortion_coeffs);
 
-	return CV_OK;
+	return rc;
 }
 
-int get_camera_extrinsics(CvCapture *capture, int rows, int cols, 
-						  CvPoint2D32f origin, float theta, double scale)
+// TODO consider using initial guess
+int get_camera_extrinsics(CvCapture *capture, char *save_file, char *intrinsic_file,
+						  int rows, int cols, double scale,
+						  CvPoint2D32f newOrigin, float theta)
 {
 	int rc;
 	int num_pts;
 	CvSize grid_size;
+	CvFileStorage *fs = NULL;
 	IplImage *img;
 	CvPoint p;
+	CvMat *pp, *wp;
 	CvMat *wip, *wop, *wpp, *wpc;
 	CvMat *intrinsic, *distortion;
 	CvMat *Rvec, *Rmat, *Tvec;
-	CvMat trans, obj_pts2;
-	float trans_elem[] = {	cos(theta), -sin(theta), 0, origin.x, 
-							sin(theta), cos(theta), 0, origin.y, 
+	CvMat rot, shift;
+	float rot_elem[] = {cos(theta), sin(theta), 0,
+						-sin(theta), cos(theta), 0, 
+						0, 0, 1};
+	float shift_elem[] = {	1, 0, 0, -newOrigin.x, 
+							0, 1, 0, -newOrigin.y, 
 							0, 0, 1, 0};
 
 
@@ -206,59 +235,85 @@ int get_camera_extrinsics(CvCapture *capture, int rows, int cols,
 	num_pts = rows * cols;
 	grid_size = cvSize(cols, rows);
 
+	// assume error
+	rc = !CV_OK;
+
+__CV_BEGIN__;
+
+	fs = cvOpenFileStorage(intrinsic_file, NULL, CV_STORAGE_READ);
+	if(!fs) __CV_EXIT__;
+
 	// allocate world image and object points and point counts
 	wip = cvCreateMat(num_pts, 2, CV_32FC1);
 	wop = cvCreateMat(num_pts, 3, CV_32FC1);
 	wpp = cvCreateMat(num_pts, 2, CV_32FC1);
 	wpc = cvCreateMat(ONE_EXTRINSIC_IMG, 1, CV_32SC1);
-	if(!wip || !wop || !wpp || !wpc) return !CV_OK;
+	if(!wip || !wop || !wpp || !wpc) __CV_EXIT__;
 
 	// allocate extrensic parameters
 	Rvec = cvCreateMat(3, 1, CV_32FC1);
 	Rmat = cvCreateMat(3, 3, CV_32FC1);
 	Tvec = cvCreateMat(3, 1, CV_32FC1);
-	if(!Rvec || !Rmat || !Tvec) return !CV_OK;
+	if(!Rvec || !Rmat || !Tvec) __CV_EXIT__;
+
+	// allocate origin of world and image points for drawing
+	pp = cvCreateMat(1,1, CV_32FC2);
+	wp = cvCreateMat(1,1, CV_32FC3);
+	if(!pp || !wp) __CV_EXIT__;
 
 	// load camera intrinsic model
-	intrinsic = (CvMat*) cvLoad( "Intrinsics.xml" );
-	distortion = (CvMat*) cvLoad( "Distortion.xml" );
-	if(!intrinsic || !distortion) return !CV_OK;
+	read_intrinsic_params(fs, &intrinsic, &distortion);
+	if(!intrinsic || !distortion) __CV_EXIT__;
+	cvReleaseFileStorage(&fs);
 
 	// get image and world points
-	rc = grab_calib_grid(capture, grid_size, wip, wop, wpc, 
-		ONE_EXTRINSIC_IMG, PROMPT, &img);
-	if(rc != ONE_EXTRINSIC_IMG) {
-		// smart thing would be to resize everything, but...
-		printf("didn't get all images, got %d out of %d\n", rc, 
-			ONE_EXTRINSIC_IMG);
-		return !CV_OK;
-	}
-	else if(img == NULL) {
-		return !CV_OK;
-	}
+	if(grab_calib_grid(capture, grid_size, wip, wop, wpc, 
+		ONE_EXTRINSIC_IMG, PROMPT, &img) != ONE_EXTRINSIC_IMG) __CV_EXIT__;
 
-	// convert default coordinate system to new one using transformation matrix
-	// TODO can obj_pts2 be replaced with wop?
-	trans = cvMat(3, 4, CV_32FC1, trans_elem);
-	cvReshape(wop, &obj_pts2, 3);
-	cvTransform(&obj_pts2, &obj_pts2, &trans);
-	cvScale(&obj_pts2, &obj_pts2, scale);
+	// convert default coordinate system to new one
+	shift = cvMat(3, 4, CV_32FC1, shift_elem);
+	rot = cvMat(3, 3, CV_32FC1, rot_elem);
+	cvReshape(wop, wop, 3);
+	cvTransform(wop, wop, &shift);
+	cvTransform(wop, wop, &rot);
+	cvScale(wop, wop, scale);
+	cvReshape(wop, wop, 1);
 
 	// get extrinsic parameters
 	cvFindExtrinsicCameraParams2(wop, wip, intrinsic, distortion, Rvec, Tvec);
 	cvRodrigues2(Rvec, Rmat);
-	cvProjectPoints2(wop, Rvec, Tvec, intrinsic, distortion, wpp);
 
-	// draw image and world frame
-	p = cvPoint(cvRound(cvmGet(intrinsic, 0, 2)), 
-		cvRound(cvmGet(intrinsic, 1, 2)));
-	draw_wrld2pxl(img, rows, cols, p, wop, wpp, wip);
+	// save parameters
+	fs = cvOpenFileStorage(save_file, NULL, CV_STORAGE_WRITE);
+	if(!fs) __CV_EXIT__;
+	write_extrinsic_params(fs, Rmat, Tvec);
+
+	// draw projected world frame's axis
+	wp->data.fl[0] = 0;
+	wp->data.fl[1] = 0;
+	wp->data.fl[2] = 0;
+	cvProjectPoints2(wp, Rvec, Tvec, intrinsic, distortion, pp);
+	p.x = cvRound(pp->data.fl[0]);
+	p.y = cvRound(pp->data.fl[1]);
+	cvTranspose(Rmat, Rmat);
+	draw_axis(img, "xy", p, Rmat);
+
+	// draw projected world frame points
+	cvProjectPoints2(wop, Rvec, Tvec, intrinsic, distortion, wpp);
+	draw_wrld2pxl(img, rows, cols, wop, wpp, wip);
+
 	cvNamedWindow("world frame projected onto image frame", 0);
 	cvResizeWindow("world frame projected onto image frame", 
 		img->width, img->height);
 	cvShowImage("world frame projected onto image frame", img);
 	cvWaitKey(0);
 
+	rc = CV_OK;
+
+__CV_END__;
+	cvReleaseFileStorage(&fs);
+	cvReleaseMat(&wp);
+	cvReleaseMat(&pp);
 	cvReleaseMat(&wop);
 	cvReleaseMat(&wpp);
 	cvReleaseMat(&wip);
@@ -267,5 +322,5 @@ int get_camera_extrinsics(CvCapture *capture, int rows, int cols,
 	cvReleaseMat(&Rmat);
 	cvReleaseMat(&Tvec);
 
-	return CV_OK;
+	return rc;
 }

@@ -7,6 +7,10 @@
 #define POINT_RADIUS 1
 #define ROI_THICKNESS 2
 #define TXT_SIZE 100
+#define X_AXIS 0
+#define Y_AXIS 1
+#define NUM_AXIS 2
+#define AXIS_LENGTH 40
 
 void draw_ctrd(IplImage *dst, IplImage *src, CvSeq *bndry, int i)
 {
@@ -74,7 +78,57 @@ void draw_kal(IplImage *dst, CvKalman *kal)
 	cvPutText(dst, text, pt, &font, KAL_COLOR);
 }
 
-void draw_wrld2pxl(IplImage *dst, int rows, int cols, CvPoint principle_pt,
+// TODO: note careful explanation of 3 frames in play here
+void draw_axis(IplImage *dst, char *axis_label, CvPoint org, CvMat *R)
+{
+	int len;
+	double angle, dx, dy;
+	char text[100];
+	CvFont font;
+	CvPoint p[NUM_AXIS], q;
+
+	// choose standard length or smaller
+	len = std::min((dst->width - org.x), (dst->height - org.y));
+	len = std::min(len, AXIS_LENGTH);
+
+	p[X_AXIS] = p[Y_AXIS] = org;
+	p[X_AXIS].x = len;
+	p[Y_AXIS].y = len;
+
+	// draw the origins of each coordinate system
+	cvInitFont(&font, CV_FONT_HERSHEY_PLAIN, 1, 1, 0, 1);
+	for(int i = 0; i < NUM_AXIS; i++) {
+		// get axis points
+		dx = cvmGet(R, 0, i);
+		dy = cvmGet(R, 1, i);
+		p[i].x = org.x + cvRound(p[i].x*dx);
+		p[i].y = org.y + cvRound(p[i].y*dy);
+
+		// draw quivers
+		dx = p[i].x - org.x;
+		dy = p[i].y - org.y;
+		angle = atan2(dy, dx);
+		q = cvPoint(p[i].x - cvRound(10*cos(angle + CV_PI/4)), 
+			p[i].y - cvRound(10*sin(angle + CV_PI/4)));
+		cvDrawLine(dst, p[i], q, CV_RGB(0, 0, 255), 2, CV_AA);
+
+		q = cvPoint(p[i].x - cvRound(10*cos(angle - CV_PI/4)), 
+			p[i].y - cvRound(10*sin(angle - CV_PI/4)));
+		cvDrawLine(dst, p[i], q, CV_RGB(0, 0, 255), 2, CV_AA);
+
+		// draw axis
+		cvDrawLine(dst, org, p[i], CV_RGB(0, 0, 255), 2, CV_AA);
+		memset(text, 0, sizeof(text));
+		snprintf(text, sizeof(text), "%c", axis_label[i]);
+
+		// draw label
+		p[i].x = (org.x + p[i].x) / 2;
+		p[i].y = (org.y + p[i].y) / 2;
+		cvPutText(dst, text, p[i], &font, CV_RGB(0, 255, 0));
+	}
+}
+
+void draw_wrld2pxl(IplImage *dst, int rows, int cols,
 				   CvMat *wrld_pts, CvMat *prj_wrld_pts, CvMat *img_pts)
 {
 	char text[100];
@@ -82,6 +136,8 @@ void draw_wrld2pxl(IplImage *dst, int rows, int cols, CvPoint principle_pt,
 	CvFont font;
 	CvPoint p, w;
 	CvPoint2D32f *corners;
+
+	cvInitFont(&font, CV_FONT_HERSHEY_PLAIN|CV_FONT_ITALIC, 0.5, 0.5, 0, 1);
 
 	// draw the first point found on the checkerboard
 	p.x = cvRound(cvmGet(img_pts, 0, 0));
@@ -100,7 +156,6 @@ void draw_wrld2pxl(IplImage *dst, int rows, int cols, CvPoint principle_pt,
 	cvDrawChessboardCorners(dst, cvSize(cols, rows), corners, num_pts, true);
 
 	// draw world points to their projected points in the image
-	cvInitFont(&font, CV_FONT_HERSHEY_PLAIN|CV_FONT_ITALIC, 0.5, 0.5, 0, 1);
 	for(int i = 0; i < num_pts; i++) {
 		p.x = cvRound(cvmGet(prj_wrld_pts, i, 0));
 		p.y = cvRound(cvmGet(prj_wrld_pts, i, 1));
@@ -114,12 +169,6 @@ void draw_wrld2pxl(IplImage *dst, int rows, int cols, CvPoint principle_pt,
 		snprintf(text, sizeof(text), "(%d,%d)", w.x, w.y);
 		cvPutText(dst, text, p, &font, CV_RGB(0,255,0));
 	}
-
-	// draw image center and principal point
-	p.x = dst->width/2;
-	p.y = dst->height/2;
-	cvDrawCircle(dst, p, 4, CV_RGB(255,0, 255), CV_FILLED);
-	cvDrawCircle(dst, principle_pt, 4, CV_RGB(255,0, 255), CV_FILLED);
 
 	cvFree(&corners);
 }
@@ -218,6 +267,24 @@ void show_seqs(CvSeqWriter *bndry, int roi_w, int roi_h, int rows, int cols, int
 
 	cvShowImage("sequences", dst);
 	cvReleaseImage(&dst);
+}
+
+void show_undistorted_image(IplImage *img, CvMat *A, CvMat *k)
+{
+	// undistortion code
+	IplImage *t = cvCloneImage(img);
+	IplImage *mapx = cvCreateImage(cvGetSize(img), IPL_DEPTH_32F, 1);
+	IplImage *mapy = cvCreateImage(cvGetSize(img), IPL_DEPTH_32F, 1);
+	if(mapx && mapy && t) {
+		cvInitUndistortMap(A, k, mapx, mapy);
+		cvShowImage("Distorted Image", img); // Show raw image
+		cvRemap(t, img, mapx, mapy); // undistort image
+		cvShowImage("Undistorted Image", img); // Show corrected image
+	}
+	
+	cvReleaseImage(&t);
+	cvReleaseImage(&mapx);
+	cvReleaseImage(&mapy);
 }
 
 void show_position(IplImage **roiImg, int n, 

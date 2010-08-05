@@ -41,7 +41,8 @@ int TDahOpenCV::getROILoc(ROILoc *r)
 	static double avg_frame_time = 0;
 	float z[Z_DIM];
 	IplImage *img;
-	CvPoint c;
+	CvPoint img_pt;
+	CvPoint2D32f w_pt;
 
 	OPENCV_ASSERT(gr[j]->roi, __FUNCTION__, "ROI not set");
 
@@ -59,9 +60,9 @@ int TDahOpenCV::getROILoc(ROILoc *r)
 	}
 
 	if(kal) {
-		c = roi2ctrd(gr[j]);
-		z[0] = (float) c.x;
-		z[1] = (float) c.y;
+		img_pt = roi2ctrd(gr[j]);
+		z[0] = (float) img_pt.x;;
+		z[1] = (float) img_pt.y;
 
 		// use the prediction for step k+1
 		avg_frame_time += ((r->ts - prev_ts[j])*1e-6 - avg_frame_time) / cnt;
@@ -75,6 +76,18 @@ int TDahOpenCV::getROILoc(ROILoc *r)
 	}
 
 	r->loc = roi2ctrd(gr[j]);
+	if(cam_mat) {
+		w_pt = pixel2world(img_pt, cam_mat, cam_dist, world_r, world_t);
+
+		img_pt = world2pixel(w_pt, cam_mat, cam_dist, world_r, world_t);
+
+		w_pt = pixel2world(img_pt, cam_mat, cam_dist, world_r, world_t);
+		printf("TDahOpenCV: (%0.2g, %0.2g)\n", w_pt.x, w_pt.y);
+		
+		r->loc.x = cvRound(w_pt.x);
+		r->loc.y = cvRound(w_pt.y);
+	}
+
 	if(r->img) {
 		cvSetImageROI(r->img, cvGetImageROI(gr[j]));
 		cvCopyImage(gr[j], r->img);
