@@ -254,6 +254,10 @@ int manual_acquire(CvCapture *capture, IplImage **gr, int roi_w, int roi_h,
 		cvShowImage("manual_acquire", img);
 	}
 
+	for(int j = 0; j < n; j++) {
+		if(gr[j]->roi == NULL) return !CV_OK;
+	}
+
 	cvDestroyWindow("manual_acquire");
 	cvReleaseImage(&gr_temp);
 	return CV_OK;

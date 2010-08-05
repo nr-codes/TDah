@@ -49,7 +49,10 @@ int TDah::initROIs(int n, int rw, int rh, char *s,
 
 	// set ROIs for each object
 	setup_kalman(kal, n_roi);
-	manual_acquire(this, gr, roi_w, roi_h, &threshold, wr, n_roi, tplt, kal);
+	if(manual_acquire(this, gr, roi_w, roi_h, &threshold, 
+		wr, n_roi, tplt, kal) != CV_OK) {
+		return !CV_OK;
+	}
 
 	max_radius = 0.;
 	min_match = 1.;
