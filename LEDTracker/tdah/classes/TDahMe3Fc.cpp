@@ -1,5 +1,8 @@
 #include "TDahMe3Fc.h"
 
+#define FULLFRAME 0
+#define REACQUIRE 1
+
 #define BGR_CHANS 3
 #define GR_CHAN 1
 #define PYR_LVL 2
@@ -206,57 +209,94 @@ int TDahMe3Fc::setupFullFrameROI(int roi_nr, int mode)
 	return CV_OK;
 }
 
-// TODO make sure to note that camera must be acquiring before calling initROIs
-int TDahMe3Fc::initROIs(int n, int rw, int rh, char *s, bool uk, bool ut,
-						char *intr, char *extr)
+int TDahMe3Fc::initHelper(int mode)
 {
 	int img_nr;
 	int seq[] = {ROI_0, ROI_1, ROI_2, ROI_3, ROI_4, ROI_5, ROI_6, ROI_7};
 
+	if(mode == FULLFRAME) {
+		// set full frame ROIs by going straight to camera
+		for(int i = 0; i < MAX_ROI; i++) {
+			if(roi_window(i, 0, img_w, 0, img_h) != FG_OK) {
+				me3_err("initROIs");
+				return Fg_getLastErrorNumber(fg);
+			}
+
+			if(write_roi(fg, i, i, !DO_INIT) != FG_OK) {
+				me3_err("initROIs");
+				return Fg_getLastErrorNumber(fg);
+			}
+		}
+
+		img_nr = Fg_getStatus(fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A);
+		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr + 2, PORT_A, TIMEOUT);
+		if(img_nr < FG_OK) {
+			me3_err("setupCameraROIFullFrame");
+			return Fg_getLastErrorNumber(fg);
+		}
+	}
+	else if(mode == REACQUIRE) {
+		// start acquire with gr ROIs
+		if(Fg_stopAcquire(fg, PORT_A) != FG_OK) {
+			me3_err("initROIs");
+			return Fg_getLastErrorNumber(fg);
+		}
+
+		for(int i = 0; i < n_roi; i++) {
+			if(setupNextROIFrame(i, CTRD) != CV_OK) return !CV_OK;
+		}
+
+		if(me3_fc_acquire(fg, seq, n_roi) != FG_OK) {
+			me3_err("initROIs");
+			return Fg_getLastErrorNumber(fg);
+		}
+	}
+	else {
+		return !CV_OK;
+	}
+
+	return CV_OK;
+}
+
+int TDahMe3Fc::initROIs(int n, char *c, bool k, bool t, char *in, char *ex)
+{
+	if(n > MAX_ROI) {
+		return CV_BADROI_ERR;
+	}
+
+	if(initHelper(FULLFRAME) != CV_OK) return !CV_OK;
+
+	// setup ROIs
+	if(TDah::initROIs(n, c, k, t, in, ex) != CV_OK) {
+		return !CV_OK;
+	}
+
+	roi_w = GET_CLOSEST_ROI_WIDTH(roi_w);
+	if(roi_w < MIN_ROI_WIDTH) {
+		return CV_BADROI_ERR;
+	}
+
+	return initHelper(REACQUIRE);
+}
+
+// TODO make sure to note that camera must be acquiring before calling initROIs
+int TDahMe3Fc::initROIs(int n, int rw, int rh, char *s, bool uk, bool ut,
+						char *intr, char *extr)
+{
 	rw = GET_CLOSEST_ROI_WIDTH(rw);
 	if(n > MAX_ROI || rw < MIN_ROI_WIDTH) {
 		return CV_BADROI_ERR;
 	}
 
 	// make full frame ROIs for manual_acquire dots function
-	for(int i = 0; i < MAX_ROI; i++) {
-		if(roi_window(i, 0, img_w, 0, img_h) != FG_OK) {
-			me3_err("initROIs");
-			return Fg_getLastErrorNumber(fg);
-		}
-
-		if(write_roi(fg, i, i, !DO_INIT) != FG_OK) {
-			me3_err("initROIs");
-			return Fg_getLastErrorNumber(fg);
-		}
-	}
-	img_nr = Fg_getStatus(fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A);
-	img_nr = Fg_getLastPicNumberBlocking(fg, img_nr + 2, PORT_A, TIMEOUT);
-	if(img_nr < FG_OK) {
-		me3_err("initROIs");
-		return Fg_getLastErrorNumber(fg);
-	}
+	if(initHelper(FULLFRAME) != CV_OK) return !CV_OK;
 
 	// setup ROIs
 	if(TDah::initROIs(n, rw, rh, s, uk, ut, intr, extr) != CV_OK) {
 		return !CV_OK;
 	}
 
-	if(Fg_stopAcquire(fg, PORT_A) != FG_OK) {
-		me3_err("initROIs");
-		return Fg_getLastErrorNumber(fg);
-	}
-
-	for(int i = 0; i < n_roi; i++) {
-		if(setupNextROIFrame(i, CTRD) != CV_OK) return !CV_OK;
-	}
-
-	if(me3_fc_acquire(fg, seq, n_roi) != FG_OK) {
-		me3_err("initROIs");
-		return Fg_getLastErrorNumber(fg);
-	}
-
-	return CV_OK;
+	return initHelper(REACQUIRE);
 }
 
 void TDahMe3Fc::showROILoc(void)

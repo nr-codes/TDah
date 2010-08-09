@@ -24,6 +24,9 @@ public:
 	int initROIs(int num_roi, int roi_w, int roi_h, char *save_conf_as = NULL, 
 		bool use_kal = true, bool use_tmplt = true, 
 		char *intr_param_file = NULL, char *extr_param_file = NULL);
+	int initROIs(int num_roi, char *conf_file, 
+		bool use_kal = true, bool use_tmplt = true, 
+		char *intr_param_file = NULL, char *extr_param_file = NULL);
 	int getROILoc(int img_nr, ROILoc *r);
 	void showROILoc(void);
 
@@ -47,6 +50,7 @@ protected:
 	int updateROILoc(int mode, ROILoc *r);
 	int setupNextROIFrame(int roi_nr, int mode);
 	int setupFullFrameROI(int roi_nr, int mode);
+	int initHelper(int mode);
 };
 
 #endif /* TDAH_ME3_H_ */

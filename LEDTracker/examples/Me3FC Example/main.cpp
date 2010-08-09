@@ -33,47 +33,56 @@
 
 #define GR_CH 1
 
-int main()
+int track_dots(TDahMe3Fc *capture)
 {
-	int i = 0;
+	int i;
 	ROILoc r;
-	TDahMe3Fc *capture = new TDahMe3Fc(TRIG, EXPOSURE, FRAME, BUFS);
 
-	if(CALIB == INTRINSIC) {
-		return get_camera_intrinsics(capture, INTRINS_FILE, 
-			GRID_W, GRID_H, NUM_IMGS);
+	if(HAVE_CONF) {
+		// a config file exists, use it to auto-acquire dots
+		i = capture->initROIs(NUM_ROI, CONF, USE_KAL, USE_TPT);
 	}
-	else if(CALIB == EXTRINSIC) {
-		return get_camera_extrinsics(capture, EXTRINS_FILE, INTRINS_FILE, 
-			GRID_W, GRID_H, INCHES_PER_SQR);
+	else {
+		// explicitly give ROI info and save config for later use
+		i = capture->initROIs(NUM_ROI, ROI_W, ROI_H, CONF, USE_KAL, USE_TPT,
+			INTRINS_FILE, EXTRINS_FILE);
 	}
 
-	if(HAVE_CONF) { // a config file exists, use it to auto-acquire dots
-		//(NOT YET IMPLEMENTED) 
-		// capture->initROIs(NUM_ROI, CONF, USE_KAL, USE_TPT);
-		return !CV_OK;
-	} // explicitly give ROI info and save config for later use
-	else if(capture->initROIs(NUM_ROI, ROI_W, ROI_H, CONF, USE_KAL, USE_TPT,
-			INTRINS_FILE, EXTRINS_FILE) != CV_OK) { 
-		return !CV_OK;
+	if(i != CV_OK) {
+		return i;
 	}
 
 	i = 0;
 	while(cvWaitKey(100) != 'q') {
 		// get and process next image
-	TIME_CODE("capture time",
 		capture->grabFrame();
-	);
-
-	TIME_CODE("getROILoc",
 		capture->getROILoc(++i, &r);
-	);
 
 		// visualize tracking
-		//capture->showROILoc();
-		//printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
+		capture->showROILoc();
+		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
+	}
+
+	return CV_OK;
+}
+
+int main()
+{
+	int rc;
+	TDahMe3Fc *capture = new TDahMe3Fc(TRIG, EXPOSURE, FRAME, BUFS);
+
+	if(CALIB == INTRINSIC) {
+		rc = get_camera_intrinsics(capture, INTRINS_FILE, 
+			GRID_W, GRID_H, NUM_IMGS);
+	}
+	else if(CALIB == EXTRINSIC) {
+		rc = get_camera_extrinsics(capture, EXTRINS_FILE, INTRINS_FILE, 
+			GRID_W, GRID_H, INCHES_PER_SQR);
+	}
+	else {
+		rc = track_dots(capture);
 	}
 
 	delete capture;
-	return 0;
+	return rc;
 }

@@ -331,11 +331,12 @@ __CV_BEGIN__;
 	p.x = cvRound(pp->data.fl[0]);
 	p.y = cvRound(pp->data.fl[1]);
 	cvTranspose(Rmat, Rmat);
-	draw_axis(img, "xy", p, Rmat);
+	//draw_axis(img, "xy", p, Rmat);
 
 	// draw projected world frame points
 	cvProjectPoints2(wop, Rvec, Tvec, intrinsic, distortion, wpp);
-	draw_wrld2pxl(img, rows, cols, wop, wpp, wip);
+	//draw_wrld2pxl(img, rows, cols, wop, wpp, wip);
+	draw_wrld2pxl(img, "xy", intrinsic, distortion, Rmat, Tvec);
 
 	cvNamedWindow("world frame projected onto image frame", 0);
 	cvResizeWindow("world frame projected onto image frame", 

@@ -16,5 +16,7 @@ extern void draw_axis(IplImage *dst, char *axis_label, CvPoint org,
 					  CvMat *R = NULL);
 extern void draw_wrld2pxl(IplImage *dst, int rows, int cols, 
 						  CvMat *wrld_pts, CvMat *prj_wrld_pts, CvMat *img_pts);
+extern void draw_wrld2pxl(IplImage *dst, char *axis, CvMat *A, CvMat *k, 
+						  CvMat *R, CvMat *t);
 
 #endif /* DRAW_DOTS_H_ */

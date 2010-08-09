@@ -91,18 +91,14 @@ void draw_axis(IplImage *dst, char *axis_label, CvPoint org, CvMat *R)
 	len = std::min((dst->width - org.x), (dst->height - org.y));
 	len = std::min(len, AXIS_LENGTH);
 
-	p[X_AXIS] = p[Y_AXIS] = org;
-	p[X_AXIS].x = len;
-	p[Y_AXIS].y = len;
-
 	// draw the origins of each coordinate system
 	cvInitFont(&font, CV_FONT_HERSHEY_PLAIN, 1, 1, 0, 1);
 	for(int i = 0; i < NUM_AXIS; i++) {
 		// get axis points
 		dx = cvmGet(R, 0, i);
 		dy = cvmGet(R, 1, i);
-		p[i].x = org.x + cvRound(p[i].x*dx);
-		p[i].y = org.y + cvRound(p[i].y*dy);
+		p[i].x = cvRound(org.x + len*dx);
+		p[i].y = cvRound(org.y + len*dy);
 
 		// draw quivers
 		dx = p[i].x - org.x;
@@ -125,6 +121,32 @@ void draw_axis(IplImage *dst, char *axis_label, CvPoint org, CvMat *R)
 		p[i].x = (org.x + p[i].x) / 2;
 		p[i].y = (org.y + p[i].y) / 2;
 		cvPutText(dst, text, p[i], &font, CV_RGB(0, 255, 0));
+	}
+}
+
+void draw_wrld2pxl(IplImage *dst, char *axis, CvMat *A, CvMat *k, CvMat *R, CvMat *t)
+{
+	char text[100];
+	CvPoint p;
+	CvPoint2D32f w;
+	CvFont font;
+	int GRID_SPACING = 20;
+	p = world2pixel(cvPoint2D32f(0, 0), A, k, R, t);
+	draw_axis(dst, axis, p, R);
+
+	cvInitFont(&font, CV_FONT_HERSHEY_PLAIN, 0.35, 0.35, 0, 1, CV_AA);
+	for(int x = GRID_SPACING; x < dst->width - GRID_SPACING; x+=GRID_SPACING) {
+		for(int y = GRID_SPACING; y < dst->height - GRID_SPACING; y+=GRID_SPACING) {
+			p.x = x;
+			p.y = y;
+			cvDrawCircle(dst, cvPoint(p.x, p.y), 2, CV_RGB(0,255, 255), CV_FILLED);
+
+			w = pixel2world(p, A, k, R, t);
+			p.y += GRID_SPACING/4;
+			memset(text, 0, sizeof(text));
+			snprintf(text, sizeof(text), "(%0.1g,%0.1g)", w.x, w.y);
+			cvPutText(dst, text, p, &font, CV_RGB(0,255,0));
+		}
 	}
 }
 
