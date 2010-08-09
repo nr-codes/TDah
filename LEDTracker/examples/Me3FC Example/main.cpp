@@ -1,10 +1,11 @@
 #include "t_dah.h"
 #include "TDahMe3Fc.h"
+#include <conio.h>
 
 // me3 parametesr
 #define TRIG GRABBER_CONTROLLED
-#define EXPOSURE 20000 // us
-#define FRAME 50000 // us
+#define EXPOSURE 50 // us
+#define FRAME 100 // us
 #define BUFS 16
 
 // calib parameters
@@ -22,9 +23,9 @@
 #define NUM_IMGS 10
 
 // ROI parameters
-#define NUM_ROI 3
-#define ROI_W 15
-#define ROI_H 15
+#define NUM_ROI 1
+#define ROI_W 12
+#define ROI_H 12
 
 #define HAVE_CONF 0
 #define CONF "myme3.yaml"
@@ -53,16 +54,43 @@ int track_dots(TDahMe3Fc *capture)
 	}
 
 	i = 0;
-	while(cvWaitKey(100) != 'q') {
+
+	//cvNamedWindow("obj 0", 0);
+	//cvNamedWindow("obj 1", 0);
+	//cvNamedWindow("obj 2", 0);
+	//cvNamedWindow("obj img", 0);
+	//cvResizeWindow("obj img", ROI_W, ROI_H);
+
+	//CvVideoWriter *writer = NULL;
+	//writer = cvCreateVideoWriter("output.avi", CV_FOURCC('D', 'I', 'B', ' ') , 1e6 / FRAME,
+	//						cvSize(FC_MAX_WIDTH,FC_MAX_HEIGHT), FALSE);
+
+	//if(!writer) {
+	//	return !CV_OK;
+	//}
+
+	r.img = cvCreateImage(cvSize(1024, 1024), 8, 1);
+	while(1 || cvWaitKey(1) != 'q') {
+		if(_kbhit()) break;
+
 		// get and process next image
 		capture->grabFrame();
 		capture->getROILoc(++i, &r);
+		//cvResetImageROI(r.img);
+		//cvWriteFrame(writer, r.img);
+
+		//cvShowImage("img", cvQueryFrame(capture));
 
 		// visualize tracking
-		capture->showROILoc();
-		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
+		//capture->showROILoc();
+		//if(!r.obj_found) {
+			//printf("%d (%d, %d) %d\n", r.roi_nr, r.loc.x, r.loc.y, r.obj_found);
+			//IplImage *img = cvQueryFrame(capture);
+			//cvShowImage("w", img);
+		//}
 	}
-
+	//cvReleaseVideoWriter(&writer);
+	
 	return CV_OK;
 }
 

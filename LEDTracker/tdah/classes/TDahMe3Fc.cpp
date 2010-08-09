@@ -161,6 +161,11 @@ int TDahMe3Fc::setupNextROIFrame(int roi_nr, int mode)
 	CvRect win = cvGetImageROI(gr[roi_nr]);
 	int tag = make_img_tag(roi_nr, mode);
 
+	int j = roi_nr;
+	if((j == 0 && abs(gr[0]->roi->yOffset - 353) > 5)) {
+		printf("before win: %d is off it's %d\n", j, gr[j]->roi->yOffset);
+	}
+
 	win.width = roi_w;
 	win.height = roi_h;
 	if(win.x + roi_w > img_w) {
@@ -172,6 +177,10 @@ int TDahMe3Fc::setupNextROIFrame(int roi_nr, int mode)
 	}
 
 	win.x &= MULT_OF_FOUR_MASK;
+
+	if((j == 0 && abs(gr[0]->roi->yOffset - 353) > 5)) {
+		printf("after win: %d is off it's %d\n", j, gr[j]->roi->yOffset);
+	}
 
 	if(roi_window(roi_nr, win.x, win.width, win.y, win.height) != FG_OK) {
 		me3_err("setupNextFrame");
@@ -244,7 +253,10 @@ int TDahMe3Fc::initHelper(int mode)
 
 		for(int i = 0; i < n_roi; i++) {
 			if(setupNextROIFrame(i, CTRD) != CV_OK) return !CV_OK;
+			printf("%d) %d %d %d %d\n", i, gr[i]->roi->xOffset, gr[i]->roi->yOffset, gr[i]->roi->width, gr[i]->roi->height);
 		}
+		//printf("press a key to start\n");
+		//cvWaitKey();
 
 		if(me3_fc_acquire(fg, seq, n_roi) != FG_OK) {
 			me3_err("initROIs");
@@ -313,6 +325,14 @@ void TDahMe3Fc::showROILoc(void)
 bool TDahMe3Fc::find_ctrd(int j)
 {
 	double score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
+
+	if((score > max_radius)) {
+		printf("greater than max radius\n");
+		cvWaitKey();
+	}
+	else if(score == 0) {
+		printf("zero score\n");
+	}
 	return (score > 0 && score <= max_radius);
 }
 
@@ -357,6 +377,8 @@ int TDahMe3Fc::grabROIImage(int img_nr, ROILoc *r)
 					gr[cur_roi]->roi->width, 
 					CV_8UC1, 
 					Fg_getImagePtr(fg, img_nr, PORT_A));
+
+	cvZero(gr[cur_roi]); // DELETE
 	cvCopy(&imgData, gr[cur_roi]);
 
 	r->ts = (double) ts;
@@ -365,6 +387,7 @@ int TDahMe3Fc::grabROIImage(int img_nr, ROILoc *r)
 
 	if(r->img) {
 		cvSetImageROI(r->img, cvGetImageROI(gr[cur_roi]));
+		cvZero(r->img);
 		cvCopyImage(gr[cur_roi], r->img);
 	}
 
@@ -388,6 +411,32 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 			setupFullFrameROI(j, mode);
 			return mode;
 		}
+
+		if((j == 0 && abs(gr[0]->roi->yOffset - 353) > 5)) {
+			//printf("%d is off @ %d it's %d\n", j, r->img_nr, gr[j]->roi->yOffset);
+			char text[100];
+			snprintf(text, sizeof(text), "obj %d", j);
+			
+			cvScale(gr[j], gr[j], 1, 128);
+			cvShowImage(text, gr[j]);
+			cvShowImage("img", r->img);
+			printf("update: %d %d %d %d %d :over:\n", j, gr[j]->roi->xOffset, gr[j]->roi->yOffset, gr[j]->roi->width, gr[j]->roi->height);
+			cvWaitKey(0);
+		}
+	
+		/*
+		if(r->obj_found == false) {		
+			char text[100];
+			snprintf(text, sizeof(text), "obj %d", j);
+			
+			cvScale(gr[j], gr[j], 1, 128);
+			cvShowImage(text, gr[j]);
+			cvShowImage("obj img", r->img);
+			printf("lost: %d %d %d %d %d\n", j, gr[j]->roi->xOffset, gr[j]->roi->yOffset, gr[j]->roi->width, gr[j]->roi->height);
+			cvWaitKey();
+			printf("resuming\n");
+		}
+		*/
 	}
 	else if(mode == TMPLT) {
 		r->obj_found = find_tmplt(j);

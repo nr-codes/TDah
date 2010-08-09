@@ -20,7 +20,10 @@ double track_ctrd(IplImage *gray, int roi_w, int roi_h,
 	cvClearSeq(wr->seq);
 
 	// binarize image
+	cvShowImage("before thr", gray);
 	cvThreshold(gray, gray, thresh, WHITE, THRESHOLD_TYPE);
+	cvShowImage("after trh", gray);
+	cvWaitKey(1);
 
 	cvStartAppendToSeq(wr->seq, wr);
 	pxl = gray->imageData + gray->roi->yOffset*gray->widthStep + 
@@ -44,8 +47,8 @@ double track_ctrd(IplImage *gray, int roi_w, int roi_h,
 
 	ptr_seq = cvEndWriteSeq(wr);
 	if(ptr_seq->total && cvMinEnclosingCircle(ptr_seq, &cen, &rad)) {
-		x = gray->roi->xOffset + cvRound(cen.x);
-		y = gray->roi->yOffset + cvRound(cen.y);
+		x = cvRound(gray->roi->xOffset + cen.x);
+		y = cvRound(gray->roi->yOffset + cen.y);
 		ctrd2roi(gray, x, y, roi_w, roi_h);
 	}
 	else {
