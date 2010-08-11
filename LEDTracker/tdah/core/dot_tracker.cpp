@@ -49,6 +49,10 @@ double track_ctrd(IplImage *gray, int roi_w, int roi_h,
 		ctrd2roi(gray, x, y, roi_w, roi_h);
 	}
 	else {
+		if(ptr_seq->total) { // DELETE
+			printf("rad: %g\n", rad);
+			printf("min enclosing circ: %d\n", cvMinEnclosingCircle(ptr_seq, &cen, &rad));
+		}
 		return 0;
 	}
 

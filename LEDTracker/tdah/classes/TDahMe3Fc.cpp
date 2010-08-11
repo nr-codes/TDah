@@ -370,22 +370,34 @@ int TDahMe3Fc::grabROIImage(int img_nr, ROILoc *r)
 		return Fg_getLastErrorNumber(fg);
 	}
 
+	int dma_trf_len = img_nr;
+	if(Fg_getParameter(fg, FG_TRANSFER_LEN, &dma_trf_len, PORT_A) != FG_OK) {
+		me3_err("retrieveFrame");
+		return NULL;
+	}
+
+	if(dma_trf_len != roi_w*roi_h) {
+		printf("dma len: %d, expected: %d (%d x %d)\n", dma_trf_len, roi_w*roi_h, roi_w, roi_h);
+		assert(false);
+	}
+
 	imgData = cvMat(gr[cur_roi]->roi->height, 
 					gr[cur_roi]->roi->width, 
 					CV_8UC1, 
 					Fg_getImagePtr(fg, img_nr, PORT_A));
+	
+	cvZero(gr[cur_roi]);
 	cvCopy(&imgData, gr[cur_roi]);
 
 	r->ts = (double) ts;
 	r->img_nr = img_nr;
 	r->roi_nr = cur_roi;
 
-	/* UNDELETE
+	// UNDELETE
 	if(r->img) {
 		cvSetImageROI(r->img, cvGetImageROI(gr[cur_roi]));
 		cvCopyImage(gr[cur_roi], r->img);
 	}
-	*/
 
 	return mode;
 }
@@ -401,9 +413,10 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 
 	if(mode == CTRD) {
 		r->obj_found = find_ctrd(j);
-		cvSetImageROI(r->img, cvGetImageROI(gr[j])); // DELETE
+		r->loc = roi2ctrd(gr[j]); // DELETE
+		//cvSetImageROI(r->img, cvGetImageROI(gr[j])); // DELETE
 		//draw_ctrd(gr[j], gr[j], wr[j].seq, j);
-		cvCopyImage(gr[j], r->img);
+		//cvCopyImage(gr[j], r->img);
 		//cvNamedWindow("sequences", 0);
 		//show_seqs(wr, roi_w, roi_h, 1, 1, n_roi);
 		if(!r->obj_found && tplt) {
@@ -449,7 +462,7 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 		return CV_BADROI_ERR;
 	}
 
-	r->loc = roi2ctrd(gr[j]);
+	// r->loc = roi2ctrd(gr[j]); UNDELETE
 	if(cam_mat) {
 		assert(false); // DELETE
 		w = pixel2world(r->loc, cam_mat, cam_dist, world_r, world_t);		

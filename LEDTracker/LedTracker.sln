@@ -23,6 +23,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TDahMe3Fc", "tdah\TDahMe3Fc
 		{446F011D-D2A0-433F-A696-27E4BDFD93FC} = {446F011D-D2A0-433F-A696-27E4BDFD93FC}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TDahMe3Ag", "tdah\TDahMe3Ag.vcproj", "{C76C74B5-AFD4-4078-AAA6-4C970A57BD63}"
+	ProjectSection(ProjectDependencies) = postProject
+		{446F011D-D2A0-433F-A696-27E4BDFD93FC} = {446F011D-D2A0-433F-A696-27E4BDFD93FC}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Me3AG Example", "examples\Me3Ag Example\Me3Ag Example.vcproj", "{7EA93917-F39A-41DF-9970-B09176ABAA9B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{446F011D-D2A0-433F-A696-27E4BDFD93FC} = {446F011D-D2A0-433F-A696-27E4BDFD93FC}
+		{C76C74B5-AFD4-4078-AAA6-4C970A57BD63} = {C76C74B5-AFD4-4078-AAA6-4C970A57BD63}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -49,6 +60,14 @@ Global
 		{C0735C79-64E7-467E-B159-E33FE7529BFD}.Debug|Win32.Build.0 = Debug|Win32
 		{C0735C79-64E7-467E-B159-E33FE7529BFD}.Release|Win32.ActiveCfg = Release|Win32
 		{C0735C79-64E7-467E-B159-E33FE7529BFD}.Release|Win32.Build.0 = Release|Win32
+		{C76C74B5-AFD4-4078-AAA6-4C970A57BD63}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C76C74B5-AFD4-4078-AAA6-4C970A57BD63}.Debug|Win32.Build.0 = Debug|Win32
+		{C76C74B5-AFD4-4078-AAA6-4C970A57BD63}.Release|Win32.ActiveCfg = Release|Win32
+		{C76C74B5-AFD4-4078-AAA6-4C970A57BD63}.Release|Win32.Build.0 = Release|Win32
+		{7EA93917-F39A-41DF-9970-B09176ABAA9B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7EA93917-F39A-41DF-9970-B09176ABAA9B}.Debug|Win32.Build.0 = Debug|Win32
+		{7EA93917-F39A-41DF-9970-B09176ABAA9B}.Release|Win32.ActiveCfg = Release|Win32
+		{7EA93917-F39A-41DF-9970-B09176ABAA9B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
