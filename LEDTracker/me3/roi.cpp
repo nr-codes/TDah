@@ -71,7 +71,7 @@ int roi_window(int index, int x, int width, int y, int height)
 		printf("set parameterset roi failed\n");
 		return rc;
 	}
-
+	
 	return FG_OK;
 }
 

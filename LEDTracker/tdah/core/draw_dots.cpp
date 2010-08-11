@@ -46,10 +46,18 @@ void draw_ctrd(IplImage *dst, IplImage *src, CvSeq *bndry, int i)
 		ROI_THICKNESS);
 
 	memset(text, 0, TXT_SIZE);
-	sprintf_s(text, TXT_SIZE, "%d", i);
+	snprintf(text, TXT_SIZE, "%d", i);
 	cvPutText(dst, 
 		text, 
 		cvPoint(ctrd.x - 10, ctrd.y - 6), 
+		&font, 
+		CTRD_COLOR);
+
+	memset(text, 0, TXT_SIZE);
+	snprintf(text, TXT_SIZE, "(%d, %d)", ctrd.x, ctrd.y);
+	cvPutText(dst, 
+		text, 
+		cvPoint(ctrd.x, ctrd.y), 
 		&font, 
 		CTRD_COLOR);
 }
@@ -74,7 +82,7 @@ void draw_kal(IplImage *dst, CvKalman *kal)
 	cvCircle(dst, pt, POINT_RADIUS, KAL_COLOR, CV_FILLED);
 
 	memset(text, 0, TXT_SIZE);
-	sprintf_s(text, TXT_SIZE, "(%d,%d)", pt.x, pt.y);
+	snprintf(text, TXT_SIZE, "(%d,%d)", pt.x, pt.y);
 	cvPutText(dst, text, pt, &font, KAL_COLOR);
 }
 

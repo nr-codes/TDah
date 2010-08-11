@@ -19,7 +19,7 @@
 #define TIMEOUT 2
 #define IMG_DELAY_UNTIL_ROI_ACTIVE 2
 #define MIN_ROI_WIDTH 8
-#define MULT_OF_FOUR_MASK 0xfffffffc
+#define MULT_OF_FOUR_MASK (-4)
 #define GET_CLOSEST_ROI_WIDTH(roi_w) ((roi_w) & MULT_OF_FOUR_MASK);
 #define IS_ROI_WIDTH_INVALID(roi_w) ((roi_w) % 4)
 #define IS_ROI_WIDTH_VALID(roi_w) (!IS_ROI_WIDTH_INVALID(roi_w))

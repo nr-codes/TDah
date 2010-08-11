@@ -35,6 +35,8 @@ public:
 	virtual IplImage *retrieveFrame(int);
 
 protected:
+	int buffers;
+	int trigger; // DELETE
 	double frame_time;
 	double exposure;
 	Fg_Struct *fg;

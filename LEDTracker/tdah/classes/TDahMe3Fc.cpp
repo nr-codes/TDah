@@ -161,13 +161,11 @@ int TDahMe3Fc::setupNextROIFrame(int roi_nr, int mode)
 	CvRect win = cvGetImageROI(gr[roi_nr]);
 	int tag = make_img_tag(roi_nr, mode);
 
-	int j = roi_nr;
-	if((j == 0 && abs(gr[0]->roi->yOffset - 353) > 5)) {
-		printf("before win: %d is off it's %d\n", j, gr[j]->roi->yOffset);
-	}
-
 	win.width = roi_w;
 	win.height = roi_h;
+
+	//printf("w1: %d %d %d %d\n", win.x, win.y, win.width, win.height);
+
 	if(win.x + roi_w > img_w) {
 		win.x = img_w - roi_w;
 	}
@@ -175,25 +173,22 @@ int TDahMe3Fc::setupNextROIFrame(int roi_nr, int mode)
 	if(win.y + roi_h > img_h) {
 		win.y = img_h - roi_h;
 	}
-
 	win.x &= MULT_OF_FOUR_MASK;
 
-	if((j == 0 && abs(gr[0]->roi->yOffset - 353) > 5)) {
-		printf("after win: %d is off it's %d\n", j, gr[j]->roi->yOffset);
-	}
-
 	if(roi_window(roi_nr, win.x, win.width, win.y, win.height) != FG_OK) {
-		me3_err("setupNextFrame");
-		return Fg_getLastErrorNumber(fg);
+		me3_err("setupNextROIFrame");
+		//return Fg_getLastErrorNumber(fg);
 	}
 
 	// TODO: understand when DO_INIT is necessary
 	if(write_roi(fg, roi_nr, tag, !DO_INIT) != FG_OK) {
-		me3_err("setupNextFrame");
+		me3_err("setupNextROIFrame");
 		return Fg_getLastErrorNumber(fg);
 	}
 
-	cvSetImageROI(gr[roi_nr], win);
+	//printf("w2: %d %d %d %d\n\n", win.x, win.y, win.width, win.height);
+
+	//cvSetImageROI(gr[roi_nr], win);
 	return CV_OK;
 }
 
@@ -204,13 +199,13 @@ int TDahMe3Fc::setupFullFrameROI(int roi_nr, int mode)
 	int tag = make_img_tag(roi_nr, mode);
 
 	if(roi_window(roi_nr, win.x, win.width, win.y, win.height) != FG_OK) {
-		me3_err("setupNextFrame");
+		me3_err("setupFullFrameROI");
 		return Fg_getLastErrorNumber(fg);
 	}
 
 	// TODO: understand when DO_INIT is necessary
 	if(write_roi(fg, roi_nr, tag, !DO_INIT) != FG_OK) {
-		me3_err("setupNextFrame");
+		me3_err("setupFullFrameROI");
 		return Fg_getLastErrorNumber(fg);
 	}
 
@@ -227,12 +222,12 @@ int TDahMe3Fc::initHelper(int mode)
 		// set full frame ROIs by going straight to camera
 		for(int i = 0; i < MAX_ROI; i++) {
 			if(roi_window(i, 0, img_w, 0, img_h) != FG_OK) {
-				me3_err("initROIs");
+				me3_err("initHelper");
 				return Fg_getLastErrorNumber(fg);
 			}
 
 			if(write_roi(fg, i, i, !DO_INIT) != FG_OK) {
-				me3_err("initROIs");
+				me3_err("initHelper");
 				return Fg_getLastErrorNumber(fg);
 			}
 		}
@@ -240,26 +235,29 @@ int TDahMe3Fc::initHelper(int mode)
 		img_nr = Fg_getStatus(fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A);
 		img_nr = Fg_getLastPicNumberBlocking(fg, img_nr + 2, PORT_A, TIMEOUT);
 		if(img_nr < FG_OK) {
-			me3_err("setupCameraROIFullFrame");
+			me3_err("initHelper");
 			return Fg_getLastErrorNumber(fg);
 		}
 	}
 	else if(mode == REACQUIRE) {
+		//DELETE
+		for(int i = 0; i < n_roi; i++) {
+			CvPoint p = roi2ctrd(gr[i]);
+			printf("%d (%d, %d) box: %d %d %d %d ih\n", i, p.x, p.y, gr[i]->roi->xOffset, gr[i]->roi->yOffset, gr[i]->roi->width, gr[i]->roi->height);
+		}
+
 		// start acquire with gr ROIs
 		if(Fg_stopAcquire(fg, PORT_A) != FG_OK) {
-			me3_err("initROIs");
+			me3_err("initHelper");
 			return Fg_getLastErrorNumber(fg);
 		}
 
 		for(int i = 0; i < n_roi; i++) {
 			if(setupNextROIFrame(i, CTRD) != CV_OK) return !CV_OK;
-			printf("%d) %d %d %d %d\n", i, gr[i]->roi->xOffset, gr[i]->roi->yOffset, gr[i]->roi->width, gr[i]->roi->height);
 		}
-		//printf("press a key to start\n");
-		//cvWaitKey();
 
 		if(me3_fc_acquire(fg, seq, n_roi) != FG_OK) {
-			me3_err("initROIs");
+			me3_err("initHelper");
 			return Fg_getLastErrorNumber(fg);
 		}
 	}
@@ -324,15 +322,14 @@ void TDahMe3Fc::showROILoc(void)
 
 bool TDahMe3Fc::find_ctrd(int j)
 {
-	double score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
+	//CvRect r1, r2;
 
-	if((score > max_radius)) {
-		printf("greater than max radius\n");
-		cvWaitKey();
-	}
-	else if(score == 0) {
-		printf("zero score\n");
-	}
+	//r1 = cvGetImageROI(gr[j]);
+	double score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
+	//r2 = cvGetImageROI(gr[j]);
+
+	//printf("r1: %d %d %d %d\n", r1.x, r1.y, r1.width, r1.height);
+	//printf("r2: %d %d %d %d\n\n", r2.x, r2.y, r2.width, r2.height);
 	return (score > 0 && score <= max_radius);
 }
 
@@ -377,19 +374,18 @@ int TDahMe3Fc::grabROIImage(int img_nr, ROILoc *r)
 					gr[cur_roi]->roi->width, 
 					CV_8UC1, 
 					Fg_getImagePtr(fg, img_nr, PORT_A));
-
-	cvZero(gr[cur_roi]); // DELETE
 	cvCopy(&imgData, gr[cur_roi]);
 
 	r->ts = (double) ts;
 	r->img_nr = img_nr;
 	r->roi_nr = cur_roi;
 
+	/* UNDELETE
 	if(r->img) {
 		cvSetImageROI(r->img, cvGetImageROI(gr[cur_roi]));
-		cvZero(r->img);
 		cvCopyImage(gr[cur_roi], r->img);
 	}
+	*/
 
 	return mode;
 }
@@ -405,38 +401,17 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 
 	if(mode == CTRD) {
 		r->obj_found = find_ctrd(j);
+		cvSetImageROI(r->img, cvGetImageROI(gr[j])); // DELETE
+		//draw_ctrd(gr[j], gr[j], wr[j].seq, j);
+		cvCopyImage(gr[j], r->img);
+		//cvNamedWindow("sequences", 0);
+		//show_seqs(wr, roi_w, roi_h, 1, 1, n_roi);
 		if(!r->obj_found && tplt) {
 			mode = TMPLT;
 			// TODO: think carefully what happens b/c of IMG+2 delay
 			setupFullFrameROI(j, mode);
 			return mode;
 		}
-
-		if((j == 0 && abs(gr[0]->roi->yOffset - 353) > 5)) {
-			//printf("%d is off @ %d it's %d\n", j, r->img_nr, gr[j]->roi->yOffset);
-			char text[100];
-			snprintf(text, sizeof(text), "obj %d", j);
-			
-			cvScale(gr[j], gr[j], 1, 128);
-			cvShowImage(text, gr[j]);
-			cvShowImage("img", r->img);
-			printf("update: %d %d %d %d %d :over:\n", j, gr[j]->roi->xOffset, gr[j]->roi->yOffset, gr[j]->roi->width, gr[j]->roi->height);
-			cvWaitKey(0);
-		}
-	
-		/*
-		if(r->obj_found == false) {		
-			char text[100];
-			snprintf(text, sizeof(text), "obj %d", j);
-			
-			cvScale(gr[j], gr[j], 1, 128);
-			cvShowImage(text, gr[j]);
-			cvShowImage("obj img", r->img);
-			printf("lost: %d %d %d %d %d\n", j, gr[j]->roi->xOffset, gr[j]->roi->yOffset, gr[j]->roi->width, gr[j]->roi->height);
-			cvWaitKey();
-			printf("resuming\n");
-		}
-		*/
 	}
 	else if(mode == TMPLT) {
 		r->obj_found = find_tmplt(j);
@@ -452,8 +427,9 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 		OPENCV_ASSERT(false, __FUNCTION__, "tracking mode not supported");
 	}
 
+	c = roi2ctrd(gr[j]);
 	if(kal && cam_mat) {
-		c = roi2ctrd(gr[j]);
+		assert(false); // DELETE
 		w = pixel2world(c, cam_mat, cam_dist, world_r, world_t);
 		z[0] = w.x;
 		z[1] = w.y;
@@ -469,15 +445,16 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 		ctrd2roi(gr[j], c.x, c.y, roi_w, roi_h);
 	}
 
+	if(setupNextROIFrame(j, mode) != CV_OK) {
+		return CV_BADROI_ERR;
+	}
+
 	r->loc = roi2ctrd(gr[j]);
 	if(cam_mat) {
+		assert(false); // DELETE
 		w = pixel2world(r->loc, cam_mat, cam_dist, world_r, world_t);		
 		r->loc.x = cvRound(w.x);
 		r->loc.y = cvRound(w.y);
-	}
-
-	if(setupNextROIFrame(j, mode) != CV_OK) {
-		return CV_BADROI_ERR;
 	}
 
 	return mode;

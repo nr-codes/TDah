@@ -13,7 +13,7 @@
 #include "xtal_ball.h"
 
 #if defined(WIN32) && defined(_WIN32)
-#define snprintf _snprintf
+#define snprintf sprintf_s
 #endif
 
 #define THRESHOLD 101

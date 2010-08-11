@@ -20,10 +20,7 @@ double track_ctrd(IplImage *gray, int roi_w, int roi_h,
 	cvClearSeq(wr->seq);
 
 	// binarize image
-	cvShowImage("before thr", gray);
 	cvThreshold(gray, gray, thresh, WHITE, THRESHOLD_TYPE);
-	cvShowImage("after trh", gray);
-	cvWaitKey(1);
 
 	cvStartAppendToSeq(wr->seq, wr);
 	pxl = gray->imageData + gray->roi->yOffset*gray->widthStep + 
