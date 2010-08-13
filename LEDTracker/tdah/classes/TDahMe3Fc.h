@@ -35,6 +35,8 @@ public:
 	virtual IplImage *retrieveFrame(int);
 
 protected:
+	enum MODES {CTRD = 0, TMPLT};
+
 	int buffers;
 	int trigger; // DELETE
 	double frame_time;

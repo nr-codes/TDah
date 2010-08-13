@@ -11,8 +11,6 @@
 #define TMPLT_W FC_MAX_WIDTH
 #define TMPLT_H FC_MAX_HEIGHT
 
-enum MODES {CTRD = 0, TMPLT};
-
 //////////////// CAMERA CODE ////////////////
 
 bool TDahMe3Fc::open(char *conf_file)
