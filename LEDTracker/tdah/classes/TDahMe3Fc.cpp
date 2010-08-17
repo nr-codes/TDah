@@ -138,6 +138,22 @@ IplImage *TDahMe3Fc::retrieveFrame(int img_nr)
 }
 
 //////////////// TRACKING CODE ////////////////
+int TDahMe3Fc::toggle_dio0()
+{
+	static int toggle = 0;
+
+	toggle = DOUT0_HIGH - toggle;
+	return set_dio0(toggle);
+}
+
+int TDahMe3Fc::set_dio0(int value)
+{
+	if(Fg_setParameter(fg, FG_DIGIO_OUTPUT, &value, PORT_A) != FG_OK) {
+		me3_err("set_dio0");
+		return Fg_getLastErrorNumber(fg);;
+	}
+	return CV_OK;
+}
 
 int TDahMe3Fc::make_img_tag(int roi_nr, int mode)
 {
@@ -179,14 +195,13 @@ int TDahMe3Fc::setupNextROIFrame(int roi_nr, int mode)
 	}
 
 	// TODO: understand when DO_INIT is necessary
+
 	if(write_roi(fg, roi_nr, tag, !DO_INIT) != FG_OK) {
 		me3_err("setupNextROIFrame");
 		return Fg_getLastErrorNumber(fg);
 	}
 
-	//printf("w2: %d %d %d %d\n\n", win.x, win.y, win.width, win.height);
-
-	//cvSetImageROI(gr[roi_nr], win);
+	cvSetImageROI(gr[roi_nr], win);
 	return CV_OK;
 }
 
@@ -328,6 +343,11 @@ bool TDahMe3Fc::find_ctrd(int j)
 
 	//printf("r1: %d %d %d %d\n", r1.x, r1.y, r1.width, r1.height);
 	//printf("r2: %d %d %d %d\n\n", r2.x, r2.y, r2.width, r2.height);
+
+	if(score <= 0 || score > max_radius) {
+		//printf("radius: %g/%g\n", score, max_radius); // DELETE
+	}
+
 	return (score > 0 && score <= max_radius);
 }
 
@@ -391,7 +411,6 @@ int TDahMe3Fc::grabROIImage(int img_nr, ROILoc *r)
 	r->img_nr = img_nr;
 	r->roi_nr = cur_roi;
 
-	// UNDELETE
 	if(r->img) {
 		cvSetImageROI(r->img, cvGetImageROI(gr[cur_roi]));
 		cvCopyImage(gr[cur_roi], r->img);
@@ -411,7 +430,7 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 
 	if(mode == CTRD) {
 		r->obj_found = find_ctrd(j);
-		r->loc = roi2ctrd(gr[j]); // DELETE
+		//r->loc = roi2ctrd(gr[j]); // DELETE
 		//cvSetImageROI(r->img, cvGetImageROI(gr[j])); // DELETE
 		//draw_ctrd(gr[j], gr[j], wr[j].seq, j);
 		//cvCopyImage(gr[j], r->img);
@@ -460,9 +479,8 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 		return CV_BADROI_ERR;
 	}
 
-	// r->loc = roi2ctrd(gr[j]); UNDELETE
+	r->loc = roi2ctrd(gr[j]); //UNDELETE
 	if(cam_mat) {
-		assert(false); // DELETE
 		w = pixel2world(r->loc, cam_mat, cam_dist, world_r, world_t);		
 		r->loc.x = cvRound(w.x);
 		r->loc.y = cvRound(w.y);

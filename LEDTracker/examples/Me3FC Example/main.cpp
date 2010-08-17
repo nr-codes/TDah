@@ -3,9 +3,9 @@
 #include <conio.h>
 
 // me3 parametesr
-#define TRIG GRABBER_CONTROLLED
-#define EXPOSURE 450 // us
-#define FRAME 550 // us
+#define TRIG GRABBER_CONTROLLED 
+#define EXPOSURE 50 // us
+#define FRAME 200 // us
 #define BUFS 100
 
 // calib parameters
@@ -24,8 +24,8 @@
 
 // ROI parameters
 #define NUM_ROI 1
-#define ROI_W 36
-#define ROI_H 36
+#define ROI_W 20
+#define ROI_H 20
 
 #define HAVE_CONF 0
 #define CONF "myme3.yaml"
@@ -35,8 +35,9 @@
 #define GR_CH 1
 
 
-#define NIMGS 5000
+#define NIMGS 800
 IplImage *bimgs[NIMGS];
+ROILoc rr[NIMGS];
 #define TXT_SIZE 50
 
 int track_dots(TDahMe3Fc *capture)
@@ -60,12 +61,6 @@ int track_dots(TDahMe3Fc *capture)
 
 	i = 0;
 
-	//cvNamedWindow("obj 0", 0);
-	//cvNamedWindow("obj 1", 0);
-	//cvNamedWindow("obj 2", 0);
-	//cvNamedWindow("obj img", 0);
-	//cvResizeWindow("obj img", ROI_W, ROI_H);
-
 	r.img = cvCreateImage(cvSize(1024,1024), 8, 1);
 	IplImage *img = cvCreateImage(cvSize(1024,1024), 8, 3);
 	if(!r.img) return !CV_OK;
@@ -75,8 +70,9 @@ int track_dots(TDahMe3Fc *capture)
 	CvFont font;
 	cvInitFont(&font,CV_FONT_HERSHEY_PLAIN,0.5,0.5,0,1);
 
+	int toggle = 0;
 	while(1) {
-		if(_kbhit()) break;
+		if(_kbhit() || -i == 2*NIMGS) break;
 
 		// get and process next image
 		capture->grabFrame();
@@ -88,32 +84,16 @@ int track_dots(TDahMe3Fc *capture)
 		
 		if(r.img->roi) {
 			cvCopyImage(r.img, bimgs[(i-1)/2 % NIMGS]);
-			memset(text, 0, TXT_SIZE);	sprintf_s(text, TXT_SIZE, "%d,%d", r.loc.x, r.loc.y);
-			cvPutText(bimgs[(i-1)/2 % NIMGS], text, cvPoint(0, 10), &font, CV_RGB(128,128,128));
-			/*
-			cvSetImageROI(img, cvGetImageROI(r.img));
-			cvCvtColor(r.img, img, CV_GRAY2BGR);
-			cvResetImageROI(img);
-			draw_ctrd(img, r.img, NULL, 0); 
-			cvSetImageROI(img, cvGetImageROI(r.img));
-			cvCopyImage(img, bimgs[(i-1) % NIMGS]);
-			cvWaitKey(1);
-			*/
+			rr[(i-1)/2 % NIMGS] = r;
 		}
 
-		//cvResetImageROI(r.img);
-		//cvWriteFrame(writer, r.img);
-
-		//cvShowImage("img", r.img);
-		//if(r.img->roi != NULL)
-		//printf("%d (%d, %d) %d %d %d %d\n", r.roi_nr, r.loc.x, r.loc.y, r.img->roi->xOffset, r.img->roi->yOffset, r.img->roi->width, r.img->roi->height);
-		//cvWaitKey(1);
+		// output a ready signal
+		toggle = 2 - toggle;
+		capture->set_dio0(toggle);
 
 		// visualize tracking
 		//capture->showROILoc();
-		//memset(text, 0, TXT_SIZE);	sprintf_s(text, TXT_SIZE, "%d", r.img_nr);
-		//cvPutText(bimgs[(i-1) % NIMGS], text, cvPoint(0, ROI_H/2), &font, CV_RGB(128,128,128));
-		//if(!r.obj_found || imgs_lost) {
+#if 1
 		if(!r.obj_found) {
 			printf("object lost (%d): (%d) %d (%d, %d) box: %d %d %d %d\n", r.obj_found, r.img_nr, r.roi_nr, r.loc.x, r.loc.y, 
 				 r.img->roi->xOffset, r.img->roi->yOffset, r.img->roi->width, r.img->roi->height);
@@ -135,29 +115,43 @@ int track_dots(TDahMe3Fc *capture)
 				cvCopyImage(bimgs[((prev_img - 1)/2 % NIMGS)], bimgs[i]);
 				memset(text, 0, TXT_SIZE);	sprintf_s(text, TXT_SIZE, "lost:");
 				cvPutText(bimgs[i], text, cvPoint(0, ROI_H/4), &font, CV_RGB(255,255,255));
-				/*
-				memset(text, 0, TXT_SIZE);	sprintf_s(text, TXT_SIZE, "%d", r.img_nr);
-				cvPutText(bimgs[i], text, cvPoint(0, ROI_H/2), &font, CV_RGB(255,255,255));
-				memset(text, 0, TXT_SIZE);	sprintf_s(text, TXT_SIZE, "%d,%d", r.loc.x, r.loc.y);
-				cvPutText(bimgs[i], text, cvPoint(0, 3*ROI_H/4), &font, CV_RGB(255,255,255));
-				*/
 			}
 			break;
-			//IplImage *img = cvQueryFrame(capture);
-			//cvShowImage("w", img);
 		}
+#endif
 	}
 
+	if(i < 0) return !CV_OK;
+
 	CvVideoWriter *writer = NULL;
-	writer = cvCreateVideoWriter("output.avi", CV_FOURCC('D', 'I', 'B', ' ') , 1e6 / FRAME / 10.,	cvSize(ROI_W,ROI_H), FALSE);
+	writer = cvCreateVideoWriter("output.avi", CV_FOURCC('D', 'I', 'B', ' ') , 1e6 / FRAME / 1000.,	cvSize(640,480));
+	//writer = cvCreateVideoWriter("output.avi", -1, 1e6 / FRAME,	cvSize(1024,768));
 
 	if(!writer) {
 		return !CV_OK;
 	}
 
+	cvReleaseImage(&img);
+	img = cvCreateImage(cvSize(640,480), 8, 3);
+
 	for(i = 0; i < NIMGS; i++) {
-		cvWriteFrame(writer, bimgs[i]);
+		cvZero(img);
+		cvSetImageROI(r.img, ctrd2roi(rr[i].loc.x, rr[i].loc.y, ROI_W, ROI_H));
+		cvSetImageROI(img, ctrd2roi(rr[i].loc.x, rr[i].loc.y, ROI_W, ROI_H));
+
+		printf("%d (%d,%d)\n", i, rr[i].loc.x, rr[i].loc.y);
+		cvCvtColor(bimgs[i], img, CV_GRAY2BGR);
+		cvResetImageROI(img);
+		draw_ctrd(img, r.img, NULL, i % NUM_ROI);
+		cvResetImageROI(r.img);
+
+		cvWriteFrame(writer, img);
+		cvShowImage("img", img);
+		cvWaitKey(1);
+
+		if(_kbhit() && _getch() == 'q') break;
 	}
+
 	cvReleaseVideoWriter(&writer);
 	cvReleaseImage(&r.img);
 	

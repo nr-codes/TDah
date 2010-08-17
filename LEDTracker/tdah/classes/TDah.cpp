@@ -82,7 +82,7 @@ int TDah::initROIs(int n, int rw, int rh, char *s,
 	}
 
 	// add a fudge factor for safety
-	max_radius += R_PAD;
+	max_radius = std::max(roi_w, roi_h) / 2 + R_PAD;
 	min_match -= M_PAD;
 
 	if(s) {

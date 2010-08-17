@@ -23,8 +23,13 @@
 #define GET_CLOSEST_ROI_WIDTH(roi_w) ((roi_w) & MULT_OF_FOUR_MASK);
 #define IS_ROI_WIDTH_INVALID(roi_w) ((roi_w) % 4)
 #define IS_ROI_WIDTH_VALID(roi_w) (!IS_ROI_WIDTH_INVALID(roi_w))
-#define me3_err(msg) printf("me3::%s: (%d) %s\n", (msg), Fg_getLastErrorNumber(fg), \
-							Fg_getLastErrorDescription(fg));
+#define me3_err(msg) do { \
+						if(fg != NULL) { \
+							printf("me3::%s: (%d) %s\n", (msg), \
+								Fg_getLastErrorNumber(fg), \
+								Fg_getLastErrorDescription(fg)); \
+						} \
+					} while(0)
 
 enum roi_index {ROI_0 = 0, ROI_1, ROI_2, ROI_3, ROI_4, ROI_5, ROI_6, ROI_7};
 

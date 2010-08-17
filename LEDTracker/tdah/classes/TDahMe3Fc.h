@@ -7,6 +7,8 @@
 class TDahMe3Fc : public TDah
 {
 public:
+	enum {DOUT_0_LOW = 0, DOUT0_HIGH = 2};
+
 	virtual ~TDahMe3Fc() { close(); };
 	TDahMe3Fc(char *conf_file);
 	TDahMe3Fc(int trigger_type, double exposure_time_us, 
@@ -19,6 +21,8 @@ public:
 	bool open(int trigger_type, double exposure_time_us, 
 		double frame_time_us, int buffers);
 	void close();
+	int set_dio0(int value);
+	int toggle_dio0();
 
 	// TDah inherited fcns
 	int initROIs(int num_roi, int roi_w, int roi_h, char *save_conf_as = NULL, 

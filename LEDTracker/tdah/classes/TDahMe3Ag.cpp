@@ -101,7 +101,7 @@ IplImage *TDahMe3Ag::retrieveFrame(int img_nr)
 bool TDahMe3Ag::saveMe3Buffer(char *file)
 {
 	int i, n;
-	int rc;
+	bool rc;
 	char *pixels;
 	CvVideoWriter *writer;
 	CvMat imgData;
@@ -121,6 +121,7 @@ bool TDahMe3Ag::saveMe3Buffer(char *file)
 		1e6 / frame_time, cvSize(img_w, img_h));
 	if(!writer) return false;
 
+	rc = true; // assume no error
 	for(i = std::max(1, n - buffers + 1); i <= n; i++) {
 		// get image from buffer and write to file
 		pixels = (char *) Fg_getImagePtr(fg, i, PORT_A);
@@ -132,13 +133,17 @@ bool TDahMe3Ag::saveMe3Buffer(char *file)
 		imgData = cvMat(img_h, img_w, CV_8UC1, pixels);
 		cvMerge(&imgData, &imgData, &imgData, NULL, bgr_img);
 		
-		rc = cvWriteFrame(writer, bgr_img);
-		if(!rc) {
+		if(!cvWriteFrame(writer, bgr_img)) {
 			rc = false;
 			break;
 		}
 	}
 	cvReleaseVideoWriter(&writer);
+
+	if(Fg_Acquire(fg, PORT_A, GRAB_INFINITE) != FG_OK) {
+		me3_err("saveMe3Buffer");
+		return false;
+	}
 
 	return rc;
 }
@@ -187,8 +192,8 @@ int TDahMe3Ag::getROILoc(int img_nr, ROILoc *r)
 	uint64 ts;
 
 	OPENCV_ASSERT(gr[j]->roi, __FUNCTION__, "ROI not set");
-
 	img = retrieveFrame(img_nr);
+
 	cvSetImageROI(img, cvGetImageROI(gr[j]));
 	cvCvtColor(img, gr[j], CV_BGR2GRAY);
 	cvResetImageROI(img);

@@ -1,10 +1,13 @@
+#include <conio.h>
+
 #include "t_dah.h"
 #include "TDahMe3Ag.h"
 
 // me3 parametesr
 #define TRIG GRABBER_CONTROLLED
-#define EXPOSURE 20000 // us
-#define FRAME 50000 // us
+#define EXPOSURE 20 // us
+#define FPS 70.0
+#define FRAME (1e6 / FPS) // us
 #define BUFS 100
 
 // calib parameters
@@ -55,17 +58,23 @@ int track_dots(TDahMe3Ag *capture)
 	}
 
 	i = 0;
-
 	r.img = cvCreateImage(cvSize(AG_MAX_WIDTH, AG_MAX_HEIGHT), 8, 1);
 	if(!r.img) return !CV_OK;
-	while(cvWaitKey(100) != 'q') {
-		// get and process next image
+	while(1) {
+		if(_kbhit()) {
+			// remove character from buffer
+			_getch();
+			break;
+		}
+
+		// get and process the most currrent image
 		capture->grabFrame();
 		++i;
-		capture->getROILoc(i, &r);
+		i = capture->getROILoc(i, &r);
 
 		// visualize tracking
-		capture->showROILoc();
+		//capture->showROILoc();
+		//cvWaitKey(1);
 	}
 
 	if(!capture->saveMe3Buffer(VIDEO_FILE)) {
@@ -93,6 +102,11 @@ int main()
 		else {
 			rc = track_dots(capture);
 		}
+	}
+
+	if(rc != CV_OK) {
+		printf("press any key to quit\n");
+		_getch();
 	}
 
 	delete capture;

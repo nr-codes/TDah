@@ -112,7 +112,7 @@ int roi_exposure(Fg_Struct *fg, double exp, double ft)
 		return Fg_getLastErrorNumber(fg);
 	}
 
-	fps = 1 / (ft * 1e-6);
+	fps = 1e6 / ft;
 	if(Fg_setParameter(fg, FG_FRAMESPERSEC, &fps, PORT_A) != FG_OK) {
 		return Fg_getLastErrorNumber(fg);
 	}

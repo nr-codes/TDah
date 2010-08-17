@@ -42,6 +42,12 @@ int me3_fc_init(Fg_Struct **grabber, int trig, int memsize, int nbufs)
 		}
 	}
 
+	rc = TRGINSRC_1; // TTL Trigger Pin 12
+	if(trig == ASYNC_TRIGGER && 
+		Fg_setParameter(fg, FG_TRIGGERINSRC, &rc, PORT_A) != FG_OK) {
+		return Fg_getLastErrorNumber(fg);
+	}
+
 	if(FastConfigInit(PORT_A) != FG_OK) {
 		return Fg_getLastErrorNumber(fg);
 	}
