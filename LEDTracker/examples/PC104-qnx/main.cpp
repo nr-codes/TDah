@@ -3,8 +3,8 @@
 
 // me3 parametesr
 #define TRIG ASYNC_TRIGGER
-#define EXPOSURE 50 // us
-#define FRAME 200
+#define EXPOSURE 750 // us
+#define FRAME EXPOSURE
 #define BUFS 100
 
 // calib parameters
@@ -19,7 +19,7 @@
 
 #define GRID_W 3
 #define GRID_H 6
-#define CM_PER_SQR 3.01625
+#define MM_PER_SQR 30.1625
 #define NUM_IMGS 16
 
 // tracking-related functions
@@ -37,7 +37,7 @@ int main()
 	}
 	else if(CALIB == EXTRINSIC) {
 		rc = get_camera_extrinsics(capture, EXTRINS_FILE, INTRINS_FILE, 
-			GRID_W, GRID_H, CM_PER_SQR);
+			GRID_W, GRID_H, MM_PER_SQR);
 	}
 	else {
 		rc = track_dots(capture, CONF_FILE, INTRINS_FILE, EXTRINS_FILE);

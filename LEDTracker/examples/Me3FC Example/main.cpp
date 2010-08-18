@@ -23,7 +23,7 @@
 #define NUM_IMGS 16
 
 // ROI parameters
-#define NUM_ROI 1
+#define NUM_ROI 2
 #define ROI_W 20
 #define ROI_H 20
 
@@ -136,10 +136,10 @@ int track_dots(TDahMe3Fc *capture)
 
 	for(i = 0; i < NIMGS; i++) {
 		cvZero(img);
-		cvSetImageROI(r.img, ctrd2roi(rr[i].loc.x, rr[i].loc.y, ROI_W, ROI_H));
-		cvSetImageROI(img, ctrd2roi(rr[i].loc.x, rr[i].loc.y, ROI_W, ROI_H));
+		cvSetImageROI(r.img, ctrd2roi(cvRound(rr[i].loc.x), cvRound(rr[i].loc.y), ROI_W, ROI_H));
+		cvSetImageROI(img, ctrd2roi(cvRound(rr[i].loc.x), cvRound(rr[i].loc.y), ROI_W, ROI_H));
 
-		printf("%d (%d,%d)\n", i, rr[i].loc.x, rr[i].loc.y);
+		printf("%d (%0.4g,%0.4g)\n", i, rr[i].loc.x, rr[i].loc.y);
 		cvCvtColor(bimgs[i], img, CV_GRAY2BGR);
 		cvResetImageROI(img);
 		draw_ctrd(img, r.img, NULL, i % NUM_ROI);

@@ -79,11 +79,13 @@ int TDahOpenCV::getROILoc(ROILoc *r)
 		prev_ts[j] = r->ts;
 	}
 
-	r->loc = roi2ctrd(gr[j]);
+	img_pt = roi2ctrd(gr[j]);
 	if(cam_mat) {
-		w_pt = pixel2world(r->loc, cam_mat, cam_dist, world_r, world_t);		
-		r->loc.x = cvRound(w_pt.x);
-		r->loc.y = cvRound(w_pt.y);
+		r->loc = pixel2world(img_pt, cam_mat, cam_dist, world_r, world_t);
+	}
+	else {
+		r->loc.x = (float) img_pt.x;
+		r->loc.y = (float) img_pt.y;
 	}
 
 	if(r->img) {

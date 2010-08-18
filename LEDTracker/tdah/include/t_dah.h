@@ -17,7 +17,7 @@
 #endif
 
 #define THRESHOLD 101
-#define THRESHOLD_TYPE CV_THRESH_BINARY
+#define THRESHOLD_TYPE CV_THRESH_BINARY_INV
 
 #define WHITE 255
 #define GRAY 128
@@ -34,12 +34,12 @@
 		} while(0)
 
 struct ROILoc {
-	ROILoc() { img = 0; ts = 0.; roi_nr = img_nr = loc.x = loc.y = 0; };
+	ROILoc() { img = 0; ts = 0.; roi_nr = img_nr = 0; loc.x = loc.y = 0.; };
 
 	int obj_found;
 	int roi_nr;
 	int img_nr;
-	CvPoint loc;
+	CvPoint2D32f loc;
 	double ts;
 	IplImage *img;
 };

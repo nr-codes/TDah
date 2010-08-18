@@ -5,8 +5,8 @@
 
 // ROI parameters
 #define NUM_ROI 2
-#define ROI_W 20
-#define ROI_H 20
+#define ROI_W 16
+#define ROI_H 16
 
 #define USE_KAL false
 #define USE_TPT false
@@ -43,7 +43,7 @@ int track_dots(TDahMe3Fc *capture, char *conf, char *intrins, char *extrins)
 		if(prev_img != i) imgs_lost++;
 
 		if(!r[j].obj_found) {
-			printf("object lost (%d): (%d) %d (%d, %d)\n", 
+			printf("object lost (%d): (%d) %d (%0.4g, %0.4g)\n", 
 				r[j].obj_found, r[j].img_nr, r[j].roi_nr, 
 				r[j].loc.x, r[j].loc.y);
 

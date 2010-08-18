@@ -59,7 +59,7 @@ int track_dots(TDahOpenCV *capture)
 		// visualize tracking
 		capture->showROILoc();
 		cvShowImage("img", img);
-		printf("%d (%d, %d)\n", r.roi_nr, r.loc.x, r.loc.y);
+		printf("%d (%0.4g, %0.4g)\n", r.roi_nr, r.loc.x, r.loc.y);
 	}
 
 	return CV_OK;

@@ -345,7 +345,7 @@ bool TDahMe3Fc::find_ctrd(int j)
 	//printf("r2: %d %d %d %d\n\n", r2.x, r2.y, r2.width, r2.height);
 
 	if(score <= 0 || score > max_radius) {
-		//printf("radius: %g/%g\n", score, max_radius); // DELETE
+		printf("radius: %g/%g\n", score, max_radius); // DELETE
 	}
 
 	return (score > 0 && score <= max_radius);
@@ -430,6 +430,13 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 
 	if(mode == CTRD) {
 		r->obj_found = find_ctrd(j);
+
+		if(!r->obj_found) {
+			cvNamedWindow("blob", 0);
+			show_seqs(wr, roi_w, roi_h, 2, 1, 2);
+			cvShowImage("blob", gr[j]);
+			cvWaitKey(0);
+		}
 		//r->loc = roi2ctrd(gr[j]); // DELETE
 		//cvSetImageROI(r->img, cvGetImageROI(gr[j])); // DELETE
 		//draw_ctrd(gr[j], gr[j], wr[j].seq, j);
@@ -457,9 +464,8 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 		OPENCV_ASSERT(false, __FUNCTION__, "tracking mode not supported");
 	}
 
-	c = roi2ctrd(gr[j]);
 	if(kal && cam_mat) {
-		assert(false); // DELETE
+		c = roi2ctrd(gr[j]);
 		w = pixel2world(c, cam_mat, cam_dist, world_r, world_t);
 		z[0] = w.x;
 		z[1] = w.y;
@@ -479,11 +485,13 @@ int TDahMe3Fc::updateROILoc(int mode, ROILoc *r)
 		return CV_BADROI_ERR;
 	}
 
-	r->loc = roi2ctrd(gr[j]); //UNDELETE
+	c = roi2ctrd(gr[j]);
 	if(cam_mat) {
-		w = pixel2world(r->loc, cam_mat, cam_dist, world_r, world_t);		
-		r->loc.x = cvRound(w.x);
-		r->loc.y = cvRound(w.y);
+		r->loc = pixel2world(c, cam_mat, cam_dist, world_r, world_t);
+	}
+	else {
+		r->loc.x = (float) c.x;
+		r->loc.y = (float) c.y;
 	}
 
 	return mode;

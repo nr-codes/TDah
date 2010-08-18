@@ -9,7 +9,7 @@
 #define TIMEOUT 2
 #define VMIN -10
 #define VMAX 10
-#define V_PER_CM (9.0/30)
+#define V_PER_MM (9.0/300)
 
 /*
 21 x 
@@ -87,8 +87,8 @@ int output_analog(double x, double y, int roi)
 	int			error=0;
 	float64     data[3];
 	
-	data[0] = x * V_PER_CM;
-	data[1] = y * V_PER_CM;
+	data[0] = x * V_PER_MM;
+	data[1] = y * V_PER_MM;
 	if(roi != ROI_LOST) {
 		data[2] = roi ? ROI1_VOLTS : ROI0_VOLTS;
 	}
