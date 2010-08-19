@@ -5,8 +5,8 @@
 
 // ROI parameters
 #define NUM_ROI 2
-#define ROI_W 16
-#define ROI_H 16
+#define ROI_W 32
+#define ROI_H 32
 
 #define USE_KAL false
 #define USE_TPT false

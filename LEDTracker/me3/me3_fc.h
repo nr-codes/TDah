@@ -13,6 +13,7 @@
 #endif
 
 #define DO_INIT 1
+#define MIN_ROI 1
 #define MAX_ROI 8
 #define FC_MAX_WIDTH 1024
 #define FC_MAX_HEIGHT 1024

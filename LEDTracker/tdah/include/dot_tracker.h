@@ -2,7 +2,8 @@
 #define DOT_TRACKER_H_
 
 extern double track_ctrd(IplImage *gray, int roi_w, int roi_h, 
-						 int thresh, CvSeqWriter *wr);
+						 int thresh, int thresh_type, CvSeqWriter *wr, 
+						 CvPoint2D32f *ctrd);
 
 extern double track_tmplt(IplImage *gray, IplImage *templ, 
 						  IplImage *temp = NULL);

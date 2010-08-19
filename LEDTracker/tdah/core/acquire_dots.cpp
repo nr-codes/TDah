@@ -62,7 +62,7 @@ static void update_kal_tplt(IplImage *gr, int roi_w, int roi_h,
 //***************************** AUTO CALIBRATION *********************//
 
 int auto_acquire(CvCapture *capture, IplImage **gr, 
-				 int roi_w, int roi_h, int t, CvSeqWriter *wr, 
+				 int roi_w, int roi_h, int t, int thresh_type, CvSeqWriter *wr, 
 				 double r, int n, IplImage **tplt, double m, 
 				 CvKalman **kal, int show_results)
 {
@@ -71,6 +71,7 @@ int auto_acquire(CvCapture *capture, IplImage **gr,
 	int last_tplt;
 	IplImage *img;
 	int tries = AUTOACQ_NUM_ATTEMPTS;
+	CvPoint2D32f c;
 
 	while(tries--) {
 		// reset state
@@ -85,7 +86,7 @@ int auto_acquire(CvCapture *capture, IplImage **gr,
 		for(int i = 0; i < n; i++) {
 			img = cvt_bgr2gr(img, gr[i]);
 			if(gr[i]->roi) {
-				score = track_ctrd(gr[i], roi_w, roi_h, t, &wr[i]);
+				score = track_ctrd(gr[i], roi_w, roi_h, t, thresh_type, &wr[i], &c);
 				printf("%d: centroid radius %0.4g\n", i, score);
 				if(score == 0 || score > r) {
 					// couldn't find dot, redo this img with tmplt matching
@@ -170,13 +171,14 @@ void onclick_center_rect(int e, int x, int y, int flags, void *param)
 }
 
 int manual_acquire(CvCapture *capture, IplImage **gr, int roi_w, int roi_h,
-				   int *t, CvSeqWriter *wr, int n, 
+				   int *t, int t_type, CvSeqWriter *wr, int n, 
 				   IplImage **tplt, CvKalman **kal)
 {
 	int rc;
 	CvFont font;
 	IplImage *img, *gr_temp;
 	char text[100];
+	CvPoint2D32f c;
 
 	// TODO: write asserts
 	
@@ -229,7 +231,7 @@ int manual_acquire(CvCapture *capture, IplImage **gr, int roi_w, int roi_h,
 			cvSetImageROI(gr_temp, cvGetImageROI(gr[j]));
 			cvCopyImage(gr[j], gr_temp);
 
-			track_ctrd(gr_temp, roi_width, roi_height, *t, &wr[j]);
+			track_ctrd(gr_temp, roi_width, roi_height, *t, t_type, &wr[j], &c);
 			cvSetImageROI(gr[j], cvGetImageROI(gr_temp));
 
 			update_kal_tplt(gr[j], roi_width, roi_height,

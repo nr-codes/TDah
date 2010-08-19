@@ -5,14 +5,14 @@
 #include "t_dah.h"
 
 double track_ctrd(IplImage *gray, int roi_w, int roi_h, 
-				  int thresh, CvSeqWriter *wr)
+				  int thresh, int thresh_typ, CvSeqWriter *wr, 
+				  CvPoint2D32f *cen)
 {
 	int x, y, w, h;
 	int y0;
 	char *pxl;
 	CvPoint pt;
 	float rad;
-	CvPoint2D32f cen;
 	CvSeq *ptr_seq;
 
 	w = gray->roi->width;
@@ -20,7 +20,7 @@ double track_ctrd(IplImage *gray, int roi_w, int roi_h,
 	cvClearSeq(wr->seq);
 
 	// binarize image
-	cvThreshold(gray, gray, thresh, WHITE, THRESHOLD_TYPE);
+	cvThreshold(gray, gray, thresh, WHITE, thresh_typ);
 
 	cvStartAppendToSeq(wr->seq, wr);
 	pxl = gray->imageData + gray->roi->yOffset*gray->widthStep + 
@@ -43,16 +43,15 @@ double track_ctrd(IplImage *gray, int roi_w, int roi_h,
 	}
 
 	ptr_seq = cvEndWriteSeq(wr);
-	if(ptr_seq->total && cvMinEnclosingCircle(ptr_seq, &cen, &rad)) {
-		x = cvRound(gray->roi->xOffset + cen.x);
-		y = cvRound(gray->roi->yOffset + cen.y);
+	if(ptr_seq->total && cvMinEnclosingCircle(ptr_seq, cen, &rad)) {
+		cen->x = gray->roi->xOffset + cen->x;
+		cen->y = gray->roi->xOffset + cen->y;
+
+		x = cvRound(cen->x);
+		y = cvRound(cen->y);
 		ctrd2roi(gray, x, y, roi_w, roi_h);
 	}
 	else {
-		if(ptr_seq->total) { // DELETE
-			printf("rad: %g\n", rad);
-			printf("min enclosing circ: %d\n", cvMinEnclosingCircle(ptr_seq, &cen, &rad));
-		}
 		return 0;
 	}
 

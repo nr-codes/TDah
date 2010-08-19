@@ -32,6 +32,7 @@ protected:
 
 	// centroid tracking
 	int threshold;
+	int threshold_type;
 	double max_radius;
 	IplImage **gr;
 	CvSeqWriter *wr;

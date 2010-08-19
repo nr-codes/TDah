@@ -178,8 +178,6 @@ int TDahMe3Fc::setupNextROIFrame(int roi_nr, int mode)
 	win.width = roi_w;
 	win.height = roi_h;
 
-	//printf("w1: %d %d %d %d\n", win.x, win.y, win.width, win.height);
-
 	if(win.x + roi_w > img_w) {
 		win.x = img_w - roi_w;
 	}
@@ -283,8 +281,12 @@ int TDahMe3Fc::initHelper(int mode)
 
 int TDahMe3Fc::initROIs(int n, char *c, bool k, bool t, char *in, char *ex)
 {
-	if(n > MAX_ROI) {
+	if(n < MIN_ROI || n > MAX_ROI) {
 		return CV_BADROI_ERR;
+	}
+	else if(n == MIN_ROI) {
+		printf("warning: only using 1 ROI, ");
+		printf("you must ask for every other image.  See documentation\n");
 	}
 
 	if(initHelper(FULLFRAME) != CV_OK) return !CV_OK;
@@ -335,19 +337,7 @@ void TDahMe3Fc::showROILoc(void)
 
 bool TDahMe3Fc::find_ctrd(int j)
 {
-	//CvRect r1, r2;
-
-	//r1 = cvGetImageROI(gr[j]);
 	double score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
-	//r2 = cvGetImageROI(gr[j]);
-
-	//printf("r1: %d %d %d %d\n", r1.x, r1.y, r1.width, r1.height);
-	//printf("r2: %d %d %d %d\n\n", r2.x, r2.y, r2.width, r2.height);
-
-	if(score <= 0 || score > max_radius) {
-		printf("radius: %g/%g\n", score, max_radius); // DELETE
-	}
-
 	return (score > 0 && score <= max_radius);
 }
 

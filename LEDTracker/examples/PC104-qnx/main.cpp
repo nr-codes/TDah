@@ -3,7 +3,7 @@
 
 // me3 parametesr
 #define TRIG ASYNC_TRIGGER
-#define EXPOSURE 750 // us
+#define EXPOSURE 300 // us
 #define FRAME EXPOSURE
 #define BUFS 100
 
