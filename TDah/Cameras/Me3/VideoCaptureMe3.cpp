@@ -4,6 +4,7 @@
 
 #include "Dots.h"
 #include "Cameras/VideoCaptureMe3.h"
+#include "TrackingAlgs/TrackDot.h"
 
 #if defined(WIN32) && defined(_WIN32)
 	#define FC_APPLET "FastConfig.dll"
@@ -13,6 +14,7 @@
 #define FC_MAX_WIDTH 1024
 #define FC_MAX_HEIGHT 1024
 #define MULT_OF_FOUR_MASK (-4)
+#define GET_ROI_TAG(tag) (((tag) >> 16) & 0xf)
 
 #define NROI 2
 static int seq[NROI] = {VideoCaptureMe3::ROI_1, VideoCaptureMe3::ROI_0};
@@ -60,6 +62,7 @@ void VideoCaptureMe3::fastConfigDefaults()
 	_buffers = 16;
 	_trigger = GRABBER_CONTROLLED;
 	_tap = FG_CL_DUALTAP_8_BIT;
+	_mem = NULL;
 	_fg = NULL;
 
 	_r.assign(NROI, std::make_pair(0, 
@@ -88,14 +91,29 @@ bool VideoCaptureMe3::buffers(int n, int width, int height)
 	_roi.RoiHeight = height;
 
 	// free and then (re)allocate memory
-	if(Fg_FreeMem(_fg, PORT_A) != FG_OK) {
+	if(_mem && Fg_FreeMem(_fg, PORT_A) != FG_OK) {
 		me3Err("buffers");
 		return false;
 	}
 
-	if(Fg_AllocMem(_fg, memsize, _buffers, PORT_A) == NULL) {
+	_mem = (uchar*) Fg_AllocMem(_fg, memsize, _buffers, PORT_A);
+	if(_mem == NULL) {
 		me3Err("buffers");
 		return false;
+	}
+
+	// update ROIs on camera with new width and height
+	// write the ROIs to the camera
+	for(int i = 0; i < NROI; ++i) {
+		_roi.RoiPosX = _r[i].second.x;
+		_roi.RoiPosY = _r[i].second.y;
+
+		_r[i].second.width = _roi.RoiWidth;
+		_r[i].second.height = _roi.RoiHeight;
+		if(writeParameterSet(_fg, &_roi, i, _r[i].first, true, PORT_A)) {
+			me3Err("buffers");
+			return false;
+		}
 	}
 
 	return true;
@@ -104,7 +122,7 @@ bool VideoCaptureMe3::buffers(int n, int width, int height)
 bool VideoCaptureMe3::start(int n)
 {
 	// start acquiring
-	if(!Fg_Acquire(_fg, PORT_A, n)) {
+	if(Fg_Acquire(_fg, PORT_A, n) != FG_OK) {
 		me3Err("acquire");
 		return false;
 	}
@@ -210,7 +228,7 @@ bool VideoCaptureMe3::setRois(Dots& dots, cv::Size roi,
 			tag = _r[slot].first;
 			_roi.RoiPosX = _r[slot].second.x;
 			_roi.RoiPosY = _r[slot].second.y;
-			if(!writeParameterSet(_fg, &_roi, slot, tag, true, PORT_A)) {
+			if(writeParameterSet(_fg, &_roi, slot, tag, true, PORT_A)) {
 				me3Err("setRois");
 				return false;
 			}
@@ -254,9 +272,11 @@ bool VideoCaptureMe3::open(int device)
 	for(int i = 0; i < NROI; ++i) {
 		_roi.RoiPosX = _r[i].second.x;
 		_roi.RoiPosY = _r[i].second.y;
+
+		_r[i].first = i;
 		_r[i].second.width = _roi.RoiWidth;
 		_r[i].second.height = _roi.RoiHeight;
-		if(!writeParameterSet(_fg, &_roi, i, i, true, PORT_A))
+		if(writeParameterSet(_fg, &_roi, i, i, true, PORT_A))
 			goto _err;
 	}
 
@@ -319,30 +339,27 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 {
 	int tag;
 
-	// allocate space (if necessary)
-	image.create(_roi.RoiHeight, _roi.RoiWidth, CV_8UC1);
-
 	// get image data from buffer
 	_img_nbr = Fg_getLastPicNumberBlocking(_fg, _img_nbr, PORT_A, TIMEOUT);
 	if(_img_nbr < FG_OK) {
 		me3Err("retrieve");
+		image = Mat();
 		return false;
 	}
 
 	// get corresponding ROI and copy data
 	int slot = _img_nbr % NROI;
 	Rect& roi = _r[slot].second;
-	Mat subimg = image(roi);
-	cv::MatIterator_<uchar> it, end = subimg.end<uchar>();
 	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);
-	for(it = subimg.begin<uchar>(); it < end; *it++ = *data++);
-
+	image = Mat(_roi.RoiHeight, _roi.RoiWidth, CV_8UC1, data);
+	
 	// TODO comment out in the future
 	tag = _img_nbr;
 	if(Fg_getParameter(_fg, FG_IMAGE_TAG, &tag, PORT_A) != FG_OK) {
 		me3Err("retrieve");
 		return false;
 	}
+	tag = GET_ROI_TAG(tag);
 	CV_Assert(tag == _r[slot].first);
 
 	if(!_q.empty()) {
@@ -355,7 +372,7 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 		
 		// write the roi to the camera's free ROI slot
 		int do_init = _trigger == ASYNC_SOFTWARE_TRIGGER;
-		if(!writeParameterSet(_fg, &_roi, slot, tag, do_init, PORT_A)) {
+		if(writeParameterSet(_fg, &_roi, slot, tag, do_init, PORT_A)) {
 			me3Err("retrieve");
 			return false;
 		}
@@ -412,7 +429,7 @@ bool VideoCaptureMe3::set(int prop, double value)
 		case FG_TRIGGERMODE:
 			// set the trigger mode (see Silicon Software documentation)
 			_trigger = static_cast<int> (value);
-			if(!Fg_setParameter(_fg, FG_TRIGGERMODE, &_trigger, PORT_A)) {
+			if(Fg_setParameter(_fg, FG_TRIGGERMODE, &_trigger, PORT_A)) {
 				me3Err("set");
 				return false;
 			}
@@ -438,7 +455,7 @@ bool VideoCaptureMe3::set(int prop, double value)
 		case FG_CAMERA_LINK_CAMTYP:
 			// set either dual or single tap data transfers
 			_tap = static_cast<int> (value);
-			if(!Fg_setParameter(_fg, FG_CAMERA_LINK_CAMTYP, &_tap, PORT_A)) {
+			if(Fg_setParameter(_fg, FG_CAMERA_LINK_CAMTYP, &_tap, PORT_A)) {
 				me3Err("set");
 				return false;
 			}
@@ -459,7 +476,9 @@ double VideoCaptureMe3::get(int prop)
 			break;
 
 		case TDAH_PROP_IS_ROI:
-			rc = static_cast<double> (true);
+			
+			rc = static_cast<double> (!(_roi.RoiHeight == FC_MAX_HEIGHT &&
+				_roi.RoiWidth == FC_MAX_WIDTH));
 			break;
 
 		case CV_CAP_PROP_POS_MSEC:
@@ -521,18 +540,33 @@ double VideoCaptureMe3::get(int prop)
 	return rc;
 }
 
+
+
+#define NDOTS 3
+#define ROIW 15
+#define ROIH 15
+
 int main()
 {
-	Dots dots(4);
+	TrackDot alg(ROIW, ROIH, CV_THRESH_BINARY_INV);
 	VideoCaptureMe3 vc(0);
 
-	dots.makeAllDotsActive();
-	vc.enqueue(dots);
+	if(!vc.isOpened()) {
+		return -1;
+	}
+
+	vc.set(CV_CAP_PROP_FRAME_WIDTH, 1024);
+	vc.set(CV_CAP_PROP_FRAME_HEIGHT, 1024);
 
 	Mat img;
 	cv::namedWindow("img");
-	while(cv::waitKey(100) != 'q') {
+	vc.start();
+
+	while(cv::waitKey(1) != 'q') {
 		vc >> img;
-		cv::imshow("img", img);
+		if(!img.empty())
+			cv::imshow("img", img);
 	}
+
+	return 0;
 }

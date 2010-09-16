@@ -45,6 +45,7 @@ private:
 	int _buffers;
 	int _tap;
 	int _trigger;
+	uchar* _mem;
 	Fg_Struct* _fg;
 	FC_ParameterSet _roi;
 	std::vector< std::pair< int, cv::Rect> > _r;

@@ -9,6 +9,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tdah", "..\..\..\build\vs2k8\Library.vcproj", "{E4D90D18-F104-4433-95EF-A2841D4F6116}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VideoCaptureMe3", "..\..\..\build\vs2k8\VideoCaptureMe3.vcproj", "{73DF9660-E965-477E-B278-184D640F2796}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E4D90D18-F104-4433-95EF-A2841D4F6116} = {E4D90D18-F104-4433-95EF-A2841D4F6116}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
