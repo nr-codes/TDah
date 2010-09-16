@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual C++ Express 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Dots", "Dots.vcproj", "{A0F260FE-D63F-45F0-8E0B-386803CDD4D4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E4D90D18-F104-4433-95EF-A2841D4F6116} = {E4D90D18-F104-4433-95EF-A2841D4F6116}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Camera", "Camera.vcproj", "{E89370FE-E500-4501-9339-87FC116AE4B6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E4D90D18-F104-4433-95EF-A2841D4F6116} = {E4D90D18-F104-4433-95EF-A2841D4F6116}
+		{A0F260FE-D63F-45F0-8E0B-386803CDD4D4} = {A0F260FE-D63F-45F0-8E0B-386803CDD4D4}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tdah", "Library.vcproj", "{E4D90D18-F104-4433-95EF-A2841D4F6116}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tracker", "Tracker.vcproj", "{7B5440C3-1843-4FEA-A10B-1931FEB15BFD}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Calibration", "Calibration.vcproj", "{DEDE7440-B10F-410F-A03D-8B2CCC6F8B5B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A0F260FE-D63F-45F0-8E0B-386803CDD4D4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A0F260FE-D63F-45F0-8E0B-386803CDD4D4}.Debug|Win32.Build.0 = Debug|Win32
+		{A0F260FE-D63F-45F0-8E0B-386803CDD4D4}.Release|Win32.ActiveCfg = Release|Win32
+		{A0F260FE-D63F-45F0-8E0B-386803CDD4D4}.Release|Win32.Build.0 = Release|Win32
+		{E89370FE-E500-4501-9339-87FC116AE4B6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E89370FE-E500-4501-9339-87FC116AE4B6}.Debug|Win32.Build.0 = Debug|Win32
+		{E89370FE-E500-4501-9339-87FC116AE4B6}.Release|Win32.ActiveCfg = Release|Win32
+		{E89370FE-E500-4501-9339-87FC116AE4B6}.Release|Win32.Build.0 = Release|Win32
+		{E4D90D18-F104-4433-95EF-A2841D4F6116}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E4D90D18-F104-4433-95EF-A2841D4F6116}.Debug|Win32.Build.0 = Debug|Win32
+		{E4D90D18-F104-4433-95EF-A2841D4F6116}.Release|Win32.ActiveCfg = Release|Win32
+		{E4D90D18-F104-4433-95EF-A2841D4F6116}.Release|Win32.Build.0 = Release|Win32
+		{7B5440C3-1843-4FEA-A10B-1931FEB15BFD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7B5440C3-1843-4FEA-A10B-1931FEB15BFD}.Debug|Win32.Build.0 = Debug|Win32
+		{7B5440C3-1843-4FEA-A10B-1931FEB15BFD}.Release|Win32.ActiveCfg = Release|Win32
+		{7B5440C3-1843-4FEA-A10B-1931FEB15BFD}.Release|Win32.Build.0 = Release|Win32
+		{DEDE7440-B10F-410F-A03D-8B2CCC6F8B5B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DEDE7440-B10F-410F-A03D-8B2CCC6F8B5B}.Debug|Win32.Build.0 = Debug|Win32
+		{DEDE7440-B10F-410F-A03D-8B2CCC6F8B5B}.Release|Win32.ActiveCfg = Release|Win32
+		{DEDE7440-B10F-410F-A03D-8B2CCC6F8B5B}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
