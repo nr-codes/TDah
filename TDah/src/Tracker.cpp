@@ -39,13 +39,15 @@ bool Tracker::track(Camera& cam, Dots& dots)
 	ActiveDots::const_iterator dot, stop;
 
 	found_all = true;
-	cam.retrieve(img);
+	if(!cam.retrieve(img)) {
+		return false;
+	}
 
 	// track dots in the active set
 	ActiveDots& a = dots.activeDots();
 	for(dot = a.begin(), stop = a.end(); dot < stop; ++dot) {
 		tag = (*dot)->tag();
-		dots.found(tag) = _alg->find(img, dots[tag], dots.pixel(tag));
+		dots.found(tag) = _alg->find(img, cam.maxSize(), dots[tag], dots.pixel(tag));
 		dots.world(tag) = cam.pixelToWorld(dots.pixel(tag));
 
 		if(!dots.found(tag)) {
@@ -263,7 +265,7 @@ void Tracker::ClickPoints::showScreen(TrackingAlg& alg)
 		t = a[i]->tag();
 		if(dots->pixel(t).x != BAD_LOC && dots->pixel(t).y != BAD_LOC) {
 			// keep tracking dot
-			dots->found(t) = alg.find(img, (*dots)[t], new_loc);
+			dots->found(t) = alg.find(img, cam->maxSize(), (*dots)[t], new_loc);
 			if(dots->found(t)) {
 				dots->pixel(t) = new_loc;
 				dots->world(t) = cam->pixelToWorld(new_loc);

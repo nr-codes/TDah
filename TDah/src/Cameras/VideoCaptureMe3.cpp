@@ -49,6 +49,18 @@ VideoCaptureMe3::~VideoCaptureMe3()
 	release();
 }
 
+void VideoCaptureMe3::makeSafeMat(Mat& mat)
+{
+	mat = Mat(mat.rows, mat.cols, mat.type(), mat.data);
+}
+
+void VideoCaptureMe3::makeUnsafeMat(Mat& mat, Point& offset)
+{
+	mat.step = FC_MAX_WIDTH;
+	mat.datastart = mat.data - FC_MAX_WIDTH * offset.y - offset.x;
+	mat.dataend = mat.datastart + FC_MAX_WIDTH * FC_MAX_HEIGHT;
+}
+
 void VideoCaptureMe3::me3Err(string msg)
 {
 	std::cout << "me3::" << msg << ": (" << 
@@ -357,6 +369,7 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 	int slot = _img_nbr % NROI;
 	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);
 	image = Mat(_roi.RoiHeight, _roi.RoiWidth, CV_8UC1, data);
+	makeUnsafeMat(image, _r[slot].second.tl());
 	
 	// TODO comment out in the future
 	tag = _img_nbr;
@@ -365,8 +378,9 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 		return false;
 	}
 	tag = GET_ROI_TAG(tag); // TODO should be (tag >> (sizeof(int)*8 - 16))
-	std::cout << slot << ":" << tag << ":" << _r[slot].first << std::endl;
+	//std::cout << slot << ":" << tag << ":" << _r[slot].first << std::endl;
 	//CV_Assert(tag == _r[slot].first);  // TODO delete
+	//std::cout << "retrieve: " << _r[slot].second.x << " " << _r[slot].second.y << std::endl;
 
 	if(!_q.empty()) {
 		// prepare to write the oldest roi in the queue to the camera
@@ -377,7 +391,7 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 		_roi.RoiPosX = _r[slot].second.tl().x;
 		_roi.RoiPosY = _r[slot].second.tl().y;
 
-		std::cout << "adding " << tag << " to slot " << slot << std::endl;
+		//std::cout << "adding " << tag << " to slot " << slot << std::endl;
 		
 		// write the roi to the camera's free ROI slot
 		int do_init = _trigger == ASYNC_SOFTWARE_TRIGGER;
@@ -499,6 +513,14 @@ double VideoCaptureMe3::get(int prop)
 			else {
 				rc = static_cast<double> (ts * 1e-3);
 			}
+			break;
+
+		case TDAH_PROP_MAX_WIDTH:
+			rc = static_cast<double> (_r[_img_nbr % NROI].second.x);
+			break;
+
+		case TDAH_PROP_MAX_HEIGHT:
+			rc = static_cast<double> (_r[_img_nbr % NROI].second.y);
 			break;
 
 		case CV_CAP_PROP_POS_FRAMES:

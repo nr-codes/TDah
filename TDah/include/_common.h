@@ -1,9 +1,13 @@
 #ifndef __COMMON_H_
 #define __COMMON_H_
 
-#define TDAH_PROP_IS_ROI -17001
-#define TDAH_PROP_NEXT_DOT -17000
-#define NO_MORE_DOTS -1
+enum {
+	NO_MORE_DOTS = -1, 
+	TDAH_PROP_IS_ROI = -1700, 
+	TDAH_PROP_NEXT_DOT, 
+	TDAH_PROP_MAX_WIDTH, 
+	TDAH_PROP_MAX_HEIGHT 
+};
 
 class Dot;
 class Dots;

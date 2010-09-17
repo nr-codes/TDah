@@ -7,7 +7,7 @@
 #include "TrackingAlgs/TrackDot.h"
 #include "Cameras/VideoCaptureMe3.h"
 
-#define NDOTS 3
+#define NDOTS 1
 #define ROIW 100
 #define ROIH 100
 
@@ -19,6 +19,27 @@ int main()
 {
 	// all images are Mat objects in OpenCV's C++ documentation
 	Mat img;
+
+	/*
+	img.create(1024, 1024, CV_8UC1);
+
+	Mat sub = img(Rect(5, 5, 1, 1));
+
+	uchar data[25];
+	int x = 52;
+	int y = 67;
+
+	Mat cust(5, 5, CV_8UC1, data);
+	cust.step = 1024;
+	cust.datastart = cust.data - 1024*y - x;
+	cust.dataend = cust.datastart + 1024*1024;
+
+	Size wsz;
+	Point ofs;
+	cust.locateROI(wsz, ofs);
+
+	// data = start + 1024*y + x
+	*/
 
 	// choose a video source and tracking algorithm
 	VideoCaptureMe3 me3(0); // use the microEnable 3 frame grabber in FastConfig mode
@@ -43,9 +64,10 @@ int main()
 
 	// track dots across NIMGS images and quit demo
 	me3.setRois(dots, Size(ROIW, ROIH), 20e3, 50e3);
+	//me3.setRois(dots, Size(1024, 1024), 20e3, 50e3);
 	me3.start();
 	std::cout << "roi search" << std::endl;
-	for(int i = 4; i <= NIMGS; ++i) {
+	for(int i = 1; i <= NIMGS; ++i) {
 		// grab the next image according to the desired image number
 		// and add the dots to the active set
 		if(!cam.grab(i, dots)) {
@@ -55,11 +77,17 @@ int main()
 		// track and show the dots
 		tracker.track(cam, dots);
 		tracker.draw(cam, dots, img);
+		if(img.empty()) {
+			break;
+		}
+
 		imshow("Dots", img);
 		waitKey(1);
 
 		// print out location information of active dots
 		//std::cout << tracker.str(dots) << std::endl;
+
+		//cv::waitKey(0);
 
 		// TODO enqueue dots!
 	}

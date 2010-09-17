@@ -7,9 +7,9 @@
 #include "TrackingAlgs/TrackDot.h"
 
 #define NDOTS 3
-#define ROIW 15
-#define ROIH 15
-#define NIMGS 50
+#define ROIW 50
+#define ROIH 50
+#define NIMGS 500
 
 using namespace cv;
 

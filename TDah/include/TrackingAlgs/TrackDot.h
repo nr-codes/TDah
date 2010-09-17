@@ -22,7 +22,8 @@ public:
 	virtual ~TrackDot();
 
 	/** @brief finds a dot in an image */
-	virtual bool find(const cv::Mat& img, const Dot& dot, cv::Point2d& new_loc);
+	virtual bool find(const cv::Mat& img, cv::Size max_resolution, 
+		const Dot& dot, cv::Point2d& new_loc);
 
 	/** @brief draws a dot in an image */
 	virtual void draw(const cv::Mat& src, const Dot& dot, cv::Mat& dst);

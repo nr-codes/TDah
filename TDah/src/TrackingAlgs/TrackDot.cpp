@@ -62,6 +62,9 @@ Rect TrackDot::calcRoi(const Point2d& pixel, const Size& img_size) const
 	int x = cv::saturate_cast<int> (pixel.x);
 	int y = cv::saturate_cast<int> (pixel.y);
 
+	// avoid negative x and y values
+	CV_Assert(img_size.width >= _rw && img_size.height >= _rh);
+
 	// make sure 0 < x < max width
 	x = std::min(std::max(0, x - _rw / 2), img_size.width - _rw);
 
@@ -134,19 +137,19 @@ void TrackDot::draw(const Mat& src, const Dot& dot, Mat& dst)
 * of boundary points of a binary image.  If the subset of boundary points form
 * a circle with radius between the user-specified min and max radii, then the 
 * dot is found and the new position is returned.  Otherwise, if the dot is not
-* found, then the old location is returned
+* found, then the old location is returned.
 *
 * @param[in] img the image containing the dot
+* @param[in] max_resolution the maximum resolution of the image
 * @param[in] dot the dot to find
 * @param[out] new_loc the new location of the dot
 * @return true, if the dot is found and <code> new_loc </code> contains the new
 * location, false otherwise.
 */
-
-bool TrackDot::find(const Mat& img, const Dot& dot, Point2d& new_loc)
+#include <iostream> // TODO DELETE
+bool TrackDot::find(const Mat& img, cv::Size max_resolution, const Dot& dot, 
+					Point2d& new_loc)
 {
-	CV_Assert(img.cols >= _rw && img.rows >= _rh);
-
 	int x, y, y0, yf;
 	float radius;
 	Mat_<uchar> pixel;
@@ -178,12 +181,36 @@ bool TrackDot::find(const Mat& img, const Dot& dot, Point2d& new_loc)
 		cv::minEnclosingCircle(Mat(boundary), p, radius);
 		if(radius > _minr && radius < _maxr) {
 			// update location only if it passes the size filter
-			new_loc = Point2d(prev_loc.x - (_rw / 2) + p.x, 
-				prev_loc.y - (_rh / 2) + p.y);
-			//new_loc = p;
-			//new_loc += prev_loc;
-			//roi = calcRoi(new_loc, img.size());
-			//new_loc = Point2d(roi.x, roi.y);
+
+			/*
+			if(max_resolution.width == 0 && max_resolution.height == 0) {
+				new_loc = p;
+				new_loc += prev_loc;
+				roi = calcRoi(new_loc, img.size());
+				new_loc = Point2d(roi.x, roi.y);
+			}
+			else {
+				//roi = calcRoi(prev_loc, max_resolution);
+				new_loc = Point2d(max_resolution.width + p.x, max_resolution.height + p.y);
+			}
+			*/
+
+			Point tl;
+			Size wholeSize;
+			img.locateROI(wholeSize, tl);
+
+			if(wholeSize == img.size()) {
+				new_loc = Point2d(roi.x + p.x, roi.y + p.y);
+			}
+			else {
+				new_loc = Point2d(tl.x + p.x, tl.y + p.y);
+			}
+
+			cv::circle(pixel, p, 4, cv::Scalar(128, 128, 128), -1);
+			cv::imshow("find", pixel);
+			std::cout << prev_loc.x << " -> " << new_loc.x << " -- " << prev_loc.y << " -> " << new_loc.y << 
+				" -- " << p.x << " , " << p.y << std::endl;
+
 			return true;
 		}
 	}

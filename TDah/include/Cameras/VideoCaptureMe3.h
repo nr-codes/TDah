@@ -39,6 +39,9 @@ public:
 	bool stop();
 	void enqueue(const Dots& dots);
 	bool setRois(Dots& dots, cv::Size roi, double exposure, double fps);
+
+	static void makeSafeMat(cv::Mat& mat);
+	static void makeUnsafeMat(cv::Mat& mat, cv::Point& offset);
     
 private:
 	int _img_nbr;
