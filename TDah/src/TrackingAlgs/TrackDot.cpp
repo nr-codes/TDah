@@ -124,7 +124,8 @@ void TrackDot::draw(const Mat& src, const Dot& dot, Mat& dst)
 
 	// draw the tag number at the pixel location
 	ss << dot.tag();
-	cv::putText(dst, ss.str(), dot.pixel(), 
+	//cv::putText(dst, ss.str(), dot.pixel(), 
+	cv::putText(dst, ss.str(), (roi.tl() + roi.br()) * 0.5, 
 		CV_FONT_HERSHEY_PLAIN, 1, TAG_COLOR);
 }
 
@@ -177,10 +178,12 @@ bool TrackDot::find(const Mat& img, const Dot& dot, Point2d& new_loc)
 		cv::minEnclosingCircle(Mat(boundary), p, radius);
 		if(radius > _minr && radius < _maxr) {
 			// update location only if it passes the size filter
-			new_loc = p;
-			new_loc += prev_loc;
-			roi = calcRoi(new_loc, img.size());
-			new_loc = Point2d(roi.x, roi.y);
+			new_loc = Point2d(prev_loc.x - (_rw / 2) + p.x, 
+				prev_loc.y - (_rh / 2) + p.y);
+			//new_loc = p;
+			//new_loc += prev_loc;
+			//roi = calcRoi(new_loc, img.size());
+			//new_loc = Point2d(roi.x, roi.y);
 			return true;
 		}
 	}

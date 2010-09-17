@@ -1,4 +1,4 @@
-#include <cv.h>
+#include <fstream>
 #include "Dots.h"
 #include "Camera.h"
 #include "Tracker.h"
@@ -8,6 +8,7 @@
 #define INTERKEY 200
 #define BAD_LOC -1
 
+using std::ifstream;
 using std::string;
 using std::stringstream;
 using cv::Mat;
@@ -58,7 +59,60 @@ bool Tracker::track(Camera& cam, Dots& dots)
 /** @brief initialize dots based on information found in a file */
 int Tracker::load(Camera& cam, Dots& dots, const string& file)
 {
-	return 0;
+	int i;
+	stringstream ss;
+	string line, sx, sy, sz;
+	double x, y, z;
+	ifstream f;
+
+	f.open(file.c_str());
+	if(!f.is_open())
+		return false;
+
+	i = 0;
+	while(!f.eof()) {
+		std::getline(f, line);
+		size_t pos1 = line.find(' ');
+		size_t pos2 = line.find(' ',  pos1 + 1);
+
+		if(pos1 == string::npos)
+			return false;
+		if(pos2 == string::npos)
+			pos2 = line.size();
+
+		sx = line.substr(0, pos1);
+		sy = line.substr(pos1 + 1, pos2 - pos1 - 1);
+		if(pos2 == line.size())
+			sz == "";
+		else
+			sz = line.substr(pos2 + 1, line.size() - pos2 - 1);
+
+		// read in x value
+		ss.str(sx);
+		ss.seekg(0);
+		ss >> x;
+		if(ss.fail())
+			return false;
+
+		// read in y value
+		ss.str(sy);
+		ss.seekg(0);
+		ss >> y;
+		if(ss.fail())
+			return false;
+
+		// read in z value
+		ss.str(sz);
+		ss.seekg(0);
+		ss >> z;
+
+		// set the corresponding dot's location
+		//world.push_back(Point3f(x, y , 0));
+		++i;
+	}
+
+	f.close();
+	return i;
 }
 
 /** @brief initialize dots based on their pixel location */
@@ -158,14 +212,15 @@ void Tracker::draw(Camera& cam, Dots& dots, Mat& dst)
 string Tracker::str(Dots& dots)
 {
 	static stringstream ss;
-	ActiveDots& a = dots.activeDots();
 
 	ss.str("");
+	ActiveDots& a = dots.activeDots();
 	for(size_t i = 0; i < a.size(); ++i) {
 		ss << a[i]->tag() << " " << a[i]->imageNbr() << " " << a[i]->isFound() <<
 			" " << a[i]->pixelX() << " " << a[i]->pixelY() << 
 			" " << a[i]->worldX() << " " << a[i]->worldY() <<  
-			" " << a[i]->worldZ() << " " << a[i]->timeStamp();
+			" " << a[i]->worldZ() << " " << a[i]->timeStamp()
+			<< std::endl;
 	}
 
 	return ss.str();

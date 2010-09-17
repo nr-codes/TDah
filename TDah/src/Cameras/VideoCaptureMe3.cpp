@@ -353,7 +353,6 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 		return false;
 	}
 
-
 	// get corresponding ROI and copy data
 	int slot = _img_nbr % NROI;
 	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);

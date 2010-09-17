@@ -60,6 +60,8 @@ int main()
 
 		// print out location information of active dots
 		//std::cout << tracker.str(dots) << std::endl;
+
+		// TODO enqueue dots!
 	}
 
 	waitKey(0);

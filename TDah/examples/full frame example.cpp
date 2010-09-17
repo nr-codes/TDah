@@ -7,10 +7,9 @@
 #include "TrackingAlgs/TrackDot.h"
 
 #define NDOTS 3
-#define ROIW 100
-#define ROIH 100
-
-#define NIMGS 100
+#define ROIW 15
+#define ROIH 15
+#define NIMGS 50
 
 using namespace cv;
 
@@ -38,6 +37,9 @@ int main()
 	// track dots across NIMGS images and quit demo
 	for(int i = 1; i <= NIMGS; ++i) {
 		// grab the next image and add the dots to the active set
+		// note that the parameters are handled internally by the camera 
+		// object and are only estimates, since the underlying VideoCapture 
+		// does not provide any information at all
 		if(!cam.grab(dots)) {
 			return -2;
 		}
@@ -49,13 +51,7 @@ int main()
 		waitKey(1);
 
 		// print out location information of active dots
-		ActiveDots a = dots.activeDots();
-		for(size_t i = 0; i < a.size(); ++i) {
-			std::cout << a[i]->tag() << ": " << 
-				a[i]->pixelX() << " " << a[i]->pixelY() << 
-				" " << a[i]->worldX() << " " << a[i]->worldY() << 
-				std::endl;
-		}
+		std::cout << tracker.str(dots);
 	}
 	
 	return 0;
