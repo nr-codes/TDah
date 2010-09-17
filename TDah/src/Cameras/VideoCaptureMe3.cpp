@@ -133,7 +133,7 @@ bool VideoCaptureMe3::start(int n)
 
 bool VideoCaptureMe3::stop()
 {
-	if(Fg_stopAcquire(_fg, PORT_A) != FG_OK) {
+	if(Fg_stopAcquireEx(_fg, PORT_A, _mem, STOP_SYNC) != FG_OK) {
 		me3Err("stop");
 		return false;
 	}
@@ -232,6 +232,8 @@ bool VideoCaptureMe3::setRois(Dots& dots, cv::Size roi,
 				me3Err("setRois");
 				return false;
 			}
+
+			std::cout << "setting " << tag << " to slot " << slot << std::endl;
 		}
 
 		// remove all elements added to the camera
@@ -278,6 +280,10 @@ bool VideoCaptureMe3::open(int device)
 		_r[i].second.height = _roi.RoiHeight;
 		if(writeParameterSet(_fg, &_roi, i, i, true, PORT_A))
 			goto _err;
+	}
+
+	if(!start()) {
+		goto _err;
 	}
 
 	return true;
@@ -347,9 +353,9 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 		return false;
 	}
 
+
 	// get corresponding ROI and copy data
 	int slot = _img_nbr % NROI;
-	Rect& roi = _r[slot].second;
 	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);
 	image = Mat(_roi.RoiHeight, _roi.RoiWidth, CV_8UC1, data);
 	
@@ -359,16 +365,20 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 		me3Err("retrieve");
 		return false;
 	}
-	tag = GET_ROI_TAG(tag);
-	CV_Assert(tag == _r[slot].first);
+	tag = GET_ROI_TAG(tag); // TODO should be (tag >> (sizeof(int)*8 - 16))
+	std::cout << slot << ":" << tag << ":" << _r[slot].first << std::endl;
+	//CV_Assert(tag == _r[slot].first);  // TODO delete
 
 	if(!_q.empty()) {
 		// prepare to write the oldest roi in the queue to the camera
-		tag = _q.front().first;
-		roi = _q.front().second;
+		_r[slot] = _q.front();
 		_q.pop();
-		_roi.RoiPosX = roi.tl().x;
-		_roi.RoiPosY = roi.tl().y;
+
+		tag = _r[slot].first;
+		_roi.RoiPosX = _r[slot].second.tl().x;
+		_roi.RoiPosY = _r[slot].second.tl().y;
+
+		std::cout << "adding " << tag << " to slot " << slot << std::endl;
 		
 		// write the roi to the camera's free ROI slot
 		int do_init = _trigger == ASYNC_SOFTWARE_TRIGGER;
@@ -477,8 +487,8 @@ double VideoCaptureMe3::get(int prop)
 
 		case TDAH_PROP_IS_ROI:
 			
-			rc = static_cast<double> (!(_roi.RoiHeight == FC_MAX_HEIGHT &&
-				_roi.RoiWidth == FC_MAX_WIDTH));
+			rc = static_cast<double> (_roi.RoiHeight != FC_MAX_HEIGHT ||
+				_roi.RoiWidth != FC_MAX_WIDTH);
 			break;
 
 		case CV_CAP_PROP_POS_MSEC:
@@ -488,7 +498,7 @@ double VideoCaptureMe3::get(int prop)
 				rc = 0;
 			}
 			else {
-				rc = static_cast<double> (ts);
+				rc = static_cast<double> (ts * 1e-3);
 			}
 			break;
 
@@ -538,35 +548,4 @@ double VideoCaptureMe3::get(int prop)
 	}
 
 	return rc;
-}
-
-
-
-#define NDOTS 3
-#define ROIW 15
-#define ROIH 15
-
-int main()
-{
-	TrackDot alg(ROIW, ROIH, CV_THRESH_BINARY_INV);
-	VideoCaptureMe3 vc(0);
-
-	if(!vc.isOpened()) {
-		return -1;
-	}
-
-	vc.set(CV_CAP_PROP_FRAME_WIDTH, 1024);
-	vc.set(CV_CAP_PROP_FRAME_HEIGHT, 1024);
-
-	Mat img;
-	cv::namedWindow("img");
-	vc.start();
-
-	while(cv::waitKey(1) != 'q') {
-		vc >> img;
-		if(!img.empty())
-			cv::imshow("img", img);
-	}
-
-	return 0;
 }

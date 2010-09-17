@@ -62,7 +62,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tdah.lib cv210d.lib highgui210d.lib cxcore210d.lib cvaux210d.lib"
+				AdditionalDependencies="cv210d.lib highgui210d.lib cxcore210d.lib cvaux210d.lib"
 				AdditionalLibraryDirectories="&quot;$(ProjectDir)\..\..\lib&quot;;C:\OpenCV2.1\lib"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
@@ -136,8 +136,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tdah.lib cv210.lib highgui210.lib cxcore210.lib cvaux210.lib"
-				AdditionalLibraryDirectories="&quot;$(ProjectDir)\..\..\lib&quot;;C:\OpenCV2.1\lib"
+				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib"
+				AdditionalLibraryDirectories="C:\OpenCV2.1\lib"
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"

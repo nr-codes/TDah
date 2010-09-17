@@ -44,7 +44,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				ProgramDataBaseFileName="$(OutDir)$(ProjectName).pdb"
+				ProgramDataBaseFileName="$(OutDir)$(ProjectName)d.pdb"
 				WarningLevel="3"
 				DebugInformationFormat="4"
 			/>
@@ -59,7 +59,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)$(ProjectName).lib"
+				OutputFile="$(OutDir)$(ProjectName)d.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"

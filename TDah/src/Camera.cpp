@@ -28,7 +28,7 @@ Camera::Camera(VideoCapture& camera)
 
 void Camera::setCamera(VideoCapture& camera)
 {
-	_vc = camera;
+	_vc = &camera;
 }
 
 void Camera::noWorldFrame()
@@ -182,12 +182,12 @@ void Camera::mapDots(Dots& dots)
 	int tag;
 
 	// add the active dots that are in the image
-	if(_vc.get(TDAH_PROP_IS_ROI)) {
+	if(_vc->get(TDAH_PROP_IS_ROI)) {
 		// video capture is utilizing an ROI
-		tag = static_cast<int> (_vc.get(TDAH_PROP_NEXT_DOT));
+		tag = static_cast<int> (_vc->get(TDAH_PROP_NEXT_DOT));
 		while(tag != NO_MORE_DOTS) {
 			dots.makeDotActive(tag);
-			tag = static_cast<int> (_vc.get(TDAH_PROP_NEXT_DOT));
+			tag = static_cast<int> (_vc->get(TDAH_PROP_NEXT_DOT));
 		}
 	}
 	else {
@@ -216,22 +216,22 @@ bool Camera::grab(int img_nbr, Dots& dots)
 {
 	int tag;
 	double ts;
-	ActiveDots a = dots.activeDots();
 
 	// clear all active dots
 	dots.clearActiveDots();
 
 	// set the desired image number and grab the image
-	if(!_vc.set(CV_CAP_PROP_POS_FRAMES, img_nbr) || !_vc.grab()) {
+	if(!_vc->set(CV_CAP_PROP_POS_FRAMES, img_nbr) || !_vc->grab()) {
 		return false;
 	}
 
 	// get image properties
-	ts = _vc.get(CV_CAP_PROP_POS_MSEC);
-	img_nbr = static_cast<int> (_vc.get(CV_CAP_PROP_POS_FRAMES));
+	ts = _vc->get(CV_CAP_PROP_POS_MSEC);
+	img_nbr = static_cast<int> (_vc->get(CV_CAP_PROP_POS_FRAMES));
 	mapDots(dots);
 
 	// set image properties
+	ActiveDots& a = dots.activeDots();
 	for(size_t i = 0; i < a.size(); ++i) {
 		tag = a[i]->tag();
 		dots.timeStamp(tag) = ts;
@@ -245,21 +245,21 @@ bool Camera::grab(Dots& dots)
 {
 	int tag;
 	double ts;
-	ActiveDots a = dots.activeDots();
 	static int img_nbr = 0;
 
 	// clear all active dots and grab the next image
 	dots.clearActiveDots();
-	if(!_vc.grab()) {
+	if(!_vc->grab()) {
 		return false;
 	}
 
 	// update image properties
 	++img_nbr;
-	ts = cv::getTickCount()/cv::getTickFrequency();
+	ts = cv::getTickCount()/(cv::getTickFrequency() * 1e-3);
 	mapDots(dots);
 
 	// set image properties
+	ActiveDots& a = dots.activeDots();
 	for(size_t i = 0; i < a.size(); ++i) {
 		tag = a[i]->tag();
 		dots.timeStamp(tag) = ts;
@@ -271,12 +271,12 @@ bool Camera::grab(Dots& dots)
 
 bool Camera::grab()
 {
-	return _vc.grab();
+	return _vc->grab();
 }
 
 bool Camera::retrieve(Mat& img, int channel)
 {
-	return _vc.retrieve(img, channel);
+	return _vc->retrieve(img, channel);
 }
 
 /**
@@ -285,6 +285,9 @@ bool Camera::retrieve(Mat& img, int channel)
 void Camera::undistort(Mat& img)
 {
 	Mat tmp;
-	_vc >> tmp;
-	cv::undistort(tmp, img, _A, _k);
+	(*_vc) >> tmp;
+	if(!tmp.empty()) {
+		//cv::undistort(tmp, img, _A, _k);  TODO delete
+		img = tmp;
+	}
 }

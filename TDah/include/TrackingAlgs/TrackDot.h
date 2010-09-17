@@ -15,7 +15,7 @@ class TrackDot : public TrackingAlg
 {
 public:
 	TrackDot(int roi_width, int roi_height, int threshold_type);
-	TrackDot(int roi_width, int roi_height, int threshold, int threshold_type, 
+	TrackDot(int roi_width, int roi_height, int threshold_type, int threshold,
 		double min_radius, double max_radius);
 
 	/** @brief the destructor for this class */

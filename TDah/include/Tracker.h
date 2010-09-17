@@ -33,6 +33,8 @@ public:
 	int location(Camera& cam, Dots& dots);
 	/** @brief draws the location of the active dots */
 	void draw(Camera& cam, Dots& dots, cv::Mat& dst = cv::Mat());
+	/** @brief returns a string will every field of each active dot */
+	std::string str(Dots& dots);
 
 private:
 

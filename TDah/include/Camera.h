@@ -67,7 +67,7 @@ public:
 
 private:
 	/** @brief the actual camera */
-	cv::VideoCapture _vc;
+	cv::VideoCapture* _vc;
 	/** @brief camera matrix */
 	cv::Mat_<double> _A;
 	/** @brief distortion coefficients vector */

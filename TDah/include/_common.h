@@ -1,8 +1,6 @@
 #ifndef __COMMON_H_
 #define __COMMON_H_
 
-#include <cv.h>
-
 #define TDAH_PROP_IS_ROI -17001
 #define TDAH_PROP_NEXT_DOT -17000
 #define NO_MORE_DOTS -1

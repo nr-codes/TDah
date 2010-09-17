@@ -5,7 +5,7 @@
 #include "TrackingAlg.h"
 
 #define UPDATE 1
-#define INTERKEY 250
+#define INTERKEY 200
 #define BAD_LOC -1
 
 using std::string;
@@ -36,13 +36,13 @@ bool Tracker::track(Camera& cam, Dots& dots)
 	bool found_all;
 	Mat img;
 	ActiveDots::const_iterator dot, stop;
-	ActiveDots a = dots.activeDots();
+
+	found_all = true;
+	cam.retrieve(img);
 
 	// track dots in the active set
-	found_all = true;
-	stop = a.end();
-	cam.retrieve(img);
-	for(dot = a.begin(); dot < stop; ++dot) {
+	ActiveDots& a = dots.activeDots();
+	for(dot = a.begin(), stop = a.end(); dot < stop; ++dot) {
 		tag = (*dot)->tag();
 		dots.found(tag) = _alg->find(img, dots[tag], dots.pixel(tag));
 		dots.world(tag) = cam.pixelToWorld(dots.pixel(tag));
@@ -75,11 +75,11 @@ int Tracker::click(Camera& cam, Dots& dots)
 	Mat img;
 	string s;
 	stringstream ss;
-	ActiveDots a = dots.activeDots();
 	const string& win = _alg->clickingWindow();
 	ClickPoints click_info(cam, dots);
 
 	// set all active dots to not found
+	ActiveDots& a = dots.activeDots();
 	for(size_t i = 0; i < a.size(); ++i) {
 		dots.found(a[i]->tag()) = false;
 		dots.pixel(a[i]->tag()) = Point2d(BAD_LOC, BAD_LOC);
@@ -138,14 +138,37 @@ int Tracker::click(Camera& cam, Dots& dots)
 void Tracker::draw(Camera& cam, Dots& dots, Mat& dst)
 {
 	Mat src;
-	ActiveDots a = dots.activeDots();
 
 	if(cam.retrieve(src)) {
-		dst = src.clone();
+		// copy img into dst
+		if(src.type() == CV_8UC1) {
+			cv::cvtColor(src, dst, CV_GRAY2BGR);
+		}
+		else {
+			dst = src.clone();
+		}
+
+		ActiveDots& a = dots.activeDots();
 		for(ActiveDots::const_iterator dot = a.begin(); dot < a.end(); ++dot) {
 			_alg->draw(src, *(*dot), dst);
 		}
 	}
+}
+
+string Tracker::str(Dots& dots)
+{
+	static stringstream ss;
+	ActiveDots& a = dots.activeDots();
+
+	ss.str("");
+	for(size_t i = 0; i < a.size(); ++i) {
+		ss << a[i]->tag() << " " << a[i]->imageNbr() << " " << a[i]->isFound() <<
+			" " << a[i]->pixelX() << " " << a[i]->pixelY() << 
+			" " << a[i]->worldX() << " " << a[i]->worldY() <<  
+			" " << a[i]->worldZ() << " " << a[i]->timeStamp();
+	}
+
+	return ss.str();
 }
 
 const Scalar Tracker::ClickPoints::MOVE_COLOR = Scalar(0, 0, 255);
@@ -163,7 +186,6 @@ void Tracker::ClickPoints::showScreen(TrackingAlg& alg)
 	int t;
 	Mat img, dst;
 	Point2d new_loc;
-	ActiveDots a = dots->activeDots();
 	const string& win = alg.clickingWindow();
 
 	// take a new undistorted image
@@ -172,8 +194,16 @@ void Tracker::ClickPoints::showScreen(TrackingAlg& alg)
 		return;
 	}
 
+	// copy img into dst
+	if(img.type() == CV_8UC1) {
+		cv::cvtColor(img, dst, CV_GRAY2BGR);
+	}
+	else {
+		dst = img.clone();
+	}
+
 	// draw all dots that have been clicked on
-	dst = img.clone();
+	ActiveDots& a = dots->activeDots();
 	for(size_t i = 0; i < a.size(); ++i) {
 		t = a[i]->tag();
 		if(dots->pixel(t).x != BAD_LOC && dots->pixel(t).y != BAD_LOC) {

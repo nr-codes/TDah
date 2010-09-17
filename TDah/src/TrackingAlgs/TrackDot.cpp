@@ -24,8 +24,8 @@ TrackDot::TrackDot(int roi_width, int roi_height, int threshold_type)
 		std::min(roi_width, roi_height) / 2);
 }
 
-TrackDot::TrackDot(int roi_width, int roi_height, int threshold, 
-				   int threshold_type, double min_radius, double max_radius)
+TrackDot::TrackDot(int roi_width, int roi_height, int threshold_type, 
+				   int threshold, double min_radius, double max_radius)
 {
 	set(roi_width, roi_height, threshold, 
 		threshold_type, min_radius, max_radius);
@@ -85,7 +85,7 @@ void TrackDot::threshold(const Mat& src, const Rect roi, Mat& dst) const
 {
 	// get 1-ch image subregion
 	if(src.type() == CV_8UC1) {
-		src(roi).copyTo(dst);
+		src(roi).copyTo(dst); // TODO do i really want to copy src into dst?
 	}
 	else if(src.type() == CV_8UC3) {
 		dst.create(_rh, _rw, CV_8UC1);
