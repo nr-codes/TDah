@@ -292,23 +292,3 @@ void Camera::undistort(Mat& img)
 		img = tmp;
 	}
 }
-
-
-Size& Camera::maxSize()
-{
-	
-	int w, h;
-
-	if(_vc->get(TDAH_PROP_IS_ROI)) {
-		w = static_cast<int> (_vc->get(TDAH_PROP_MAX_WIDTH));
-		h = static_cast<int> (_vc->get(TDAH_PROP_MAX_HEIGHT));
-	}
-	else {
-		//w = static_cast<int> (_vc->get(CV_CAP_PROP_FRAME_WIDTH));
-		//h = static_cast<int> (_vc->get(CV_CAP_PROP_FRAME_HEIGHT));
-		w = 0;
-		h = 0;
-	}
-
-	return Size(w, h);
-}

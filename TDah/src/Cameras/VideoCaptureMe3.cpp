@@ -207,6 +207,7 @@ void VideoCaptureMe3::enqueue(const Dots& dots)
 		tag = (*dot)->tag();
 		pixel = (*dot)->pixel();
 		_q.push( std::make_pair( tag, calcRoi( pixel ) ) );
+		std::cout << "i added: " << tag << std::endl;
 	}
 }
 
@@ -244,8 +245,6 @@ bool VideoCaptureMe3::setRois(Dots& dots, cv::Size roi,
 				me3Err("setRois");
 				return false;
 			}
-
-			std::cout << "setting " << tag << " to slot " << slot << std::endl;
 		}
 
 		// remove all elements added to the camera
@@ -370,7 +369,7 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);
 	image = Mat(_roi.RoiHeight, _roi.RoiWidth, CV_8UC1, data);
 	makeUnsafeMat(image, _r[slot].second.tl());
-	
+
 	// TODO comment out in the future
 	tag = _img_nbr;
 	if(Fg_getParameter(_fg, FG_IMAGE_TAG, &tag, PORT_A) != FG_OK) {
@@ -379,7 +378,9 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 	}
 	tag = GET_ROI_TAG(tag); // TODO should be (tag >> (sizeof(int)*8 - 16))
 	//std::cout << slot << ":" << tag << ":" << _r[slot].first << std::endl;
-	//CV_Assert(tag == _r[slot].first);  // TODO delete
+
+	std::cout << "i got: " << tag << std::endl;
+	CV_Assert(tag == _r[slot].first);  // TODO delete
 	//std::cout << "retrieve: " << _r[slot].second.x << " " << _r[slot].second.y << std::endl;
 
 	if(!_q.empty()) {
@@ -392,7 +393,7 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 		_roi.RoiPosY = _r[slot].second.tl().y;
 
 		//std::cout << "adding " << tag << " to slot " << slot << std::endl;
-		
+
 		// write the roi to the camera's free ROI slot
 		int do_init = _trigger == ASYNC_SOFTWARE_TRIGGER;
 		if(writeParameterSet(_fg, &_roi, slot, tag, do_init, PORT_A)) {
@@ -513,14 +514,6 @@ double VideoCaptureMe3::get(int prop)
 			else {
 				rc = static_cast<double> (ts * 1e-3);
 			}
-			break;
-
-		case TDAH_PROP_MAX_WIDTH:
-			rc = static_cast<double> (_r[_img_nbr % NROI].second.x);
-			break;
-
-		case TDAH_PROP_MAX_HEIGHT:
-			rc = static_cast<double> (_r[_img_nbr % NROI].second.y);
 			break;
 
 		case CV_CAP_PROP_POS_FRAMES:

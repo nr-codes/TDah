@@ -65,9 +65,6 @@ public:
 	/** @brief undistorts an image */
 	void undistort(cv::Mat& img);
 
-	/** @brief returns the maximum resolution size of an image */
-	cv::Size& maxSize();
-
 private:
 	/** @brief the actual camera */
 	cv::VideoCapture* _vc;

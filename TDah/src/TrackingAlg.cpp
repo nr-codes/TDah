@@ -27,8 +27,7 @@ TrackingAlg::~TrackingAlg()
 * location, false otherwise.
 */
 
-bool TrackingAlg::find(const Mat& img, Size max_resolution, const Dot& dot, 
-					   Point2d& new_loc)
+bool TrackingAlg::find(const Mat& img, const Dot& dot, Point2d& new_loc)
 {
 	return false;
 }

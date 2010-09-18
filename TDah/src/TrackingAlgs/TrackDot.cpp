@@ -146,9 +146,8 @@ void TrackDot::draw(const Mat& src, const Dot& dot, Mat& dst)
 * @return true, if the dot is found and <code> new_loc </code> contains the new
 * location, false otherwise.
 */
-#include <iostream> // TODO DELETE
-bool TrackDot::find(const Mat& img, cv::Size max_resolution, const Dot& dot, 
-					Point2d& new_loc)
+
+bool TrackDot::find(const Mat& img, const Dot& dot, Point2d& new_loc)
 {
 	int x, y, y0, yf;
 	float radius;
@@ -181,20 +180,6 @@ bool TrackDot::find(const Mat& img, cv::Size max_resolution, const Dot& dot,
 		cv::minEnclosingCircle(Mat(boundary), p, radius);
 		if(radius > _minr && radius < _maxr) {
 			// update location only if it passes the size filter
-
-			/*
-			if(max_resolution.width == 0 && max_resolution.height == 0) {
-				new_loc = p;
-				new_loc += prev_loc;
-				roi = calcRoi(new_loc, img.size());
-				new_loc = Point2d(roi.x, roi.y);
-			}
-			else {
-				//roi = calcRoi(prev_loc, max_resolution);
-				new_loc = Point2d(max_resolution.width + p.x, max_resolution.height + p.y);
-			}
-			*/
-
 			Point tl;
 			Size wholeSize;
 			img.locateROI(wholeSize, tl);
@@ -205,12 +190,6 @@ bool TrackDot::find(const Mat& img, cv::Size max_resolution, const Dot& dot,
 			else {
 				new_loc = Point2d(tl.x + p.x, tl.y + p.y);
 			}
-
-			cv::circle(pixel, p, 4, cv::Scalar(128, 128, 128), -1);
-			cv::imshow("find", pixel);
-			std::cout << prev_loc.x << " -> " << new_loc.x << " -- " << prev_loc.y << " -> " << new_loc.y << 
-				" -- " << p.x << " , " << p.y << std::endl;
-
 			return true;
 		}
 	}
