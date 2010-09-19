@@ -68,7 +68,7 @@ double time_us = cvGetTickCount()/cvGetTickFrequency();
 		//std::cout << tracker.str(dots) << std::endl;
 
 		// queue up the ROIs to be written to the camera
-		me3.enqueue(dots);
+		me3.add(dots);
 time_us = cvGetTickCount()/cvGetTickFrequency() - time_us;
 printf("retrieve: %g\n", time_us);
 	}

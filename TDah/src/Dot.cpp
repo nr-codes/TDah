@@ -13,7 +13,7 @@ Dot::Dot()
 {
 	_found = false;
 	_active = false;
-	_tag = INITIAL_VAL;
+	_tag = BAD_TAG;
 	_image_nbr = INITIAL_VAL;
 	_time_stamp = INITIAL_VAL;
 

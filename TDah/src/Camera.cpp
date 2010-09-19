@@ -186,7 +186,7 @@ void Camera::mapDots(Dots& dots)
 	if(_vc->get(TDAH_PROP_IS_ROI)) {
 		// video capture is utilizing an ROI
 		tag = static_cast<int> (_vc->get(TDAH_PROP_NEXT_DOT));
-		while(tag != NO_MORE_DOTS) {
+		while(tag != BAD_TAG) {
 			dots.makeDotActive(tag);
 			tag = static_cast<int> (_vc->get(TDAH_PROP_NEXT_DOT));
 		}

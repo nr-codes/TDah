@@ -1,8 +1,9 @@
 #ifndef __COMMON_H_
 #define __COMMON_H_
 
+#define BAD_TAG -1
+
 enum {
-	NO_MORE_DOTS = -1, 
 	TDAH_PROP_IS_ROI = -1700, 
 	TDAH_PROP_NEXT_DOT
 };
