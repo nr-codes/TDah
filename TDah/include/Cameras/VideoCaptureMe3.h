@@ -41,7 +41,7 @@ public:
 	bool stop();
 	void add(const Dots& dots);
 	void remove(int tag = REMOVE_ALL);
-	bool setRois(Dots& dots, cv::Size roi, double exposure, double fps);
+	bool setRois(Dots& dots, cv::Size roi, double exposure, double frame_time);
 
 	static void makeSafeMat(cv::Mat& mat);
 	static void makeUnsafeMat(cv::Mat& mat, cv::Point& offset);
@@ -60,14 +60,19 @@ private:
 	/** @brief keeps track of which ROI is in which buffer */
 	std::vector< std::pair< int, cv::Rect> > _roi_in_buffer;
 
+	int slotIndex();
+	int bufferIndex();
 	void fastConfigDefaults();
 	void me3Err(std::string msg);
 	bool roiSequence();
 	cv::Rect calcRoi(const cv::Point2d& pixel) const;
 	double nextDot();
 	bool writeRoi(int slot);
-	bool updateRoi();
-	static int getTag(int img_tag);
+	void updateRoiBuffer();
+	bool updateRoiSlot();
+	bool syncBuffer();
+	static int getRoiTag(int img_tag);
+	static int getFgTag(int img_tag);
 };
 
 #endif /* _VIDEOCAPTUREME3_H_ */

@@ -7,11 +7,11 @@
 #include "TrackingAlgs/TrackDot.h"
 #include "Cameras/VideoCaptureMe3.h"
 
-#define NDOTS 3
-#define ROIW 100
-#define ROIH 100
+#define NDOTS 5
+#define ROIW 24
+#define ROIH 24
 
-#define NIMGS 5
+#define NIMGS 10000
 
 using namespace cv;
 
@@ -38,12 +38,11 @@ int main()
 	dots.makeAllDotsActive(); // only active dots are updated/modified
 	if(NDOTS != tracker.click(cam, dots)) {
 		// quit if not all dots have been clicked on
-		return -2;
+		//return -2;
 	}
 
 	// track dots across NIMGS images and quit demo
-	me3.setRois(dots, Size(ROIW, ROIH), 20e3, 50e3);
-	//me3.setRois(dots, Size(1024, 1024), 20e3, 50e3);
+	me3.setRois(dots, Size(ROIW, ROIH), .1e3, .2e3);
 	me3.start();
 	std::cout << "roi search" << std::endl;
 	for(int i = 1; i <= NIMGS; ++i) {
@@ -55,10 +54,14 @@ double time_us = cvGetTickCount()/cvGetTickFrequency();
 		}
 
 		// track and show the dots
-		tracker.track(cam, dots);
+		if(!tracker.track(cam, dots)) {
+			// not all dots were found
+			//return -4;
+		}
+
 		tracker.draw(cam, dots, img);
 		if(img.empty()) {
-			return -4;
+			return -5;
 		}
 
 		imshow("Dots", img);
@@ -70,8 +73,14 @@ double time_us = cvGetTickCount()/cvGetTickFrequency();
 		// queue up the ROIs to be written to the camera
 		me3.add(dots);
 time_us = cvGetTickCount()/cvGetTickFrequency() - time_us;
-printf("retrieve: %g\n", time_us);
+//printf("retrieve: %g\n", time_us);
+		printf("%d\n", i);
 	}
+
+	std::cout << "done." << std::endl;
+	//Sleep(10000);
+	//me3.set(CV_CAP_PROP_POS_FRAMES, 1);
+	//me3.retrieve(img);
 
 	waitKey();
 	return 0;

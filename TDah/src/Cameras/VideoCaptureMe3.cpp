@@ -46,13 +46,23 @@ VideoCaptureMe3::~VideoCaptureMe3()
 	release();
 }
 
+int VideoCaptureMe3::slotIndex()
+{
+	return _img_nbr % NROI;
+}
+
+int VideoCaptureMe3::bufferIndex()
+{
+	return (_img_nbr - 1) % _buffers;
+}
+
 double VideoCaptureMe3::nextDot()
 {
 	static double next_dot = 0;
 
 	if(next_dot < NROI) {
 		++next_dot;
-		return _roi[_img_nbr % NROI].first;
+		return _roi_in_buffer[bufferIndex()].first;
 	}
 
 	next_dot = 0;
@@ -68,12 +78,28 @@ double VideoCaptureMe3::nextDot()
 * with FG_IMAGE_TAG set as the nParameter argument.
 */
 
-int VideoCaptureMe3::getTag(int img_tag)
+int VideoCaptureMe3::getRoiTag(int img_tag)
 {
 	// don't know how this will work when int is not 32-bits
 	// potential fix might be: (sizeof(int)*8 - 16)
 	CV_DbgAssert(sizeof(int) == 4);
 	return (signed) (((unsigned) img_tag) >> 16);
+}
+
+/**
+* Returns the image tag set by the frame grabber, which is located in
+* the lower 16-bits of the image info tag, see Silicon Software 
+* documentation (FastConfig and SDK) for more info.
+*
+* @param[in] img_info the output value of Fg_getParameter(...)
+* with FG_IMAGE_TAG set as the nParameter argument.
+*/
+
+int VideoCaptureMe3::getFgTag(int img_tag)
+{
+	// don't know how this will work when int is not 32-bits
+	CV_DbgAssert(sizeof(int) == 4);
+	return img_tag & 0xffff;
 }
 
 void VideoCaptureMe3::makeSafeMat(Mat& mat)
@@ -275,6 +301,8 @@ void VideoCaptureMe3::add(const Dots& dots)
 		tag = (*dot)->tag();
 		pixel = (*dot)->pixel();
 		_q.push_back( std::make_pair( tag, calcRoi( pixel ) ) );
+
+		std::cout << "added: " << tag << std::endl;
 	}
 }
 
@@ -320,6 +348,7 @@ bool VideoCaptureMe3::writeRoi(int slot)
 	// write the ROI to the camera
 	tag = _roi[slot].first;
 	roi = &_roi[slot].second;
+	//if(writeParameterSet(_fg, roi, slot, tag, do_init, PORT_A)) { TODO RESTORE
 	if(writeParameterSet(_fg, roi, slot, tag, do_init, PORT_A)) {
 		me3Err("writeRoi");
 		return false;
@@ -348,16 +377,16 @@ bool VideoCaptureMe3::writeRoi(int slot)
 */
 
 bool VideoCaptureMe3::setRois(Dots& dots, cv::Size roi, 
-							  double exposure, double fps)
+							  double exposure, double frame_time)
 {
-	if(!stop()) {
+	if(!stop() && Fg_getLastErrorNumber(_fg) != FG_TRANSFER_NOT_ACTIVE) {
 		me3Err("setRois");
 		return false;
 	}
 
 	// set parameters
 	set(CV_CAP_PROP_EXPOSURE, exposure);
-	set(CV_CAP_PROP_FPS, fps);
+	set(CV_CAP_PROP_FPS, 1e6 / frame_time);
 	buffers(_buffers, roi.width, roi.height);
 
 	// add active dots to the end of the queue
@@ -387,27 +416,12 @@ bool VideoCaptureMe3::setRois(Dots& dots, cv::Size roi,
 	return true;
 }
 
-/*
+
 void VideoCaptureMe3::updateRoiBuffer()
 {
-#if _DEBUG09
-	int tag = _img_nbr;
-	if(Fg_getParameter(_fg, FG_IMAGE_TAG, &tag, PORT_A) != FG_OK) {
-		me3Err("retrieve");
-		return false;
-	}
-
-	tag = getTag(tag);
-	CV_Assert(tag == _roi_in_buffer[k].first);
-#endif
-}
-*/
-
-bool VideoCaptureMe3::updateRoi()
-{
 	// setup the buffer and slot indices
-	int slot = _img_nbr % NROI;
-	int buf = (_img_nbr - 1) % _buffers;
+	int slot = slotIndex();
+	int buf = bufferIndex();
 
 	// record which ROI is in the frame grabber buffer
 	_roi_in_buffer[buf].first = _roi[slot].first;
@@ -415,9 +429,15 @@ bool VideoCaptureMe3::updateRoi()
 	_roi_in_buffer[buf].second.y = _roi[slot].second.RoiPosY;
 	_roi_in_buffer[buf].second.width = _roi[slot].second.RoiWidth;
 	_roi_in_buffer[buf].second.height = _roi[slot].second.RoiHeight;
+}
 
+
+bool VideoCaptureMe3::updateRoiSlot()
+{
 	// write new ROI to camera
 	if(!_q.empty()) {
+		int slot = slotIndex();
+
 		// prepare to write the oldest roi in the queue to the camera
 		_roi[slot].first = _q.front().first;
 		_roi[slot].second.RoiPosX = _q.front().second.x;
@@ -429,9 +449,65 @@ bool VideoCaptureMe3::updateRoi()
 			return false;
 		}
 
+		std::cout << "wrote: " << _roi[slot].first << std::endl;
+
 		// the ROI has been written, remove it from the queue
 		_q.pop_front();
 	}
+
+	return true;
+}
+
+/**
+* Makes sure everything is in sync; the tag returned by FG_IMAGE_TAG
+* (see Silicon Software SDK documentation) should either correspond 
+* to an ROI in the buffer or on the camera, if not, crash the system, 
+* because there is no information on what the ROI was for that tag
+*
+* @note This function can be made stricter by crashing the system if
+* the image requested is no longer in the buffer as well.  Currently,
+* this implementation only looks at the tag associated with the image.
+* The assumption being that even if the image numbers aren't equal,
+* everything up to this point has been kept in sync, so the ROI must
+* be stored internally in either the ROI buffer or the camera data
+* structures.
+*/
+
+bool VideoCaptureMe3::syncBuffer()
+{
+	// get the tag stored with the image number
+	unsigned long int tag = _img_nbr; 
+	if(Fg_getParameter(_fg, FG_IMAGE_TAG, &tag, PORT_A) != FG_OK) {
+		me3Err("retrieve");
+		return false;
+	}
+
+	std::cout << "got: " << _img_nbr << " -- " << 
+	getFgTag(tag) << " -i- " << getRoiTag(tag) << 
+	" -- " << _roi[slotIndex()].first << " -i- " << 
+	_roi_in_buffer[bufferIndex()].first << " -i- " <<
+	Fg_getStatus(_fg, NUMBER_OF_LAST_IMAGE, 0, PORT_A) <<
+	" -- " << Fg_getStatus(_fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A) << 
+	std::endl;
+
+	// the frame grabbber tag (fg_tag) should correspond to an ROI in 
+	// the buffer (buffer_tag) or on the camera (slot_tag)
+
+	int fg_tag = getRoiTag(tag);
+	int slot_tag = _roi[slotIndex()].first;
+	int buffer_tag = _roi_in_buffer[bufferIndex()].first;
+	
+	CV_Assert(fg_tag == buffer_tag || fg_tag == slot_tag);
+	if(fg_tag != buffer_tag) {
+		// the ROI on the camera has overwritten the image 
+		// that was previously in the buffer
+		std::cout << "updating buffer: " << 
+			buffer_tag << " --> " << slot_tag << 
+			std::endl;
+		updateRoiBuffer();
+	}
+
+	_img_nbr = getFgTag(tag) + 1;
 
 	return true;
 }
@@ -578,17 +654,20 @@ bool VideoCaptureMe3::grab()
 
 	// new image grabbed, so update ROI buffer 
 	// and write next ROI in queue to free slot
-	return updateRoi();
+	updateRoiBuffer();
+	return updateRoiSlot();
 }
 
 bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 {
 	// verify ROI in buffer is still valid, otherwise it should
 	// be the ROI stored on the camera
+	if(!syncBuffer()) {
+		return false;
+	}
 
 	// get corresponding ROI and copy data
-	int k = (_img_nbr - 1) % _buffers;
-	Rect& r = _roi_in_buffer[k].second;
+	Rect& r = _roi_in_buffer[bufferIndex()].second;
 	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);
 
 	// create the matrix and set it up so locateROI works correctly
@@ -626,14 +705,26 @@ bool VideoCaptureMe3::set(int prop, double value)
 
 		case CV_CAP_PROP_FPS:
 			// set the frame time
-			for(size_t i = 0; i < _roi.size(); ++i)
+			for(size_t i = 0; i < _roi.size(); ++i) {
 				_roi[i].second.FrameTimeInMicroSec = 1e6 / value;
+			}
+
+			for(size_t i = 0; i < _roi.size(); ++i) {
+				if(!writeRoi(i))
+					return false;
+			}
 			return true;
 
 		case CV_CAP_PROP_EXPOSURE:
 			// set the exposure time
-			for(size_t i = 0; i < _roi.size(); ++i)
+			for(size_t i = 0; i < _roi.size(); ++i) {
 				_roi[i].second.ExposureInMicroSec = value;
+			}
+
+			for(size_t i = 0; i < _roi.size(); ++i) {
+				if(!writeRoi(i))
+					return false;
+			}
 			return true;
 
 		case FG_TRIGGERMODE:
