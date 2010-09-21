@@ -218,11 +218,16 @@ bool Camera::grab(int img_nbr, Dots& dots)
 	int tag;
 	double ts;
 
+	UTIL( "Camera::grab( img_nbr )" );
+	START();
+
 	// clear all active dots
 	dots.clearActiveDots();
 
 	// set the desired image number and grab the image
 	if(!_vc->set(CV_CAP_PROP_POS_FRAMES, img_nbr) || !_vc->grab()) {
+		MSG( "setting image number or grabbing failed" );
+		STOP();
 		return false;
 	}
 
@@ -239,6 +244,7 @@ bool Camera::grab(int img_nbr, Dots& dots)
 		dots.imageNbr(tag) = img_nbr;
 	}
 
+	STOP();
 	return true;
 }
 
@@ -248,9 +254,14 @@ bool Camera::grab(Dots& dots)
 	double ts;
 	static int img_nbr = 0;
 
+	UTIL( "Camera::grab" );
+	START();
+
 	// clear all active dots and grab the next image
 	dots.clearActiveDots();
 	if(!_vc->grab()) {
+		MSG( "grab failed" );
+		STOP();
 		return false;
 	}
 
@@ -267,6 +278,7 @@ bool Camera::grab(Dots& dots)
 		dots.imageNbr(tag) = img_nbr;
 	}
 
+	STOP();
 	return true;
 }
 

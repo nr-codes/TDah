@@ -33,8 +33,9 @@ Dots::Dots(int n)
 */
 void Dots::makeDots(int n)
 {
-	// assign a default dot
+	// reserve space
 	_dots.assign(n, Dot());
+	_active_dots.reserve(n);
 
 	// tag each dot (we're a friend class)
 	for(int i = 0; i < n; ++i) _dots[i]._tag = i;
@@ -66,6 +67,9 @@ bool Dots::isDotActive(int tag) const
 
 void Dots::makeDotActive(int tag)
 {
+	UTIL( "Dots::makeDotActive" );
+	START();
+
 	if(_dots.at(tag).isActive()) {
 		// return if tag is already active
 		return;
@@ -73,6 +77,8 @@ void Dots::makeDotActive(int tag)
 
 	_dots[tag]._active = true;
 	_active_dots.push_back(&_dots[tag]);
+
+	STOP();
 }
 
 /**
@@ -93,11 +99,16 @@ void Dots::makeAllDotsActive()
 */
 void Dots::clearActiveDots()
 {
+	UTIL( "Dots::clearActiveDots" );
+	START();
+
 	_active_dots.clear();
 
 	for(size_t i = 0, n = _dots.size(); i < n; ++i) {
 		_dots[i]._active = false;
 	}
+
+	STOP();
 }
 
 /**
