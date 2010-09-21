@@ -1,13 +1,16 @@
 #ifndef __COMMON_H_
 #define __COMMON_H_
 
+#include <vector>
 #include <cv.h>
 
 #define BAD_TAG -1
 
 enum {
 	TDAH_PROP_IS_ROI = -1700, 
-	TDAH_PROP_NEXT_DOT
+	TDAH_PROP_NEXT_DOT,
+	TDAH_PROP_LAST_GRABBED_IMAGE,
+	TDAP_PROP_LAST_TRANSFERRED_IMAGE
 };
 
 class Dot;
@@ -21,51 +24,53 @@ typedef const std::vector<Dot*> ActiveDots;
 
 class Util {
 public:
-	Util(const char* func_name)
+	Util(const char* func_name, size_t n = 100)
 	{
-		_s = func_name;
+		_func = func_name;
+		_start.reserve(n);
+		_stop.reserve(n);
 		trace();
 	};
 
 	void start()
 	{
-		_t = cv::getTickCount() / ( cv::getTickFrequency() * 1e-3 );
+		_start.push_back( static_cast<double> ( cv::getTickCount() ) );
 	};
 
 	void stop()
 	{
-		_t = cv::getTickCount() / ( cv::getTickFrequency() * 1e-3 ) - _t;
-		printf("%s: %0.5g us\n", _s, _t);
+		_stop.push_back( static_cast<double> ( cv::getTickCount() ) );
 	};
+
+	void reset()
+	{
+		_start.clear();
+		_stop.clear();
+	}
+
+	void printResults()
+	{
+		double freq = 1e-6 * cv::getTickFrequency();
+		cv::Mat time =  (cv::Mat(_stop) - cv::Mat(_start)) / freq;
+		cv::MatConstIterator_<double> it;
+		for(it = time.begin<double>(); it < time.end<double>(); ++it) {
+			printf("%0.5g us\n", (*it));
+		}
+	}
 
 	void trace()
 	{
-		printf("%s\n", _s);
+		printf("%s\n", _func);
 	};
 
 	void msg(const char* msg)
 	{
-		printf("%s: %s");
+		printf("%s: %s", _func, msg);
 	};
 
 private:
-	double _t;
-	const char* _s;
+	std::vector<double> _start, _stop;
+	const char* _func;
 };
-
-#define _TRACE
-#if defined( _TRACE )
-	#define UTIL( func ) Util u983247( (func) )
-	#define TRACE() u983247.trace()
-	#define START() u983247.start()
-	#define STOP() u983247.stop()
-	#define MSG( m ) u983247.msg( (m) )
-#else
-	#define UTIL( func )
-	#define TRACE()
-	#define START()
-	#define STOP()
-	#define MSG( m )
-#endif
 
 #endif /* __COMMON_H_ */

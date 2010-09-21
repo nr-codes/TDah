@@ -38,14 +38,8 @@ bool Tracker::track(Camera& cam, Dots& dots)
 	Mat img;
 	ActiveDots::const_iterator dot, stop;
 
-	UTIL( "Tracker::track" );
-	START();
-
 	found_all = true;
 	if(!cam.retrieve(img)) {
-
-		MSG( "retrieve failed" );
-		STOP();
 		return false;
 	}
 
@@ -57,13 +51,10 @@ bool Tracker::track(Camera& cam, Dots& dots)
 		dots.world(tag) = cam.pixelToWorld(dots.pixel(tag));
 
 		if(!dots.found(tag)) {
-			MSG( "not all dots found" );
-			STOP();
 			found_all = false;
 		}
 	}
 
-	STOP();
 	return found_all;
 }
 

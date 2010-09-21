@@ -8,10 +8,10 @@
 #include "Cameras/VideoCaptureMe3.h"
 
 #define NDOTS 2
-#define ROIW 100
-#define ROIH 100
+#define ROIW 20
+#define ROIH 20
 
-#define NIMGS 100
+#define NIMGS 1000
 
 using namespace cv;
 
@@ -33,7 +33,7 @@ int main()
 
 	// choose a video source and tracking algorithm
 	VideoCaptureMe3 me3(0); // use the microEnable 3 frame grabber in FastConfig mode
-	TrackDot alg(ROIW, ROIH, CV_THRESH_BINARY, 75, 0, ROIW / 2); // use a dot tracking alg
+	TrackDot alg(ROIW, ROIH, CV_THRESH_BINARY, 247, 0, ROIW / 2); // use a dot tracking alg
 
 	// setup the tracking system
 	Dots dots(NDOTS); // create n dots to track
@@ -45,7 +45,7 @@ int main()
 		return -1;
 	}
 
-	me3.set(CV_CAP_PROP_EXPOSURE, .8e3);
+	me3.set(CV_CAP_PROP_EXPOSURE, .04e3);
 
 	// get initial positions of all NDOTS by user-clicks
 	dots.makeAllDotsActive(); // only active dots are updated/modified
@@ -56,20 +56,22 @@ int main()
 
 	// track dots across NIMGS images and quit demo
 	if(NDOTS == 2) {
-		me3.set2Rois(dots, Size(ROIW, ROIH), .8e3, 1e3);
+		me3.set2Rois(dots, Size(ROIW, ROIH), .04e3, .5e3);
 	}
 	else {
-		me3.setRois(dots, Size(ROIW, ROIH), .8e3, 1e3);
+		me3.setRois(dots, Size(ROIW, ROIH), .04e3, .5e3);
 	}
 
+	//Util timer("main", NIMGS);
 	me3.start();
-	std::cout << "roi start\n" << std::endl;
+	bool toggle = true;
 	for(int i = 1; i <= NIMGS; ++i) {
-		printf("%d\n", i);
+		//timer.start();
+		me3.set(FG_DIGIO_OUTPUT, toggle);
+		toggle = !toggle;
 
 		// grab the next image according to the desired image number
 		// and add the dots to the active set
-double time_us = cvGetTickCount()/cvGetTickFrequency();	
 		if(!cam.grab(i, dots)) {
 			return -3;
 		}
@@ -82,9 +84,8 @@ double time_us = cvGetTickCount()/cvGetTickFrequency();
 
 		// queue up the ROIs to be written to the camera
 		me3.add(dots);
-time_us = cvGetTickCount()/cvGetTickFrequency() - time_us;
-printf("retrieve: %g\n", time_us);
 
+/*
 		tracker.draw(cam, dots, img);
 		if(img.empty()) {
 			return -5;
@@ -92,28 +93,14 @@ printf("retrieve: %g\n", time_us);
 
 		imshow("Dots", img);
 		waitKey(1);
+*/
 
 		// print out location information of active dots
 		//std::cout << tracker.str(dots) << std::endl;
+		//timer.stop();
 	}
 
-	me3.stop();
-
-	std::cout << "done." << std::endl;
-	Sleep(1000);
-	me3.set(CV_CAP_PROP_POS_FRAMES, 1);
-	if(me3.retrieve(img))
-		std::cout << "img in buffer" << std::endl;
-	else 
-		std::cout << "img not in buffer" << std::endl;
-
-	std::cout << "getting image that should be in buffer" << std::endl;
-	me3.set(CV_CAP_PROP_POS_FRAMES, 85);
-	if(me3.retrieve(img))
-		std::cout << "img in buffer" << std::endl;
-	else 
-		std::cout << "img not in buffer" << std::endl;
-
+	//timer.printResults();
 	waitKey();
 	return 0;
 }

@@ -156,9 +156,6 @@ bool TrackDot::find(const Mat& img, const Dot& dot, Point2d& new_loc)
 	Point2d& prev_loc = dot.pixel();
 	Rect roi = calcRoi(prev_loc, img.size());
 
-	UTIL("TrackDot::find");
-	START();
-
 	// binarize image
 	threshold(img, roi, pixel);
 
@@ -194,13 +191,10 @@ bool TrackDot::find(const Mat& img, const Dot& dot, Point2d& new_loc)
 				new_loc = Point2d(tl.x + p.x, tl.y + p.y);
 			}
 
-			STOP();
 			return true;
 		}
 	}
 
 	new_loc = prev_loc;
-
-	STOP();
 	return false;
 }

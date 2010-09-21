@@ -456,9 +456,6 @@ void VideoCaptureMe3::updateRoiBuffer()
 
 bool VideoCaptureMe3::updateRoiSlot()
 {
-	UTIL( "VideoCaptureMe3::updateRoiSlot" );
-	START();
-
 	// write new ROI to camera
 	if(!_q.empty()) {
 		int slot = slotIndex();
@@ -471,8 +468,6 @@ bool VideoCaptureMe3::updateRoiSlot()
 		// write the roi to the camera
 		if(!writeRoi(slot)) {
 			me3Err("grab");
-
-			STOP();
 			return false;
 		}
 
@@ -480,7 +475,6 @@ bool VideoCaptureMe3::updateRoiSlot()
 		_q.pop_front();
 	}
 
-	STOP();
 	return true;
 }
 
@@ -646,15 +640,10 @@ void VideoCaptureMe3::release()
 
 bool VideoCaptureMe3::grab()
 {
-	UTIL( "VideoCaptureMe3::grab" );
-	START();
-
 	// send software trigger, if necessary
 	if(_trigger == ASYNC_SOFTWARE_TRIGGER && 
 		!Fg_sendSoftwareTrigger(_fg, PORT_A)) {
 		me3Err("grab");
-
-		STOP();
 		return false;
 	}
 
@@ -662,8 +651,6 @@ bool VideoCaptureMe3::grab()
 	_img_nbr = Fg_getLastPicNumberBlocking(_fg, _img_nbr, PORT_A, TIMEOUT);
 	if(_img_nbr < FG_OK) {
 		me3Err("grab");
-
-		STOP();
 		return false;
 	}
 
@@ -674,16 +661,11 @@ bool VideoCaptureMe3::grab()
 	// new image grabbed, so update ROI buffer 
 	// and write next ROI in queue to free slot
 	updateRoiBuffer();
-
-	STOP();
 	return updateRoiSlot();
 }
 
 bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 {
-	UTIL( "VideoCaptureMe3::retrieve" );
-	START();
-
 	// get corresponding ROI and copy data
 	Rect& r = _roi_in_buffer[bufferIndex()].roi;
 	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);
@@ -692,8 +674,6 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 	if(!isRoiInBuffer()) {
 		// ROI does not match up with image, but send back
 		// image just in case the user does not care
-
-		STOP();
 		return false;
 	}
 
@@ -701,9 +681,6 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 	// warning: this matrix must only be accessed within the data field
 	// i.e., image.data
 	makeUnsafeMat(image, r.tl());
-
-
-	STOP();
 	return true;
 }
 
@@ -753,6 +730,14 @@ bool VideoCaptureMe3::set(int prop, double value)
 			for(size_t i = 0; i < _roi.size(); ++i) {
 				if(!writeRoi(i))
 					return false;
+			}
+			return true;
+
+		case FG_DIGIO_OUTPUT:
+			rc = static_cast<int> (value);
+			if(Fg_setParameter(_fg, FG_DIGIO_OUTPUT, &rc, PORT_A) != FG_OK) {
+				me3Err("set");
+				return false;
 			}
 			return true;
 
@@ -853,6 +838,14 @@ double VideoCaptureMe3::get(int prop)
 			rc = _roi[0].roi.ExposureInMicroSec;
 			break;
 
+		case FG_DIGIO_OUTPUT:
+			if(Fg_getParameter(_fg, FG_DIGIO_OUTPUT, &ts, PORT_A) != FG_OK) {
+				me3Err("get");
+				return false;
+			}
+			rc = static_cast<double> (ts);
+			break;
+
 		case FG_TRIGGERMODE:
 			// get the trigger mode (see Silicon Software documentation)
 			rc = static_cast<double> (_trigger);
@@ -866,6 +859,16 @@ double VideoCaptureMe3::get(int prop)
 		case FG_CAMERA_LINK_CAMTYP:
 			// get the tap data transfer type
 			rc = static_cast<double> (_tap);
+			break;
+
+		case TDAH_PROP_LAST_GRABBED_IMAGE:
+			ts = Fg_getStatus(_fg, NUMBER_OF_LAST_IMAGE, 0, PORT_A);
+			rc = static_cast<double> (ts);
+			break;
+
+		case TDAP_PROP_LAST_TRANSFERRED_IMAGE:
+			ts = Fg_getStatus(_fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A);
+			rc = static_cast<double> (ts);
 			break;
 	}
 
