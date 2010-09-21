@@ -33,22 +33,14 @@ Dots::Dots(int n)
 */
 void Dots::makeDots(int n)
 {
-	Dot d;
-
-	// deallocate previous space
-	_dots.~vector();
-	_active_dots.~vector();
-
-	// allocate new space
-	_dots.reserve(n);
-	_active_dots.reserve(n);
-	
 	// assign a default dot
-	d._active = false;
-	_dots.assign(n, d);
+	_dots.assign(n, Dot());
 
 	// tag each dot (we're a friend class)
 	for(int i = 0; i < n; ++i) _dots[i]._tag = i;
+
+	// erase active dots
+	clearActiveDots();
 }
 
 bool Dots::isDotActive(int tag) const
@@ -72,7 +64,6 @@ bool Dots::isDotActive(int tag) const
 * @param[in] tag a unique value that identifies a dot
 */
 
-#include <iostream>
 void Dots::makeDotActive(int tag)
 {
 	if(_dots.at(tag).isActive()) {
