@@ -114,6 +114,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\include&quot;;&quot;C:\Program Files\SiliconSoftware3.2\include&quot;;C:\OpenCV2.1\include\opencv"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"

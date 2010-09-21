@@ -7,22 +7,33 @@
 #include "TrackingAlgs/TrackDot.h"
 #include "Cameras/VideoCaptureMe3.h"
 
-#define NDOTS 5
-#define ROIW 24
-#define ROIH 24
+#define NDOTS 2
+#define ROIW 100
+#define ROIH 100
 
-#define NIMGS 10000
+#define NIMGS 100
 
 using namespace cv;
 
 int main()
 {
+	// change priority and thread class  -- WINDOWS only --
+	int rc = SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS );
+	if(rc == FALSE) {
+      return GetLastError();
+	}
+
+	rc = SetThreadPriority(GetCurrentThread(), HIGH_PRIORITY_CLASS);
+	if(rc == FALSE) {
+      return GetLastError();
+   }
+
 	// all images are Mat objects in OpenCV's C++ documentation
 	Mat img;
 
 	// choose a video source and tracking algorithm
 	VideoCaptureMe3 me3(0); // use the microEnable 3 frame grabber in FastConfig mode
-	TrackDot alg(ROIW, ROIH, CV_THRESH_BINARY_INV, 24, 0, ROIW / 2); // use a dot tracking alg
+	TrackDot alg(ROIW, ROIH, CV_THRESH_BINARY, 75, 0, ROIW / 2); // use a dot tracking alg
 
 	// setup the tracking system
 	Dots dots(NDOTS); // create n dots to track
@@ -34,21 +45,31 @@ int main()
 		return -1;
 	}
 
+	me3.set(CV_CAP_PROP_EXPOSURE, .8e3);
+
 	// get initial positions of all NDOTS by user-clicks
 	dots.makeAllDotsActive(); // only active dots are updated/modified
 	if(NDOTS != tracker.click(cam, dots)) {
 		// quit if not all dots have been clicked on
-		//return -2;
+		return -2;
 	}
 
 	// track dots across NIMGS images and quit demo
-	me3.setRois(dots, Size(ROIW, ROIH), .1e3, .2e3);
+	if(NDOTS == 2) {
+		me3.set2Rois(dots, Size(ROIW, ROIH), .8e3, 1e3);
+	}
+	else {
+		me3.setRois(dots, Size(ROIW, ROIH), .8e3, 1e3);
+	}
+
 	me3.start();
-	std::cout << "roi search" << std::endl;
+	std::cout << "roi start\n" << std::endl;
 	for(int i = 1; i <= NIMGS; ++i) {
-double time_us = cvGetTickCount()/cvGetTickFrequency();	
+		printf("%d\n", i);
+
 		// grab the next image according to the desired image number
 		// and add the dots to the active set
+double time_us = cvGetTickCount()/cvGetTickFrequency();	
 		if(!cam.grab(i, dots)) {
 			return -3;
 		}
@@ -56,8 +77,13 @@ double time_us = cvGetTickCount()/cvGetTickFrequency();
 		// track and show the dots
 		if(!tracker.track(cam, dots)) {
 			// not all dots were found
-			//return -4;
+			return -4;
 		}
+
+		// queue up the ROIs to be written to the camera
+		me3.add(dots);
+time_us = cvGetTickCount()/cvGetTickFrequency() - time_us;
+printf("retrieve: %g\n", time_us);
 
 		tracker.draw(cam, dots, img);
 		if(img.empty()) {
@@ -69,18 +95,24 @@ double time_us = cvGetTickCount()/cvGetTickFrequency();
 
 		// print out location information of active dots
 		//std::cout << tracker.str(dots) << std::endl;
-
-		// queue up the ROIs to be written to the camera
-		me3.add(dots);
-time_us = cvGetTickCount()/cvGetTickFrequency() - time_us;
-//printf("retrieve: %g\n", time_us);
-		printf("%d\n", i);
 	}
 
+	me3.stop();
+
 	std::cout << "done." << std::endl;
-	//Sleep(10000);
-	//me3.set(CV_CAP_PROP_POS_FRAMES, 1);
-	//me3.retrieve(img);
+	Sleep(1000);
+	me3.set(CV_CAP_PROP_POS_FRAMES, 1);
+	if(me3.retrieve(img))
+		std::cout << "img in buffer" << std::endl;
+	else 
+		std::cout << "img not in buffer" << std::endl;
+
+	std::cout << "getting image that should be in buffer" << std::endl;
+	me3.set(CV_CAP_PROP_POS_FRAMES, 85);
+	if(me3.retrieve(img))
+		std::cout << "img in buffer" << std::endl;
+	else 
+		std::cout << "img not in buffer" << std::endl;
 
 	waitKey();
 	return 0;

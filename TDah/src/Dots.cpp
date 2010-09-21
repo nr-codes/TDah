@@ -71,6 +71,8 @@ bool Dots::isDotActive(int tag) const
 *
 * @param[in] tag a unique value that identifies a dot
 */
+
+#include <iostream>
 void Dots::makeDotActive(int tag)
 {
 	if(_dots.at(tag).isActive()) {

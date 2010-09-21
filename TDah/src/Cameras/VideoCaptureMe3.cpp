@@ -1,3 +1,4 @@
+#include <limits>
 #include <iostream>
 
 #include "Dots.h"
@@ -41,6 +42,14 @@ VideoCaptureMe3::VideoCaptureMe3(int device)
 	open(device);
 }
 
+template <class T> 
+VideoCaptureMe3::Roi<T>::Roi(int tag, int img_nbr, T &roi)
+{
+	this->tag = tag;
+	this->img_nbr = img_nbr;
+	this->roi = roi;
+}
+
 VideoCaptureMe3::~VideoCaptureMe3()
 {
 	release();
@@ -62,7 +71,7 @@ double VideoCaptureMe3::nextDot()
 
 	if(next_dot < NROI) {
 		++next_dot;
-		return _roi_in_buffer[bufferIndex()].first;
+		return _roi_in_buffer[bufferIndex()].tag;
 	}
 
 	next_dot = 0;
@@ -95,7 +104,7 @@ int VideoCaptureMe3::getRoiTag(int img_tag)
 * with FG_IMAGE_TAG set as the nParameter argument.
 */
 
-int VideoCaptureMe3::getFgTag(int img_tag)
+int VideoCaptureMe3::getFgImgTag(int img_tag)
 {
 	// don't know how this will work when int is not 32-bits
 	CV_DbgAssert(sizeof(int) == 4);
@@ -142,9 +151,10 @@ void VideoCaptureMe3::fastConfigDefaults()
 	roi.dComp = 0; // never used
 	roi.dLinlog1 = 0; // never used
 	roi.dLinlog2 = 0; // never used
-	_roi.assign(NROI, std::make_pair(0, roi));
+	_roi.assign(NROI, Roi<FC_ParameterSet>(0, 0, roi));
 
-	_roi_in_buffer.assign(_buffers, std::make_pair(BAD_TAG, Rect(0, 0, 0, 0)));
+	_roi_in_buffer.assign(_buffers, 
+		Roi<Rect>(BAD_TAG, 0, Rect(0, 0, 0, 0)));
 	_q.clear();
 }
 
@@ -168,13 +178,14 @@ bool VideoCaptureMe3::buffers(int n, int width, int height)
 
 	// set new parameters
 	_buffers = n;
-	_roi_in_buffer.assign(_buffers, std::make_pair(BAD_TAG, Rect(0, 0, 0, 0)));
+	_roi_in_buffer.assign(_buffers, 
+		Roi<Rect>(BAD_TAG, 0, Rect(0, 0, 0, 0)));
 
 	bool all_written = true;
 	for(size_t i = 0; i < _roi.size(); ++i) {
 		// width must be multiple of 4 (see Silicon Software FastConfig doc)
-		_roi[i].second.RoiWidth = width & MULT_OF_FOUR_MASK;
-		_roi[i].second.RoiHeight = height;
+		_roi[i].roi.RoiWidth = width & MULT_OF_FOUR_MASK;
+		_roi[i].roi.RoiHeight = height;
 
 		if(!writeRoi(i)) {
 			// memory was successfully allocated, but an ROI
@@ -204,7 +215,6 @@ bool VideoCaptureMe3::start(int n)
 		return false;
 	}
 
-	_img_nbr = 1;
 	return true;
 }
 
@@ -215,12 +225,13 @@ bool VideoCaptureMe3::start(int n)
 
 bool VideoCaptureMe3::stop()
 {
-	// Fg_stopAcquire crashes the program, so using Fg_stopAcquireEx
-	if(Fg_stopAcquireEx(_fg, PORT_A, _mem, STOP_SYNC) != FG_OK) {
+	//if(Fg_stopAcquireEx(_fg, PORT_A, _mem, STOP_SYNC) != FG_OK) {
+	if(Fg_stopAcquire(_fg, PORT_A) != FG_OK) {
 		me3Err("stop");
 		return false;
 	}
 
+	_img_nbr = 1;
 	return true;
 }
 
@@ -265,8 +276,8 @@ Rect VideoCaptureMe3::calcRoi(const Point2d& pixel) const
 {
 	int x = cv::saturate_cast<int> (pixel.x);
 	int y = cv::saturate_cast<int> (pixel.y);
-	int rw = _roi[0].second.RoiWidth;
-	int rh = _roi[0].second.RoiHeight;
+	int rw = _roi[0].roi.RoiWidth;
+	int rh = _roi[0].roi.RoiHeight;
 
 	// make sure 0 < x < max width
 	x = std::min(std::max(0, x - rw / 2), FC_MAX_WIDTH - rw);
@@ -300,9 +311,7 @@ void VideoCaptureMe3::add(const Dots& dots)
 	for(dot = a.begin(); dot < a.end(); ++dot) {		
 		tag = (*dot)->tag();
 		pixel = (*dot)->pixel();
-		_q.push_back( std::make_pair( tag, calcRoi( pixel ) ) );
-
-		std::cout << "added: " << tag << std::endl;
+		_q.push_back( Roi<Rect>( tag, _img_nbr, calcRoi( pixel ) ) );
 	}
 }
 
@@ -320,8 +329,8 @@ void VideoCaptureMe3::remove(int tag)
 		_q.clear();
 	}
 	else {
-		std::deque< std::pair< int, cv::Rect> >::const_iterator it;
-		for(it = _q.begin(); it < _q.end() && (*it).first != tag; ++it);
+		std::deque< Roi<Rect> >::const_iterator it;
+		for(it = _q.begin(); it < _q.end() && (*it).tag != tag; ++it);
 		if(it != _q.end())
 			_q.erase(it);
 	}
@@ -346,14 +355,28 @@ bool VideoCaptureMe3::writeRoi(int slot)
 	do_init = _trigger == ASYNC_SOFTWARE_TRIGGER || _img_nbr == 1;
 
 	// write the ROI to the camera
-	tag = _roi[slot].first;
-	roi = &_roi[slot].second;
+	tag = _roi[slot].tag;
+	roi = &_roi[slot].roi;
 	//if(writeParameterSet(_fg, roi, slot, tag, do_init, PORT_A)) { TODO RESTORE
 	if(writeParameterSet(_fg, roi, slot, tag, do_init, PORT_A)) {
 		me3Err("writeRoi");
 		return false;
 	}
 
+	// record when the ROI was written to the camera
+	_roi[slot].img_nbr = _img_nbr;
+
+	return true;
+}
+
+bool VideoCaptureMe3::set2Rois(const Dots& dots, const cv::Size& roi, 
+							  double exposure, double frame_time)
+{
+	if(!setRois(dots, roi, exposure, frame_time)) {
+		return false;
+	}
+
+	add(dots);
 	return true;
 }
 
@@ -376,7 +399,7 @@ bool VideoCaptureMe3::writeRoi(int slot)
 * or an external trigger source.
 */
 
-bool VideoCaptureMe3::setRois(Dots& dots, cv::Size roi, 
+bool VideoCaptureMe3::setRois(const Dots& dots, const cv::Size& roi, 
 							  double exposure, double frame_time)
 {
 	if(!stop() && Fg_getLastErrorNumber(_fg) != FG_TRANSFER_NOT_ACTIVE) {
@@ -399,9 +422,9 @@ bool VideoCaptureMe3::setRois(Dots& dots, cv::Size roi,
 			int slot = seq[i];
 
 			// write element from queue and repeat sequence if _q.size() < NROI
-			_roi[slot].first = _q[i % _q.size()].first;
-			_roi[slot].second.RoiPosX = _q[i % _q.size()].second.x;
-			_roi[slot].second.RoiPosY = _q[i % _q.size()].second.y;
+			_roi[slot].tag = _q[i % _q.size()].tag;
+			_roi[slot].roi.RoiPosX = _q[i % _q.size()].roi.x;
+			_roi[slot].roi.RoiPosY = _q[i % _q.size()].roi.y;
 
 			if(!writeRoi(slot)) {
 				me3Err("setRois");
@@ -416,21 +439,20 @@ bool VideoCaptureMe3::setRois(Dots& dots, cv::Size roi,
 	return true;
 }
 
-
 void VideoCaptureMe3::updateRoiBuffer()
 {
 	// setup the buffer and slot indices
 	int slot = slotIndex();
 	int buf = bufferIndex();
 
-	// record which ROI is in the frame grabber buffer
-	_roi_in_buffer[buf].first = _roi[slot].first;
-	_roi_in_buffer[buf].second.x = _roi[slot].second.RoiPosX;
-	_roi_in_buffer[buf].second.y = _roi[slot].second.RoiPosY;
-	_roi_in_buffer[buf].second.width = _roi[slot].second.RoiWidth;
-	_roi_in_buffer[buf].second.height = _roi[slot].second.RoiHeight;
+	// update which ROI is in the frame grabber buffer
+	_roi_in_buffer[buf].img_nbr = _img_nbr;
+	_roi_in_buffer[buf].tag = _roi[slot].tag;
+	_roi_in_buffer[buf].roi.x = _roi[slot].roi.RoiPosX;
+	_roi_in_buffer[buf].roi.y = _roi[slot].roi.RoiPosY;
+	_roi_in_buffer[buf].roi.width = _roi[slot].roi.RoiWidth;
+	_roi_in_buffer[buf].roi.height = _roi[slot].roi.RoiHeight;
 }
-
 
 bool VideoCaptureMe3::updateRoiSlot()
 {
@@ -439,17 +461,15 @@ bool VideoCaptureMe3::updateRoiSlot()
 		int slot = slotIndex();
 
 		// prepare to write the oldest roi in the queue to the camera
-		_roi[slot].first = _q.front().first;
-		_roi[slot].second.RoiPosX = _q.front().second.x;
-		_roi[slot].second.RoiPosY = _q.front().second.y;
+		_roi[slot].tag = _q.front().tag;
+		_roi[slot].roi.RoiPosX = _q.front().roi.x;
+		_roi[slot].roi.RoiPosY = _q.front().roi.y;
 
 		// write the roi to the camera
 		if(!writeRoi(slot)) {
 			me3Err("grab");
 			return false;
 		}
-
-		std::cout << "wrote: " << _roi[slot].first << std::endl;
 
 		// the ROI has been written, remove it from the queue
 		_q.pop_front();
@@ -473,43 +493,25 @@ bool VideoCaptureMe3::updateRoiSlot()
 * structures.
 */
 
-bool VideoCaptureMe3::syncBuffer()
+bool VideoCaptureMe3::isRoiInBuffer()
 {
 	// get the tag stored with the image number
 	unsigned long int tag = _img_nbr; 
 	if(Fg_getParameter(_fg, FG_IMAGE_TAG, &tag, PORT_A) != FG_OK) {
-		me3Err("retrieve");
+		me3Err("isRoiInBuffer");
 		return false;
 	}
 
-	std::cout << "got: " << _img_nbr << " -- " << 
-	getFgTag(tag) << " -i- " << getRoiTag(tag) << 
-	" -- " << _roi[slotIndex()].first << " -i- " << 
-	_roi_in_buffer[bufferIndex()].first << " -i- " <<
-	Fg_getStatus(_fg, NUMBER_OF_LAST_IMAGE, 0, PORT_A) <<
-	" -- " << Fg_getStatus(_fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A) << 
-	std::endl;
-
-	// the frame grabbber tag (fg_tag) should correspond to an ROI in 
-	// the buffer (buffer_tag) or on the camera (slot_tag)
+	int buf = bufferIndex();
+	int buf_img = _roi_in_buffer[buf].img_nbr;
+	int buf_tag = _roi_in_buffer[buf].tag;
+	int buf_img_tag = getFgImgTag(_roi_in_buffer[buf].img_nbr) - 1;
 
 	int fg_tag = getRoiTag(tag);
-	int slot_tag = _roi[slotIndex()].first;
-	int buffer_tag = _roi_in_buffer[bufferIndex()].first;
+	int fg_img_tag = getFgImgTag(tag);
 	
-	CV_Assert(fg_tag == buffer_tag || fg_tag == slot_tag);
-	if(fg_tag != buffer_tag) {
-		// the ROI on the camera has overwritten the image 
-		// that was previously in the buffer
-		std::cout << "updating buffer: " << 
-			buffer_tag << " --> " << slot_tag << 
-			std::endl;
-		updateRoiBuffer();
-	}
-
-	_img_nbr = getFgTag(tag) + 1;
-
-	return true;
+	return _img_nbr == buf_img && buf_tag == fg_tag && 
+		buf_img_tag == fg_img_tag;
 }
 
 /**
@@ -554,7 +556,7 @@ bool VideoCaptureMe3::open(int device)
 		goto _err;
 
 	// allocate the buffers (which also writes the ROIs to the camera)
-	if(!buffers(_buffers, _roi[0].second.RoiWidth, _roi[0].second.RoiHeight))
+	if(!buffers(_buffers, _roi[0].roi.RoiWidth, _roi[0].roi.RoiHeight))
 		goto _err;
 
 	// start the camera
@@ -652,6 +654,10 @@ bool VideoCaptureMe3::grab()
 		return false;
 	}
 
+	// TODO before returning should check that 
+	// ROI in buffer before still equals ROI in buffer
+	// after
+
 	// new image grabbed, so update ROI buffer 
 	// and write next ROI in queue to free slot
 	updateRoiBuffer();
@@ -660,20 +666,22 @@ bool VideoCaptureMe3::grab()
 
 bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 {
-	// verify ROI in buffer is still valid, otherwise it should
-	// be the ROI stored on the camera
-	if(!syncBuffer()) {
+	// get corresponding ROI and copy data
+	Rect& r = _roi_in_buffer[bufferIndex()].roi;
+	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);
+	image = Mat(r.height, r.width, CV_8UC1, data);
+
+	if(!isRoiInBuffer()) {
+		// ROI does not match up with image, but send back
+		// image just in case the user does not care
 		return false;
 	}
 
-	// get corresponding ROI and copy data
-	Rect& r = _roi_in_buffer[bufferIndex()].second;
-	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);
-
-	// create the matrix and set it up so locateROI works correctly
+	// modify the matrix and set it up so locateROI works correctly
 	// warning: this matrix must only be accessed within the data field
-	image = Mat(r.height, r.width, CV_8UC1, data);
+	// i.e., image.data
 	makeUnsafeMat(image, r.tl());
+
 
 	return true;
 }
@@ -691,22 +699,22 @@ bool VideoCaptureMe3::set(int prop, double value)
 		case CV_CAP_PROP_FRAME_WIDTH: // assumes all heights are the same
 			// update width and resize memory
 			return buffers(_buffers, static_cast<int> (value), 
-				_roi[0].second.RoiHeight);
+				_roi[0].roi.RoiHeight);
 
 		case CV_CAP_PROP_FRAME_HEIGHT: // assumes all widths are the same
 			// update height and resize memory
-			return buffers(_buffers, _roi[0].second.RoiWidth, 
+			return buffers(_buffers, _roi[0].roi.RoiWidth, 
 				static_cast<int> (value));
 
 		case CV_CAP_PROP_FRAME_COUNT: // assumes all widths/heights are equal
 			// update buffers and resize memory
 			return buffers(static_cast<int> (value), 
-				_roi[0].second.RoiWidth, _roi[0].second.RoiHeight);
+				_roi[0].roi.RoiWidth, _roi[0].roi.RoiHeight);
 
 		case CV_CAP_PROP_FPS:
 			// set the frame time
 			for(size_t i = 0; i < _roi.size(); ++i) {
-				_roi[i].second.FrameTimeInMicroSec = 1e6 / value;
+				_roi[i].roi.FrameTimeInMicroSec = 1e6 / value;
 			}
 
 			for(size_t i = 0; i < _roi.size(); ++i) {
@@ -718,7 +726,7 @@ bool VideoCaptureMe3::set(int prop, double value)
 		case CV_CAP_PROP_EXPOSURE:
 			// set the exposure time
 			for(size_t i = 0; i < _roi.size(); ++i) {
-				_roi[i].second.ExposureInMicroSec = value;
+				_roi[i].roi.ExposureInMicroSec = value;
 			}
 
 			for(size_t i = 0; i < _roi.size(); ++i) {
@@ -778,9 +786,9 @@ double VideoCaptureMe3::get(int prop)
 
 		case TDAH_PROP_IS_ROI:
 			
-			rc = static_cast<double> 
-				(_roi[0].second.RoiHeight != FC_MAX_HEIGHT ||
-				_roi[0].second.RoiWidth != FC_MAX_WIDTH);
+			rc = static_cast<double>  // assumes all ROIs use the same size
+				(_roi[0].roi.RoiHeight != FC_MAX_HEIGHT ||
+				_roi[0].roi.RoiWidth != FC_MAX_WIDTH);
 			break;
 
 		case CV_CAP_PROP_POS_MSEC: // returns timestamp in microseconds
@@ -801,12 +809,12 @@ double VideoCaptureMe3::get(int prop)
 
 		case CV_CAP_PROP_FRAME_WIDTH:
 			// get the current width (assumes all ROIs use the same width)
-			rc = static_cast<double> (_roi[0].second.RoiWidth);
+			rc = static_cast<double> (_roi[0].roi.RoiWidth);
 			break;
 
 		case CV_CAP_PROP_FRAME_HEIGHT:
 			// get the current height (assumes all ROIs use the same height)
-			rc = static_cast<double> (_roi[0].second.RoiHeight);
+			rc = static_cast<double> (_roi[0].roi.RoiHeight);
 			break;
 
 		case CV_CAP_PROP_FRAME_COUNT:
@@ -816,12 +824,12 @@ double VideoCaptureMe3::get(int prop)
 
 		case CV_CAP_PROP_FPS: // assumes same fps for all ROIs
 			// get the frame time
-			rc = 1e6 / _roi[0].second.FrameTimeInMicroSec;
+			rc = 1e6 / _roi[0].roi.FrameTimeInMicroSec;
 			break;
 
 		case CV_CAP_PROP_EXPOSURE: // assumes same exposure for all ROIs
 			// get the exposure time in microseconds
-			rc = _roi[0].second.ExposureInMicroSec;
+			rc = _roi[0].roi.ExposureInMicroSec;
 			break;
 
 		case FG_TRIGGERMODE:

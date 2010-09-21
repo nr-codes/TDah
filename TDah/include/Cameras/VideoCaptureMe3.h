@@ -41,24 +41,38 @@ public:
 	bool stop();
 	void add(const Dots& dots);
 	void remove(int tag = REMOVE_ALL);
-	bool setRois(Dots& dots, cv::Size roi, double exposure, double frame_time);
+	bool set2Rois(const Dots& dots, const cv::Size& roi, 
+		double exposure, double frame_time);
+	bool setRois(const Dots& dots, const cv::Size& roi, 
+		double exposure, double frame_time);
 
 	static void makeSafeMat(cv::Mat& mat);
 	static void makeUnsafeMat(cv::Mat& mat, cv::Point& offset);
     
 private:
+
+	template <class T>
+	class Roi {
+	public:
+		int tag;
+		int img_nbr;
+		T roi;
+
+		Roi(int tag, int img_nbr, T& roi);
+	};
+
 	int _img_nbr;
 	int _buffers;
 	int _tap;
 	int _trigger;
-	uchar* _mem;
+	void* _mem;
 	Fg_Struct* _fg;
 	/** @brief contains the dots/ROIs that will be written to the camera */
-	std::deque< std::pair< int, cv::Rect> > _q;
+	std::deque< Roi<cv::Rect> > _q;
 	/** @brief local copy of ROIs that have been written to the camera */
-	std::vector< std::pair< int, FC_ParameterSet> > _roi;
+	std::vector< Roi<FC_ParameterSet> > _roi;
 	/** @brief keeps track of which ROI is in which buffer */
-	std::vector< std::pair< int, cv::Rect> > _roi_in_buffer;
+	std::vector< Roi<cv::Rect> > _roi_in_buffer;
 
 	int slotIndex();
 	int bufferIndex();
@@ -70,9 +84,9 @@ private:
 	bool writeRoi(int slot);
 	void updateRoiBuffer();
 	bool updateRoiSlot();
-	bool syncBuffer();
+	bool isRoiInBuffer();
 	static int getRoiTag(int img_tag);
-	static int getFgTag(int img_tag);
+	static int getFgImgTag(int img_tag);
 };
 
 #endif /* _VIDEOCAPTUREME3_H_ */
