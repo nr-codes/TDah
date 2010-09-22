@@ -8,8 +8,8 @@
 #include "Cameras/VideoCaptureMe3.h"
 
 #define NDOTS 2
-#define ROIW 20
-#define ROIH 20
+#define ROIW 40
+#define ROIH 40
 
 #define NIMGS 1000
 
@@ -45,7 +45,7 @@ int main()
 		return -1;
 	}
 
-	me3.set(CV_CAP_PROP_EXPOSURE, .04e3);
+	me3.set(CV_CAP_PROP_EXPOSURE, .10e3);
 
 	// get initial positions of all NDOTS by user-clicks
 	dots.makeAllDotsActive(); // only active dots are updated/modified
@@ -56,30 +56,30 @@ int main()
 
 	// track dots across NIMGS images and quit demo
 	if(NDOTS == 2) {
-		me3.set2Rois(dots, Size(ROIW, ROIH), .04e3, .5e3);
+		me3.set2Rois(dots, Size(ROIW, ROIH), .10e3, .3e3);
 	}
 	else {
-		me3.setRois(dots, Size(ROIW, ROIH), .04e3, .5e3);
+		me3.setRois(dots, Size(ROIW, ROIH), .10e3, .3e3);
 	}
 
-	//Util timer("main", NIMGS);
+	Util timer("main", NIMGS);
 	me3.start();
 	bool toggle = true;
 	for(int i = 1; i <= NIMGS; ++i) {
-		//timer.start();
+		timer.start();
 		me3.set(FG_DIGIO_OUTPUT, toggle);
 		toggle = !toggle;
 
 		// grab the next image according to the desired image number
 		// and add the dots to the active set
 		if(!cam.grab(i, dots)) {
-			return -3;
+			break;
 		}
 
 		// track and show the dots
 		if(!tracker.track(cam, dots)) {
 			// not all dots were found
-			return -4;
+			break;
 		}
 
 		// queue up the ROIs to be written to the camera
@@ -97,10 +97,12 @@ int main()
 
 		// print out location information of active dots
 		//std::cout << tracker.str(dots) << std::endl;
-		//timer.stop();
+		timer.stop();
 	}
 
-	//timer.printResults();
+	timer.printResults();
+	me3.retrieve(img);
+	imshow("img", img);
 	waitKey();
 	return 0;
 }

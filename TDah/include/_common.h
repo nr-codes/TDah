@@ -50,6 +50,14 @@ public:
 
 	void printResults()
 	{
+		size_t n = std::min(_start.size(), _stop.size());
+		if(!n) {
+			return;
+		}
+
+		_start.resize(n);
+		_stop.resize(n);
+
 		double freq = 1e-6 * cv::getTickFrequency();
 		cv::Mat time =  (cv::Mat(_stop) - cv::Mat(_start)) / freq;
 		cv::MatConstIterator_<double> it;
@@ -65,7 +73,7 @@ public:
 
 	void msg(const char* msg)
 	{
-		printf("%s: %s", _func, msg);
+		printf("%s: %s\n", _func, msg);
 	};
 
 private:

@@ -687,6 +687,7 @@ bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 bool VideoCaptureMe3::set(int prop, double value)
 {
 	int rc;
+	unsigned long int rc2;
 
 	switch(prop) {
 		case CV_CAP_PROP_POS_FRAMES:
@@ -734,8 +735,10 @@ bool VideoCaptureMe3::set(int prop, double value)
 			return true;
 
 		case FG_DIGIO_OUTPUT:
-			rc = static_cast<int> (value);
-			if(Fg_setParameter(_fg, FG_DIGIO_OUTPUT, &rc, PORT_A) != FG_OK) {
+			// set the Digital output bit, pin 4 on the TTL trigger board
+			// if bit 0 of rc2 = 1 then pin 4 is high, low otherwise
+			rc2 = static_cast<unsigned long int> (value);
+			if(Fg_setParameter(_fg, FG_DIGIO_OUTPUT, &rc2, PORT_A) != FG_OK) {
 				me3Err("set");
 				return false;
 			}
@@ -759,7 +762,7 @@ bool VideoCaptureMe3::set(int prop, double value)
 			return true;
 
 		case FG_TRIGGERINSRC:
-			// enable the TTL Trigger Pin 12 for external triggering
+			// enable the TTL Trigger pin 12 for external triggering
 			rc = TRGINSRC_1;
 			if(Fg_setParameter(_fg, FG_TRIGGERINSRC, &rc, PORT_A) != FG_OK) {
 				me3Err("set");
@@ -839,6 +842,8 @@ double VideoCaptureMe3::get(int prop)
 			break;
 
 		case FG_DIGIO_OUTPUT:
+			// read the status of the output pins
+			ts = 0;
 			if(Fg_getParameter(_fg, FG_DIGIO_OUTPUT, &ts, PORT_A) != FG_OK) {
 				me3Err("get");
 				return false;
@@ -862,13 +867,11 @@ double VideoCaptureMe3::get(int prop)
 			break;
 
 		case TDAH_PROP_LAST_GRABBED_IMAGE:
-			ts = Fg_getStatus(_fg, NUMBER_OF_LAST_IMAGE, 0, PORT_A);
-			rc = static_cast<double> (ts);
+			rc = Fg_getStatus(_fg, NUMBER_OF_LAST_IMAGE, 0, PORT_A);
 			break;
 
 		case TDAP_PROP_LAST_TRANSFERRED_IMAGE:
-			ts = Fg_getStatus(_fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A);
-			rc = static_cast<double> (ts);
+			rc = Fg_getStatus(_fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A);
 			break;
 	}
 
