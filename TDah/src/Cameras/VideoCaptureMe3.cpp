@@ -873,6 +873,24 @@ double VideoCaptureMe3::get(int prop)
 		case TDAP_PROP_LAST_TRANSFERRED_IMAGE:
 			rc = Fg_getStatus(_fg, NUMBER_OF_ACT_IMAGE, 0, PORT_A);
 			break;
+
+		case TDAH_PROP_MIN_FRAME_TIME: // assumes same ROI size/exposure
+			// timing signals on the oscilloscope showed each pixel being
+			// clocked out at 40 Mhz two at a time with a .2 ns delay after
+			// a line has been transferred
+			if(_roi[0].roi.RoiWidth < 528) {
+				// an extra line pulse appears for these widths, don't know why
+				rc = _roi[0].roi.ExposureInMicroSec 
+					+ (_roi[0].roi.RoiHeight+1)
+					* (.2+_roi[0].roi.RoiWidth/40/2)
+					+ .2;
+			}
+			else {
+				rc = _roi[0].roi.ExposureInMicroSec + 
+					_roi[0].roi.RoiHeight * (.2+_roi[0].roi.RoiWidth/40/2) 
+					+ .2;
+			}
+			break;
 	}
 
 	return rc;

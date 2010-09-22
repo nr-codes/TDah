@@ -1,6 +1,14 @@
 #include <iomanip>
 #include "Calibration.h"
 
+#define INTRINSIC_STRUCT "Intrinsic Parameters"
+#define INTRINSIC_MAT "Intrinsic Camera Matrix"
+#define INTRINSIC_DIST "Distortion Coefficients"
+
+#define EXTRINSIC_STRUCT "Extrinsic Parameters"
+#define EXTRINSIC_ROT "Rotation Matrix"
+#define EXTRINSIC_TRN "Translation Vector"
+
 #define ERODE 0
 #define DILATE 0
 #define THR1 18 /**< default thresohld parameters */
@@ -15,15 +23,16 @@
 #include <iostream>
 #include <cmath>
 
-static const std::string main_win = "Searching for a Grid...";
-static const std::string param_win = "Grid Parameters";
-static const cv::Scalar RED( 0, 0, 255 );
-static const cv::Scalar GREEN( 0, 255, 0 );
+const std::string main_win = "Searching for a Grid...";
+const std::string param_win = "Grid Parameters";
+const cv::Scalar RED( 0, 0, 255 );
+const cv::Scalar GREEN( 0, 255, 0 );
 
 static struct {
 	std::vector<cv::Rect> rects;
 	std::vector<bool> present;
 	std::vector<int> order;
+	std::vector<cv::Point3f> world;
 	cv::Mat img;
 } vw;
 
@@ -32,6 +41,7 @@ using std::vector;
 using std::string;
 using cv::Mat;
 using cv::Point2f;
+using cv::Point3f;
 using cv::Point;
 using cv::Size;
 using cv::Rect;
@@ -81,7 +91,14 @@ static void show_rects()
 				vw.rects[i].br(), GREEN);
 
 			ss.str("");
-			ss << reverse_lookup[i];
+			if(vw.world.empty()) {
+				ss << reverse_lookup[i];
+			}
+			else {
+				int rlu = reverse_lookup[i] - 1;
+				ss << std::setprecision(3) << "(" << vw.world[rlu].x << 
+					"," << vw.world[rlu].y << ")";
+			}
 			cv::putText(dst, ss.str(), vw.rects[i].tl(), 
 				cv::FONT_HERSHEY_PLAIN, 1, GREEN, 1, CV_AA);
 
@@ -182,7 +199,44 @@ static bool is_grid(int ndots, const vector<Vec4i>& hier, int i)
 	return true;
 }
 
-int Calibration::getClickViews(VideoCapture& cam)
+void write_intrinsic_params(CvFileStorage *fs, CvMat *A, CvMat *k)
+{
+	if(!A || !k) return;
+
+	cvStartWriteStruct(fs, INTRINSIC_STRUCT, CV_NODE_MAP);
+	cvWrite(fs, INTRINSIC_MAT, A);
+	cvWrite(fs, INTRINSIC_DIST, k);
+	cvEndWriteStruct(fs);
+}
+
+void write_extrinsic_params(CvFileStorage *fs, CvMat *R, CvMat *T)
+{
+	if(!R || !T) return;
+
+	cvStartWriteStruct(fs, EXTRINSIC_STRUCT, CV_NODE_MAP);
+	cvWrite(fs, EXTRINSIC_ROT, R);
+	cvWrite(fs, EXTRINSIC_TRN, T);
+	cvEndWriteStruct(fs);
+}
+
+
+void read_intrinsic_params(CvFileStorage *fs, CvMat **A, CvMat **k)
+{
+	CvFileNode *node = cvGetFileNodeByName(fs, NULL, INTRINSIC_STRUCT);
+
+	*A = (CvMat *) cvReadByName(fs, node, INTRINSIC_MAT);
+	*k = (CvMat *) cvReadByName(fs, node, INTRINSIC_DIST);
+}
+
+void read_extrinsic_params(CvFileStorage *fs, CvMat **R, CvMat **T)
+{
+	CvFileNode *node = cvGetFileNodeByName(fs, NULL, EXTRINSIC_STRUCT);
+
+	*R = (CvMat *) cvReadByName(fs, node, EXTRINSIC_ROT);
+	*T = (CvMat *) cvReadByName(fs, node, EXTRINSIC_TRN);
+}
+
+int Calibration::getClickViews(CvCapture* cam, vector<Point3f>& world)
 {
 	Mat bgr, edges;
 	vector<vector<Point>> contours;
@@ -197,10 +251,11 @@ int Calibration::getClickViews(VideoCapture& cam)
 	polka_dots.erode = ERODE;
 	polka_dots.thr1 = THR1;
 	polka_dots.thr2 = THR2;
+	vw.world = world;
 	create_ui(*this);
 
 	while(1) {
-		cam >> bgr;
+		bgr = Mat(cvQueryFrame(cam));
 		if(bgr.empty()) {
 			continue;
 		}
