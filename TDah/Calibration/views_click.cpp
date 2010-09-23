@@ -17,6 +17,7 @@
 
 static std::string main_win;
 static const std::string param_win = "Grid Parameters";
+static const std::string edges_win = "Edges";
 static const cv::Scalar RED( 0, 0, 255 );
 static const cv::Scalar GREEN( 0, 255, 0 );
 
@@ -146,15 +147,17 @@ void mouse_click(int e, int x, int y, int flags, void* param)
 * Creates a simple window that allows the user to change the number of 
 * dilations and erosions to do and set the two Canny threshold levels.
 */
-static void create_ui( Calibration& calib )
+static void create_ui( Calibration& calib, Size s )
 {
 	int* dilate = &calib.polka_dots.dilate;
 	int* erode = &calib.polka_dots.erode;
 	int* thr1 = &calib.polka_dots.thr1;
 	int* thr2 = &calib.polka_dots.thr2;
 
+	cv::namedWindow(edges_win);
 	cv::namedWindow(main_win, 0); // allow resizing of image
 	cv::namedWindow(param_win);
+	cvResizeWindow(main_win.c_str(), s.width, s.height);
 	cv::createTrackbar("dilate", param_win, dilate, MAX_ITER);
 	cv::createTrackbar("erode", param_win, erode, MAX_ITER);
 	cv::createTrackbar("threshold 1", param_win, thr1, WHITE);
@@ -177,7 +180,7 @@ static void process_image(const Calibration& calib, const Mat& src, Mat& edges)
 	cv::dilate(edges, gr, Mat(), Point(-1, -1), dilate);
 	cv::erode(gr, edges, Mat(), Point(-1, -1), erode);
 
-	cv::imshow("edges", edges);
+	cv::imshow(edges_win, edges);
 }
 
 static bool is_grid(int ndots, const vector<Vec4i>& hier, int i)
@@ -209,7 +212,9 @@ int Calibration::getClickViews(VideoCapture* cam, string title)
 	polka_dots.thr1 = THR1;
 	polka_dots.thr2 = THR2;
 	vw.world = world;
-	create_ui(*this);
+
+	*cam >> bgr;
+	create_ui(*this, bgr.size());
 
 	good_imgs = 0;
 	while(good_imgs < views.n) {

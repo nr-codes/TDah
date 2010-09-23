@@ -31,6 +31,7 @@ using cv::Scalar;
 
 static string main_win;
 static const string param_win = "Polk Dots Parameters";
+static const string edges_win = "Edges";
 static const Scalar color1( rand()&255, rand()&255, rand()&255 );
 static const Scalar color2( rand()&255, rand()&255, rand()&255 );
 static const Scalar color3( rand()&255, rand()&255, rand()&255 );
@@ -88,7 +89,7 @@ static void process_image(const Calibration& calib, const Mat& src, Mat& edges)
 	cv::dilate(edges, gr, Mat(), Point(-1, -1), dilate);
 	cv::erode(gr, edges, Mat(), Point(-1, -1), erode);
 
-	cv::imshow("edges", edges);
+	cv::imshow(edges_win, edges);
 }
 
 static bool is_grid(int ndots, const vector<Vec4i>& hier, int i)
