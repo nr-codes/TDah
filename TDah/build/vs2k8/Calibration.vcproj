@@ -17,9 +17,9 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(ProjectDir)..\..\lib\"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="2"
 			>
 			<Tool
@@ -48,6 +48,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				ProgramDataBaseFileName="$(OutDir)$(ProjectName)d.pdb"
 				WarningLevel="3"
 				DebugInformationFormat="4"
 			/>
@@ -61,17 +62,10 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="cv210d.lib highgui210d.lib cxcore210d.lib cvaux210d.lib"
-				AdditionalLibraryDirectories="&quot;$(ProjectDir)\..\..\lib&quot;;C:\OpenCV2.1\lib"
-				GenerateDebugInformation="true"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -83,17 +77,14 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(ProjectDir)..\..\lib\"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="2"
 			WholeProgramOptimization="1"
 			>
@@ -122,6 +113,7 @@
 				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\include&quot;;C:\OpenCV2.1\include\opencv"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
+				ProgramDataBaseFileName="$(OutDir)$(ProjectName).pdb"
 				WarningLevel="3"
 				DebugInformationFormat="3"
 			/>
@@ -135,19 +127,10 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="cv210.lib highgui210.lib cxcore210.lib cvaux210.lib"
-				AdditionalLibraryDirectories="C:\OpenCV2.1\lib"
-				GenerateDebugInformation="true"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -157,9 +140,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"

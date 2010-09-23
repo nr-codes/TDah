@@ -69,7 +69,7 @@ double VideoCaptureMe3::nextDot()
 {
 	static double next_dot = 0;
 
-	if(next_dot < NROI) {
+	if(_img_nbr > 0 && next_dot < NROI) {
 		++next_dot;
 		return _roi_in_buffer[bufferIndex()].tag;
 	}
@@ -441,23 +441,25 @@ bool VideoCaptureMe3::setRois(const Dots& dots, const cv::Size& roi,
 
 void VideoCaptureMe3::updateRoiBuffer()
 {
-	// setup the buffer and slot indices
-	int slot = slotIndex();
-	int buf = bufferIndex();
+	if(_img_nbr > 0) {
+		// setup the buffer and slot indices
+		int slot = slotIndex();
+		int buf = bufferIndex();
 
-	// update which ROI is in the frame grabber buffer
-	_roi_in_buffer[buf].img_nbr = _img_nbr;
-	_roi_in_buffer[buf].tag = _roi[slot].tag;
-	_roi_in_buffer[buf].roi.x = _roi[slot].roi.RoiPosX;
-	_roi_in_buffer[buf].roi.y = _roi[slot].roi.RoiPosY;
-	_roi_in_buffer[buf].roi.width = _roi[slot].roi.RoiWidth;
-	_roi_in_buffer[buf].roi.height = _roi[slot].roi.RoiHeight;
+		// update which ROI is in the frame grabber buffer
+		_roi_in_buffer[buf].img_nbr = _img_nbr;
+		_roi_in_buffer[buf].tag = _roi[slot].tag;
+		_roi_in_buffer[buf].roi.x = _roi[slot].roi.RoiPosX;
+		_roi_in_buffer[buf].roi.y = _roi[slot].roi.RoiPosY;
+		_roi_in_buffer[buf].roi.width = _roi[slot].roi.RoiWidth;
+		_roi_in_buffer[buf].roi.height = _roi[slot].roi.RoiHeight;
+	}
 }
 
 bool VideoCaptureMe3::updateRoiSlot()
 {
 	// write new ROI to camera
-	if(!_q.empty()) {
+	if(!_q.empty() && _img_nbr > 0) {
 		int slot = slotIndex();
 
 		// prepare to write the oldest roi in the queue to the camera
@@ -495,6 +497,10 @@ bool VideoCaptureMe3::updateRoiSlot()
 
 bool VideoCaptureMe3::isRoiInBuffer()
 {
+	if(_img_nbr <= 0) {
+		return false;
+	}
+
 	// get the tag stored with the image number
 	unsigned long int tag = _img_nbr; 
 	if(Fg_getParameter(_fg, FG_IMAGE_TAG, &tag, PORT_A) != FG_OK) {
@@ -666,6 +672,11 @@ bool VideoCaptureMe3::grab()
 
 bool VideoCaptureMe3::retrieve(Mat& image, int channel)
 {
+	if(_img_nbr <= 0) {
+		image = Mat();
+		return false;
+	}
+
 	// get corresponding ROI and copy data
 	Rect& r = _roi_in_buffer[bufferIndex()].roi;
 	uchar* data = (uchar*) Fg_getImagePtr(_fg, _img_nbr, PORT_A);

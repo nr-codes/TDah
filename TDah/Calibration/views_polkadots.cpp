@@ -199,8 +199,10 @@ static void draw_coords(Mat& src, vector<Point2f>& centers, Mat& dst,
 	}
 }
 
-int Calibration::getPolkaDotViews(VideoCapture& cam, int n, bool prompt)
+int Calibration::getPolkaDotViews(VideoCapture* cam)
 {
+	// NOTE DOES NOT WORK
+	CV_Assert(false);
 
 	find_chessboard.grid = Size(4, 3); // TODO DELETE
 
@@ -209,9 +211,12 @@ int Calibration::getPolkaDotViews(VideoCapture& cam, int n, bool prompt)
 	vector<float> radii;
 	vector<Point2f> centers;
 	vector<Vec4i> hierarchy;
-	int ndots, input;
+	int ndots, input, n;
+	bool prompt;
 
 	// initialize values
+	n = views.n;
+	prompt = views.prompt;
 	input = 0;
 	ndots = find_chessboard.grid.area();
 	radii.assign(ndots, 0);
@@ -223,11 +228,10 @@ int Calibration::getPolkaDotViews(VideoCapture& cam, int n, bool prompt)
 	create_ui(*this);
 
 	while(1) {
-		cam >> bgr;
+		*cam >> bgr;
 		if(bgr.empty()) {
 			continue;
 		}
-
 
 		process_image(*this, bgr, edges);
 

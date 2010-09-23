@@ -388,6 +388,18 @@ bool Calibration::readIntrinsics(const string& file, Mat& A, Mat& k)
 	return !A.empty() && !k.empty();
 }
 
+bool Calibration::writeExtrinsics()
+{
+	return writeIntrinsics(extrinsic_params.file, 
+		extrinsic_params.R, extrinsic_params.t);
+}
+
+bool Calibration::readExtrinsics()
+{
+	return readIntrinsics(extrinsic_params.file, 
+		extrinsic_params.R, extrinsic_params.t);
+}
+
 bool Calibration::writeExtrinsics(const string& file, const Mat& R, 
 								  const Mat& t)
 {
@@ -408,18 +420,6 @@ bool Calibration::writeExtrinsics(const string& file, const Mat& R,
 	}
 
 	return false;
-}
-
-bool Calibration::writeExtrinsics()
-{
-	return writeIntrinsics(extrinsic_params.file, 
-		extrinsic_params.R, extrinsic_params.t);
-}
-
-bool Calibration::readExtrinsics()
-{
-	return readIntrinsics(extrinsic_params.file, 
-		extrinsic_params.R, extrinsic_params.t);
 }
 
 bool Calibration::readExtrinsics(const string& file, Mat& R, Mat& t)

@@ -105,7 +105,7 @@ public:
 	/** @brief maps world and image points using a chessboard pattern */
 	int getChessboardViews(cv::VideoCapture* cam);
 	/** @brief maps world and image points using a grid pattern */
-	int getPolkaDotViews(cv::VideoCapture& cam, int n, bool prompt);
+	int getPolkaDotViews(cv::VideoCapture* cam);
 	/** @brief maps world and image points using an arbitrary grid pattern */
 	int getClickViews(CvCapture* cam, std::vector<cv::Point3f>& world = std::vector<cv::Point3f>());
 	/** @brief performs an intrinsic camera calibration */
@@ -132,5 +132,10 @@ public:
 	static bool readIntrinsics(const std::string& file, 
 		cv::Mat& A, cv::Mat& k);
 };
+
+extern bool simple_intrinsic(Calibration& calib, cv::VideoCapture* cap);
+extern bool simple_extrinsic(Calibration& calib, cv::VideoCapture* cap, 
+							cv::Mat& Tr = cv::Mat());
+
 
 #endif /* _CALIBRATION_H_ */

@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Tracker.h"
 #include "TrackingAlgs/TrackDot.h"
+#include "Calibration.h"
 
 #define NDOTS 3
 #define ROIW 20
@@ -12,6 +13,8 @@
 #define NIMGS 50
 
 using namespace cv;
+
+static bool calibrate(VideoCapture& cap, Camera& cam);
 
 int main()
 {
@@ -26,6 +29,13 @@ int main()
 	Dots dots(NDOTS); // create n dots to track
 	Camera cam(webcam); // initialize the camera with the video source
 	Tracker tracker(alg); // initialize the tracker with the traking alg
+
+	// ** calibrate the camera **
+	// the calibrate function should be treated as script file (like in Matlab)
+	// just change the parameters in the function to control its behavior
+	if(!calibrate(webcam, cam)) {
+		return -2;
+	}
 
 	// get initial positions of all NDOTS by user-clicks
 	dots.makeAllDotsActive(); // only active dots are updated/modified
@@ -55,4 +65,51 @@ int main()
 	}
 	
 	return 0;
+}
+
+bool calibrate(VideoCapture& cap, Camera& cam)
+{
+	int nimgs = 5; // number of images
+	int rows = 6;
+	int cols = 5;
+
+	// what type of calibration should be done?
+	bool do_intrinsic = true;
+	bool do_extrinsic = true;
+
+	// create the calibration structure and the camera
+	Calibration calib(Size(rows, cols), nimgs);
+
+	// what are the file names?
+	// relative paths are relative to the ./build/vs2k8 directory
+	calib.intrinsic_params.file = "../../Intrinsics.yaml";
+	calib.extrinsic_params.file = "../../Extrinsics.yaml";
+
+	// perform the necessary calibration
+	if(do_intrinsic) {
+		simple_intrinsic(calib, &cap);
+	}
+
+	if(do_extrinsic) {
+		// setup the transformation matrix, which is
+		// useful if the new world frame should be 
+		// rotated or translated from the original
+		// world points (currently nothing is applied)
+		// See the OpenCV "Basic Structures" documentation
+		// for other ways to initialize a Mat object.
+		Mat Tr = Mat::eye(3, 4, CV_64FC1);
+		simple_extrinsic(calib, &cap, Tr);
+	}
+
+	// load calibration parameters from files
+	if(calib.readIntrinsics() && calib.readExtrinsics()) {
+		// setup world frame
+		cam.setA(calib.intrinsic_params.A);
+		cam.setK(calib.intrinsic_params.k);
+		cam.setR(calib.extrinsic_params.R);
+		cam.setT(calib.extrinsic_params.t);
+		return true;
+	}
+
+	return false;
 }

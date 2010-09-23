@@ -11,30 +11,18 @@ using cv::VideoCapture;
 using cv::Range;
 using cv::Mat_;
 
-Mat& cvt(Mat& src, Mat& dst, bool bgr)
+void cvt(Mat& src, Mat& dst)
 {
 	if(src.type() == CV_8UC1) {
-		if(bgr) {
-			cv::cvtColor(src, dst, CV_GRAY2BGR);
-		}
-		else {
-			dst = src;
-		}
+		cv::cvtColor(src, dst, CV_GRAY2BGR);
 	}
 	else if(src.type() == CV_8UC3) {
-		if(bgr) {
-			dst = src;
-		}
-		else {
-			cv::cvtColor(src, dst, CV_BGR2GRAY);
-		}
+		cv::cvtColor(src, dst, CV_BGR2GRAY);
 	}
 	else {
 		// raise an error, because image must be BGR, or grayscale
 		CV_Assert(src.type() == CV_8UC1 || src.type() == CV_8UC3);
 	}
-
-	return dst;
 }
 
 /**
@@ -97,13 +85,16 @@ int Calibration::getChessboardViews(VideoCapture* cam)
 	while(good_imgs < n) {
 		*cam >> img;
 		if(img.empty()) break;
+		cvt(img, dst);
 
-		cvt(img, dst, true);
-		chssbd_found = cv::findChessboardCorners(dst, grid, corners);
+		chssbd_found = cv::findChessboardCorners(
+			img.type() == CV_8UC1 ? dst : img, grid, corners/*,
+			CV_CALIB_CB_ADAPTIVE_THRESH|
+			CV_CALIB_CB_NORMALIZE_IMAGE|CV_CALIB_CB_FAST_CHECK*/);
 		if(chssbd_found) {
 			// get subpixel accuracy on locations
-			cvt(img, dst, false);
-			cv::cornerSubPix(dst, corners, win, zz, crit);
+			cv::cornerSubPix(img.type() == CV_8UC3 ? dst : img, corners, 
+				win, zz, crit);
 
 			// store pixel and world locations
 			views.pixel.push_back(corners);
@@ -117,11 +108,11 @@ int Calibration::getChessboardViews(VideoCapture* cam)
 		// show the resulting image and, if found, checkerboard on screen
 		if(!corners.empty()) {
 			draw_corners = Mat(corners);
-			cv::drawChessboardCorners(img, grid, draw_corners, chssbd_found);
+			cv::drawChessboardCorners(img.type() == CV_8UC1 ? dst : img, 
+				grid, draw_corners, chssbd_found);
 		}
 
-		cvt(img, dst, true);
-		cv::imshow("calibration", dst);
+		cv::imshow("calibration", img.type() == CV_8UC1 ? dst : img);
 
 		// prompt user for next step
 		if(chssbd_found && prompt) {

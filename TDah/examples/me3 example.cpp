@@ -6,6 +6,7 @@
 #include "Tracker.h"
 #include "TrackingAlgs/TrackDot.h"
 #include "Cameras/VideoCaptureMe3.h"
+#include "Calibration.h"
 
 #define NDOTS 2
 #define ROIW 40
@@ -17,21 +18,8 @@
 
 using namespace cv;
 
-int increase_priority()
-{
-	// change priority and thread class  -- WINDOWS only --
-	int rc = SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS );
-	if(rc == FALSE) {
-      return GetLastError();
-	}
-
-	rc = SetThreadPriority(GetCurrentThread(), HIGH_PRIORITY_CLASS);
-	if(rc == FALSE) {
-      return GetLastError();
-	}
-
-	return 0;
-}
+static bool calibrate(VideoCaptureMe3& cap, Camera& cam);
+static int increase_priority();
 
 int main()
 {
@@ -48,7 +36,7 @@ int main()
 	VideoCaptureMe3 me3(0);
 	// use a dot tracking algorithm that binarizes an image 
 	// and finds the dot's centroid
-	TrackDot alg(ROIW, ROIH, CV_THRESH_BINARY, 247, 0, ROIW / 2);
+	TrackDot alg(ROIW, ROIH, CV_THRESH_BINARY_INV, 247, 0, ROIW / 2);
 
 	// setup the tracking system
 	Dots dots(NDOTS); // create n dots to track
@@ -60,6 +48,13 @@ int main()
 		return -1;
 	}
 
+	// ** calibrate the camera **
+	// the calibrate function should be treated as script file (like in Matlab)
+	// just change the parameters in the function to control its behavior
+	if(!calibrate(me3, cam)) {
+		return -2;
+	}
+
 	// ** get initial positions of all NDOTS by user-clicks **
 	// change the camera exposure from its default, so the proper threshold 
 	// value can be used during the tracking of the dots
@@ -67,7 +62,7 @@ int main()
 	dots.makeAllDotsActive(); // only active dots are updated/modified
 	if(NDOTS != tracker.click(cam, dots)) {
 		// quit if not all dots have been clicked on
-		return -2;
+		return -3;
 	}
 
 	// ** initialize the camera's ROIs to the position of the active dots **
@@ -82,12 +77,12 @@ int main()
 		// added they are currently not active until the fifth image
 		if(!me3.set2Rois(dots, Size(ROIW, ROIH), EXPOSURE, FRAME)) {
 			// couldn't write ROIs to the camera
-			return -3;
+			return -4;
 		}
 	}
 	else {
 		if(!me3.setRois(dots, Size(ROIW, ROIH), EXPOSURE, FRAME)) {
-			return -3;
+			return -4;
 		}
 	}
 	// calling setRois or set2Rois stops the camera from taking pictures,
@@ -97,7 +92,7 @@ int main()
 	// user must restart the camera.
 	if(!me3.start()) {
 		// couldn't start image acquisition
-		return -4;
+		return -5;
 	}
 
 	// ** track dots across NIMGS images and quit demo **
@@ -135,7 +130,7 @@ int main()
 		// user can send this data through their communication layer
 		tracker.draw(cam, dots, img);
 		if(img.empty()) {
-			return -5;
+			return -6;
 		}
 
 		imshow("Dots", img);
@@ -143,6 +138,69 @@ int main()
 
 		// print out location information of active dots
 		std::cout << tracker.str(dots) << std::endl;
+	}
+
+	return 0;
+}
+
+bool calibrate(VideoCaptureMe3& cap, Camera& cam)
+{
+	int nimgs = 5; // number of images
+	int rows = 6;
+	int cols = 5;
+
+	// what type of calibration should be done?
+	bool do_intrinsic = false;
+	bool do_extrinsic = false;
+
+	// create the calibration structure and the camera
+	Calibration calib(Size(rows, cols), nimgs);
+
+	// what are the file names?
+	// relative paths are relative to the ./build/vs2k8 directory
+	calib.intrinsic_params.file = "../../Intrinsics.yaml";
+	calib.extrinsic_params.file = "../../Extrinsics.yaml";
+
+	// perform the necessary calibration
+	if(do_intrinsic) {
+		simple_intrinsic(calib, &cap);
+	}
+
+	if(do_extrinsic) {
+		// setup the transformation matrix, which is
+		// useful if the new world frame should be 
+		// rotated or translated from the original
+		// world points (currently nothing is applied)
+		// See the OpenCV "Basic Structures" documentation
+		// for other ways to initialize a Mat object.
+		Mat Tr = Mat::eye(3, 4, CV_64FC1);
+		simple_extrinsic(calib, &cap, Tr);
+	}
+
+	// load calibration parameters from files
+	if(calib.readIntrinsics() && calib.readExtrinsics()) {
+		// setup world frame
+		cam.setA(calib.intrinsic_params.A);
+		cam.setK(calib.intrinsic_params.k);
+		cam.setR(calib.extrinsic_params.R);
+		cam.setT(calib.extrinsic_params.t);
+		return true;
+	}
+
+	return false;
+}
+
+int increase_priority()
+{
+	// change priority and thread class  -- WINDOWS only --
+	int rc = SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS );
+	if(rc == FALSE) {
+      return GetLastError();
+	}
+
+	rc = SetThreadPriority(GetCurrentThread(), HIGH_PRIORITY_CLASS);
+	if(rc == FALSE) {
+      return GetLastError();
 	}
 
 	return 0;
