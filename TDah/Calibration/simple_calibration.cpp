@@ -8,6 +8,7 @@ using cv::VideoCapture;
 
 bool simple_intrinsic(Calibration& calib, VideoCapture* cap)
 {
+	int n;
 	Mat img;
 
 	// make sure all vectors are emptied otherwise
@@ -20,14 +21,14 @@ bool simple_intrinsic(Calibration& calib, VideoCapture* cap)
 		return false;
 	}
 
-	// get chessboard views
-	calib.getChessboardViews(cap);
-	if( calib.views.pixel.empty() ) {
-		return false;
-	}
-
 	// setup the world frame using the classic x-y coordinate system
 	calib.xyWorldPoints();
+
+	// get chessboard views
+	n = calib.getClickViews(cap, "intrinsic");
+	if( n != calib.views.n ) {
+		return false;
+	}
 
 	// get and save the intrinsic parameters
 	calib.getIntrinsics(img.size());
@@ -36,6 +37,8 @@ bool simple_intrinsic(Calibration& calib, VideoCapture* cap)
 
 bool simple_extrinsic(Calibration& calib, VideoCapture* cap, Mat& Tr)
 {
+	int n;
+
 	// make sure all vectors are emptied otherwise
 	// data from previous runs might still exist
 	calib.clearVectors();
@@ -48,6 +51,9 @@ bool simple_extrinsic(Calibration& calib, VideoCapture* cap, Mat& Tr)
 	if(!calib.readIntrinsics())
 		return false;
 
+	// setup the world frame using the classic x-y coordinate system
+	calib.xyWorldPoints();
+
 	// grab one image for our world frame, but prompt
 	// the user to reject (press the 'i' key) or accept
 	// (press any other key) the image.  Also, save the
@@ -55,13 +61,12 @@ bool simple_extrinsic(Calibration& calib, VideoCapture* cap, Mat& Tr)
 	calib.views.n = 1;
 	calib.views.prompt = true;
 	calib.views.save_views = true;
-	calib.getChessboardViews(cap);
-	if( calib.views.pixel.empty() ) {
+	n = calib.getClickViews(cap, "extrinsic");
+	if( n != calib.views.n ) {
 		return false;
 	}
 
 	// get the extrinsic parameters and write to file
-	calib.xyWorldPoints();
 	calib.getExtrinsics(Tr);
 	if(!calib.writeExtrinsics())
 		return false;

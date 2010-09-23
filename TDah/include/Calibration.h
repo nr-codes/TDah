@@ -103,11 +103,11 @@ public:
 	/** @brief loads world coordinate points from file */
 	bool loadWorldPoints(std::string filename);
 	/** @brief maps world and image points using a chessboard pattern */
-	int getChessboardViews(cv::VideoCapture* cam);
+	int getChessboardViews(cv::VideoCapture* cam, std::string title = "");
 	/** @brief maps world and image points using a grid pattern */
-	int getPolkaDotViews(cv::VideoCapture* cam);
+	int getPolkaDotViews(cv::VideoCapture* cam, std::string title = "");
 	/** @brief maps world and image points using an arbitrary grid pattern */
-	int getClickViews(CvCapture* cam, std::vector<cv::Point3f>& world = std::vector<cv::Point3f>());
+	int getClickViews(cv::VideoCapture* cam, std::string title = "");
 	/** @brief performs an intrinsic camera calibration */
 	double getIntrinsics(cv::Size img_size);
 	/** @brief performs an extrinsic camera calibration */

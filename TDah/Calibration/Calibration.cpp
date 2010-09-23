@@ -99,6 +99,8 @@ void Calibration::saveViews(bool save_views)
 void Calibration::clearVectors()
 {
 	views.imgs.clear();
+	views.pixel.clear();
+	views.world.clear();
 	calib_cam.rvecs.clear();
 	calib_cam.tvecs.clear();
 }

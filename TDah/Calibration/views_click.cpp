@@ -1,13 +1,7 @@
 #include <iomanip>
+#include <iostream>
+#include <cmath>
 #include "Calibration.h"
-
-#define INTRINSIC_STRUCT "Intrinsic Parameters"
-#define INTRINSIC_MAT "Intrinsic Camera Matrix"
-#define INTRINSIC_DIST "Distortion Coefficients"
-
-#define EXTRINSIC_STRUCT "Extrinsic Parameters"
-#define EXTRINSIC_ROT "Rotation Matrix"
-#define EXTRINSIC_TRN "Translation Vector"
 
 #define ERODE 0
 #define DILATE 0
@@ -20,13 +14,11 @@
 #define NEXT 0
 #define STD_ERR 5
 #define MIN_RAD 3
-#include <iostream>
-#include <cmath>
 
-const std::string main_win = "Searching for a Grid...";
-const std::string param_win = "Grid Parameters";
-const cv::Scalar RED( 0, 0, 255 );
-const cv::Scalar GREEN( 0, 255, 0 );
+static std::string main_win;
+static const std::string param_win = "Grid Parameters";
+static const cv::Scalar RED( 0, 0, 255 );
+static const cv::Scalar GREEN( 0, 255, 0 );
 
 static struct {
 	std::vector<cv::Rect> rects;
@@ -199,52 +191,17 @@ static bool is_grid(int ndots, const vector<Vec4i>& hier, int i)
 	return true;
 }
 
-void write_intrinsic_params(CvFileStorage *fs, CvMat *A, CvMat *k)
-{
-	if(!A || !k) return;
-
-	cvStartWriteStruct(fs, INTRINSIC_STRUCT, CV_NODE_MAP);
-	cvWrite(fs, INTRINSIC_MAT, A);
-	cvWrite(fs, INTRINSIC_DIST, k);
-	cvEndWriteStruct(fs);
-}
-
-void write_extrinsic_params(CvFileStorage *fs, CvMat *R, CvMat *T)
-{
-	if(!R || !T) return;
-
-	cvStartWriteStruct(fs, EXTRINSIC_STRUCT, CV_NODE_MAP);
-	cvWrite(fs, EXTRINSIC_ROT, R);
-	cvWrite(fs, EXTRINSIC_TRN, T);
-	cvEndWriteStruct(fs);
-}
-
-
-void read_intrinsic_params(CvFileStorage *fs, CvMat **A, CvMat **k)
-{
-	CvFileNode *node = cvGetFileNodeByName(fs, NULL, INTRINSIC_STRUCT);
-
-	*A = (CvMat *) cvReadByName(fs, node, INTRINSIC_MAT);
-	*k = (CvMat *) cvReadByName(fs, node, INTRINSIC_DIST);
-}
-
-void read_extrinsic_params(CvFileStorage *fs, CvMat **R, CvMat **T)
-{
-	CvFileNode *node = cvGetFileNodeByName(fs, NULL, EXTRINSIC_STRUCT);
-
-	*R = (CvMat *) cvReadByName(fs, node, EXTRINSIC_ROT);
-	*T = (CvMat *) cvReadByName(fs, node, EXTRINSIC_TRN);
-}
-
-int Calibration::getClickViews(CvCapture* cam, vector<Point3f>& world)
+int Calibration::getClickViews(VideoCapture* cam, string title)
 {
 	Mat bgr, edges;
 	vector<vector<Point>> contours;
 	vector<Rect> rects;
 	vector<Vec4i> hierarchy;
-	int ndots, input;
+	int ndots, input, good_imgs;
+	vector<Point3f>& world = views.world[0]; // assumes all worlds are the same
 
 	// initialize values
+	main_win = "Calibrating: " + title;
 	input = 0;
 	ndots = find_chessboard.grid.area();
 	polka_dots.dilate = DILATE;
@@ -254,10 +211,16 @@ int Calibration::getClickViews(CvCapture* cam, vector<Point3f>& world)
 	vw.world = world;
 	create_ui(*this);
 
-	while(1) {
-		bgr = Mat(cvQueryFrame(cam));
+	good_imgs = 0;
+	while(good_imgs < views.n) {
+		*cam >> bgr;
 		if(bgr.empty()) {
 			continue;
+		}
+		else if(bgr.type() == CV_8UC1) {
+			Mat temp;
+			cv::cvtColor(bgr, temp, CV_GRAY2BGR);
+			bgr = temp;
 		}
 
 		process_image(*this, bgr, edges);
@@ -297,12 +260,18 @@ int Calibration::getClickViews(CvCapture* cam, vector<Point3f>& world)
 				}
 				views.pixel.push_back(centers);
 
+				// save the checkerboard
+				if(views.save_views) 
+					views.imgs.push_back(bgr);
+
 				// user has ordered dots, go to next view
+				good_imgs++;
 				break;
 			}
 		}
 
-		if(input == 'q' || cv::waitKey(50) == 'q') break;
+		if(input == 'q' || cv::waitKey(50) == 'q') 
+			break;
 
 		cv::imshow(main_win, bgr);
 		cv::waitKey(1);
@@ -310,5 +279,5 @@ int Calibration::getClickViews(CvCapture* cam, vector<Point3f>& world)
 		contours.clear();
 	}
 
-	return views.pixel.size();
+	return good_imgs;
 }

@@ -29,7 +29,7 @@ using cv::Scalar;
 #include <iostream>
 #include <cmath>
 
-static const string main_win = "Searching for a Polka Dot Grid...";
+static string main_win;
 static const string param_win = "Polk Dots Parameters";
 static const Scalar color1( rand()&255, rand()&255, rand()&255 );
 static const Scalar color2( rand()&255, rand()&255, rand()&255 );
@@ -199,7 +199,7 @@ static void draw_coords(Mat& src, vector<Point2f>& centers, Mat& dst,
 	}
 }
 
-int Calibration::getPolkaDotViews(VideoCapture* cam)
+int Calibration::getPolkaDotViews(VideoCapture* cam, string title)
 {
 	// NOTE DOES NOT WORK
 	CV_Assert(false);
@@ -215,6 +215,7 @@ int Calibration::getPolkaDotViews(VideoCapture* cam)
 	bool prompt;
 
 	// initialize values
+	main_win = "Calibrating: " + title;
 	n = views.n;
 	prompt = views.prompt;
 	input = 0;

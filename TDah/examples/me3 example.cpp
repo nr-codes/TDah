@@ -145,13 +145,13 @@ int main()
 
 bool calibrate(VideoCaptureMe3& cap, Camera& cam)
 {
-	int nimgs = 5; // number of images
-	int rows = 6;
-	int cols = 5;
+	int nimgs = 1; // number of images
+	int rows = 4;
+	int cols = 3;
 
 	// what type of calibration should be done?
-	bool do_intrinsic = false;
-	bool do_extrinsic = false;
+	bool do_intrinsic = true;
+	bool do_extrinsic = true;
 
 	// create the calibration structure and the camera
 	Calibration calib(Size(rows, cols), nimgs);
@@ -162,11 +162,14 @@ bool calibrate(VideoCaptureMe3& cap, Camera& cam)
 	calib.extrinsic_params.file = "../../Extrinsics.yaml";
 
 	// perform the necessary calibration
+	bool rci = true; // keeps track of intrinsic outcome
 	if(do_intrinsic) {
-		simple_intrinsic(calib, &cap);
+		rci = simple_intrinsic(calib, &cap);
+		cvDestroyAllWindows();
 	}
 
-	if(do_extrinsic) {
+	bool rce = true; // keeps track of extrinsic outcome
+	if(rci && do_extrinsic) {
 		// setup the transformation matrix, which is
 		// useful if the new world frame should be 
 		// rotated or translated from the original
@@ -174,7 +177,8 @@ bool calibrate(VideoCaptureMe3& cap, Camera& cam)
 		// See the OpenCV "Basic Structures" documentation
 		// for other ways to initialize a Mat object.
 		Mat Tr = Mat::eye(3, 4, CV_64FC1);
-		simple_extrinsic(calib, &cap, Tr);
+		rce = simple_extrinsic(calib, &cap, Tr);
+		cvDestroyAllWindows();
 	}
 
 	// load calibration parameters from files
@@ -184,7 +188,11 @@ bool calibrate(VideoCaptureMe3& cap, Camera& cam)
 		cam.setK(calib.intrinsic_params.k);
 		cam.setR(calib.extrinsic_params.R);
 		cam.setT(calib.extrinsic_params.t);
-		return true;
+		
+		// return true if new calibration was done
+		// and was successful or if the files exist
+		// and no new calibration was attempted
+		return rci && rce;
 	}
 
 	return false;

@@ -58,14 +58,13 @@ void cvt(Mat& src, Mat& dst)
 * @note to quit the grabbing process at anytime press the 'q' key.
 */
 
-int Calibration::getChessboardViews(VideoCapture* cam)
+int Calibration::getChessboardViews(VideoCapture* cam, string title)
 {
 	int n, kb_input, good_imgs;
 	int num_points, cols;
 	bool prompt, chssbd_found;
 	Mat img, dst, draw_corners;
 	vector<Point2f> corners;
-	vector<Point3f> world_loc;
 	Size win, zz, grid;
 	TermCriteria crit;
 
@@ -79,7 +78,7 @@ int Calibration::getChessboardViews(VideoCapture* cam)
 	win = sub_pixel.win;
 	zz = sub_pixel.zz;
 	crit = sub_pixel.crit;
-	cv::namedWindow("calibration", CV_WINDOW_AUTOSIZE);
+	cv::namedWindow("calibration" + title, CV_WINDOW_AUTOSIZE);
 
 	// look for the checkerboard pattern
 	while(good_imgs < n) {
@@ -98,9 +97,8 @@ int Calibration::getChessboardViews(VideoCapture* cam)
 
 			// store pixel and world locations
 			views.pixel.push_back(corners);
-			views.world.push_back(world_loc);
 
-			// save the checkerboard
+			// save the chessboard
 			if(views.save_views) views.imgs.push_back(img);
 			good_imgs++;
 		}
@@ -112,7 +110,7 @@ int Calibration::getChessboardViews(VideoCapture* cam)
 				grid, draw_corners, chssbd_found);
 		}
 
-		cv::imshow("calibration", img.type() == CV_8UC1 ? dst : img);
+		cv::imshow("calibration"  + title, img.type() == CV_8UC1 ? dst : img);
 
 		// prompt user for next step
 		if(chssbd_found && prompt) {
@@ -128,6 +126,7 @@ int Calibration::getChessboardViews(VideoCapture* cam)
 	}
 
 	// can't find cv:: equivalent, so using C version
-	cvDestroyWindow("calibration");
+	string s = "calibration" + title;
+	cvDestroyWindow(s.c_str());
 	return good_imgs;
 }

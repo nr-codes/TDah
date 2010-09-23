@@ -34,14 +34,14 @@ int main()
 	// the calibrate function should be treated as script file (like in Matlab)
 	// just change the parameters in the function to control its behavior
 	if(!calibrate(webcam, cam)) {
-		return -2;
+		return -1;
 	}
 
 	// get initial positions of all NDOTS by user-clicks
 	dots.makeAllDotsActive(); // only active dots are updated/modified
 	if(NDOTS != tracker.click(cam, dots)) {
 		// quit if not all dots have been clicked on
-		return -1;
+		return -2;
 	}
 
 	// track dots across NIMGS images and quit demo
@@ -51,7 +51,7 @@ int main()
 		// object and are only estimates, since the underlying VideoCapture 
 		// does not provide any information at all
 		if(!cam.grab(dots)) {
-			return -2;
+			return -3;
 		}
 
 		// track and show the dots
@@ -69,9 +69,9 @@ int main()
 
 bool calibrate(VideoCapture& cap, Camera& cam)
 {
-	int nimgs = 5; // number of images
-	int rows = 6;
-	int cols = 5;
+	int nimgs = 1; // number of images
+	int rows = 4;
+	int cols = 3;
 
 	// what type of calibration should be done?
 	bool do_intrinsic = true;
@@ -86,11 +86,14 @@ bool calibrate(VideoCapture& cap, Camera& cam)
 	calib.extrinsic_params.file = "../../Extrinsics.yaml";
 
 	// perform the necessary calibration
+	bool rci = true; // keeps track of intrinsic outcome
 	if(do_intrinsic) {
-		simple_intrinsic(calib, &cap);
+		rci = simple_intrinsic(calib, &cap);
+		cvDestroyAllWindows();
 	}
 
-	if(do_extrinsic) {
+	bool rce = true; // keeps track of extrinsic outcome
+	if(rci && do_extrinsic) {
 		// setup the transformation matrix, which is
 		// useful if the new world frame should be 
 		// rotated or translated from the original
@@ -98,7 +101,8 @@ bool calibrate(VideoCapture& cap, Camera& cam)
 		// See the OpenCV "Basic Structures" documentation
 		// for other ways to initialize a Mat object.
 		Mat Tr = Mat::eye(3, 4, CV_64FC1);
-		simple_extrinsic(calib, &cap, Tr);
+		rce = simple_extrinsic(calib, &cap, Tr);
+		cvDestroyAllWindows();
 	}
 
 	// load calibration parameters from files
@@ -108,7 +112,11 @@ bool calibrate(VideoCapture& cap, Camera& cam)
 		cam.setK(calib.intrinsic_params.k);
 		cam.setR(calib.extrinsic_params.R);
 		cam.setT(calib.extrinsic_params.t);
-		return true;
+		
+		// return true if new calibration was done
+		// and was successful or if the files exist
+		// and no new calibration was attempted
+		return rci && rce;
 	}
 
 	return false;
