@@ -2,148 +2,108 @@
 #include <iostream>
 #include "Calibration.h"
 
-#define GRID_ROWS 5
-#define GRID_COLS 7
-
-#define INTRINSIC 0
-#define EXTRINSIC 1
-
-#define EXTRINSIC_FILE "ExtrinsicCamera.yaml"
-#define INTRINSIC_FILE "IntrinsicCamera.yaml"
-#define WORLD_FILE "worldpoints.txt"
-
 using namespace cv;
 
-extern CvCapture* cvCreateCameraCapture_CMU (int index);
-
-int intrinsic(Calibration& calib, CvCapture* cap, vector<Point3f>& world)
-{
-	Mat img;
-
-	/** Intrinsic Calibration **/
-	// grab images for calibration
-	img = Mat(cvQueryFrame(cap));
-	if(img.empty()) {
-		return -3;
-	}
-	calib.getClickViews(cap, world);
-
-	size_t n = calib.views.pixel.size();
-	if( !n ) {
-		return -4;
-	}
-	calib.views.world.assign(n, world);
-	calib.getIntrinsics(img.size());
-
-	// we are responsible for clearing all vectors
-	// prior to doing another calibration, otherwise
-	// previous elements stay in the vectors
-	calib.clearVectors();
-
-	// write to file
-	CvFileStorage* fs = cvOpenFileStorage(INTRINSIC_FILE, NULL, CV_STORAGE_WRITE);
-	if(fs == NULL) {
-		return -6;
-	}
-	
-	// old tracking code expects 32-bit floats
-	calib.intrinsic_params.A.convertTo(calib.intrinsic_params.A, CV_32F);
-	calib.intrinsic_params.k.convertTo(calib.intrinsic_params.k, CV_32F);
-	
-	CvMat A = calib.intrinsic_params.A;
-	CvMat k = calib.intrinsic_params.k;
-
-	write_intrinsic_params(fs, &A, &k);
-	cvReleaseFileStorage(&fs);
-
-	return 0;
-}
-
-int extrinsic(Calibration& calib, CvCapture* cap, vector<Point3f>& world)
-{
-	// read in intrinsic parameters
-	CvMat* A;
-	CvMat* k;
-
-	// read intrinsic file
-	CvFileStorage* fs = cvOpenFileStorage(INTRINSIC_FILE, NULL, CV_STORAGE_READ);
-	if(fs == NULL) {
-		return -6;
-	}
-
-	read_intrinsic_params(fs, &A, &k);
-	if(A == NULL || k == NULL) {
-		return -5;
-	}
-
-	Mat(A).convertTo(calib.intrinsic_params.A, CV_64F);
-	Mat(k).convertTo(calib.intrinsic_params.k, CV_64F);
-	cvReleaseFileStorage(&fs);
-
-	// grab an image for our world frame
-	Mat Tr = Mat::eye(3, 4, CV_64FC1);
-	calib.getClickViews(cap, world);
-	size_t n = calib.views.pixel.size();
-	if( !n ) {
-		return -6;
-	}
-	calib.views.world.assign(n, world);
-	calib.getExtrinsics(Tr);
-
-	// we are responsible for clearing all vectors
-	// prior to doing another calibration, otherwise
-	// previous elements stay in the vectors
-	calib.clearVectors();
-
-	// write to file
-	fs = cvOpenFileStorage(EXTRINSIC_FILE, NULL, CV_STORAGE_WRITE);
-	if(fs == NULL) {
-		return -7;
-	}
-	
-	// old tracking code expects 32-bit floats
-	calib.extrinsic_params.R.convertTo(calib.extrinsic_params.R, CV_32F);
-	calib.extrinsic_params.t.convertTo(calib.extrinsic_params.t, CV_32F);
-
-	CvMat R = calib.extrinsic_params.R;
-	CvMat t = calib.extrinsic_params.t;
-
-	write_extrinsic_params(fs, &R, &t);
-	cvReleaseFileStorage(&fs);
-
-	return 0;
-}
+static int intrinsic(Calibration& calib, VideoCapture* cap);
+static int extrinsic(Calibration& calib, VideoCapture* cap);
 
 int main()
 {
-	int rc;
+	int nimgs = 5; // number of images
+	int rows = 6;
+	int cols = 5;
+
+	// what type of calibration should be done?
+	bool do_intrinsic = true;
+	bool do_extrinsic = true;
+
+	// create the calibration structure and the camera
+	Calibration calib(Size(rows, cols), nimgs);
+	VideoCapture cap(0);
+
+	// what are the file names?
+	calib.intrinsic_params.file = "../../Intrinsics.yaml";
+	calib.extrinsic_params.file = "../../Extrinsics.yaml";
+	if(do_intrinsic)
+		intrinsic(calib, &cap);
+
+	if(do_extrinsic)
+		extrinsic(calib, &cap);
+
+	return 0;
+}
+
+int intrinsic(Calibration& calib, VideoCapture* cap)
+{
 	Mat img;
-	vector<Point3f> world;
-	CvCapture* cap = cvCreateCameraCapture_CMU(0);
 
-	Size grid = Size(GRID_COLS, GRID_ROWS);
-	Calibration calib(grid); // the chessboard is a 3x4 grid
+	// make sure all vectors are emptied otherwise
+	// data from previous runs might still exist
+	calib.clearVectors();
 
-	if(!calib.getWorldPoints(WORLD_FILE, world)) {
-		return -1;
-	}
-	else if(world.size() != grid.area()) {
-		return -2;
+	// make sure camera is opened
+	*cap >> img;
+	if(img.empty()) {
+		return -3;
 	}
 
-	rc = 0;
-	if(INTRINSIC) {
-		rc = intrinsic(calib, cap, world);
-		if(rc < 0) {
-			return rc;
-		}
-	}
-	
-	if(EXTRINSIC) {
-		rc = extrinsic(calib, cap, world);
+	// get chessboard views
+	calib.getChessboardViews(cap);
+	if( calib.views.pixel.empty() ) {
+		return -4;
 	}
 
-	cvReleaseCapture(&cap);
+	// setup the world frame using the classic x-y coordinate system
+	calib.xyWorldPoints();
 
-	return rc;
+	// get and save the intrinsic parameters
+	calib.getIntrinsics(img.size());
+	calib.writeIntrinsics();
+
+	return 0;
+}
+
+int extrinsic(Calibration& calib, VideoCapture* cap)
+{
+	// make sure all vectors are emptied otherwise
+	// data from previous runs might still exist
+	calib.clearVectors();
+
+	// read in intrinsic parameters
+	calib.readIntrinsics();
+
+	// setup the transformation matrix, which is
+	// useful if the new world frame should be 
+	// rotated or translated from the original
+	// world points (currently nothing is applied)
+	// See the OpenCV "Basic Structures" documentation
+	// for other ways to initialize a Mat object.
+	Mat Tr = Mat::eye(3, 4, CV_64FC1);
+
+	// grab one image for our world frame, but prompt
+	// the user to reject (press the 'i' key) or accept
+	// (press any other key) the image.  Also, save the
+	// image for later processing
+	calib.views.n = 1;
+	calib.views.prompt = true;
+	calib.views.save_views = true;
+	calib.getChessboardViews(cap);
+	if( calib.views.pixel.empty() ) {
+		return 1;
+	}
+
+	// get the extrinsic parameters and write to file
+	calib.xyWorldPoints();
+	calib.getExtrinsics(Tr);
+	calib.writeExtrinsics();
+
+	// the reproject image windows remains open after
+	// the function returns, so let the user look at the
+	// image until they press a key
+	Scalar red = Scalar(0, 0, 255);
+	Scalar green = Scalar(0, 255, 0);
+	calib.reproject(red, green);
+	cv::waitKey();
+
+	return 0;
 }

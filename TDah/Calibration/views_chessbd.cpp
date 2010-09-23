@@ -11,6 +11,31 @@ using cv::VideoCapture;
 using cv::Range;
 using cv::Mat_;
 
+Mat& cvt(Mat& src, Mat& dst, bool bgr)
+{
+	if(src.type() == CV_8UC1) {
+		if(bgr) {
+			cv::cvtColor(src, dst, CV_GRAY2BGR);
+		}
+		else {
+			dst = src;
+		}
+	}
+	else if(src.type() == CV_8UC3) {
+		if(bgr) {
+			dst = src;
+		}
+		else {
+			cv::cvtColor(src, dst, CV_BGR2GRAY);
+		}
+	}
+	else {
+		// raise an error, because image must be BGR, or grayscale
+		CV_Assert(src.type() == CV_8UC1 || src.type() == CV_8UC3);
+	}
+
+	return dst;
+}
 
 /**
 * This function collects world coordinates and corresponding pixel coordinates 
@@ -45,12 +70,12 @@ using cv::Mat_;
 * @note to quit the grabbing process at anytime press the 'q' key.
 */
 
-int Calibration::getChessboardViews(VideoCapture& cam, int n, bool prompt)
+int Calibration::getChessboardViews(VideoCapture* cam)
 {
-	int kb_input, good_imgs;
+	int n, kb_input, good_imgs;
 	int num_points, cols;
-	bool chssbd_found;
-	Mat img, draw_corners;
+	bool prompt, chssbd_found;
+	Mat img, dst, draw_corners;
 	vector<Point2f> corners;
 	vector<Point3f> world_loc;
 	Size win, zz, grid;
@@ -58,6 +83,8 @@ int Calibration::getChessboardViews(VideoCapture& cam, int n, bool prompt)
 
 	// initialize parameters and create window
 	good_imgs = 0;
+	n = views.n;
+	prompt = views.prompt;
 	grid = find_chessboard.grid;
 	num_points = grid.area();
 	cols = grid.width;
@@ -66,46 +93,47 @@ int Calibration::getChessboardViews(VideoCapture& cam, int n, bool prompt)
 	crit = sub_pixel.crit;
 	cv::namedWindow("calibration", CV_WINDOW_AUTOSIZE);
 
-	// findChessboardCorners(...) places the grid points in row major order
-	// so setup the world frame beforehand using this property of the function
-	for(int i = 0; i < num_points; ++i) {
-		float x = (float) (i % cols);
-		float y = (float) (-i / cols);
-		world_loc.push_back(Point3f(x, y, 0));
-	}
-
 	// look for the checkerboard pattern
 	while(good_imgs < n) {
-		cam >> img;
+		*cam >> img;
 		if(img.empty()) break;
 
-		chssbd_found = cv::findChessboardCorners(img, grid, corners);
+		cvt(img, dst, true);
+		chssbd_found = cv::findChessboardCorners(dst, grid, corners);
 		if(chssbd_found) {
 			// get subpixel accuracy on locations
-			cv::cornerSubPix(img, corners, win, zz, crit);
+			cvt(img, dst, false);
+			cv::cornerSubPix(dst, corners, win, zz, crit);
 
 			// store pixel and world locations
 			views.pixel.push_back(corners);
 			views.world.push_back(world_loc);
 
 			// save the checkerboard
-			if(views.save_views) views.chessboards.push_back(img);
+			if(views.save_views) views.imgs.push_back(img);
 			good_imgs++;
 		}
 
 		// show the resulting image and, if found, checkerboard on screen
-		draw_corners = Mat(corners);
-		cv::drawChessboardCorners(img, grid, draw_corners, chssbd_found);
-		cv::imshow("calibration", img);
+		if(!corners.empty()) {
+			draw_corners = Mat(corners);
+			cv::drawChessboardCorners(img, grid, draw_corners, chssbd_found);
+		}
+
+		cvt(img, dst, true);
+		cv::imshow("calibration", dst);
 
 		// prompt user for next step
 		if(chssbd_found && prompt) {
 			// prompt user to keep results or overwrite it
 			kb_input = cv::waitKey(0);
-			if(kb_input == 'i') good_imgs--; // ignore image
-			else if(kb_input == 'q') break; // quit
+			if(kb_input == 'i') 
+				good_imgs--; // ignore image
+			else if(kb_input == 'q') 
+				break; // quit
 		}
-		else if(cv::waitKey(5) == 'q') break; // quit
+		else if(cv::waitKey(5) == 'q') 
+			break; // quit
 	}
 
 	// can't find cv:: equivalent, so using C version

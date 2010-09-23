@@ -1,6 +1,7 @@
 /** @file Calibration.cpp
 */
 
+#include <iostream>
 #include <fstream>
 #include "Calibration.h"
 
@@ -16,6 +17,8 @@ using cv::TermCriteria;
 using cv::VideoCapture;
 using cv::Range;
 using cv::Mat_;
+using cv::FileStorage;
+using cv::Scalar;
 
 /** @brief the constructor (calls setDefaults) */
 Calibration::Calibration()
@@ -24,13 +27,15 @@ Calibration::Calibration()
 }
 
 /** @brief the constructor (calls setDefaults for all other parameters) */
-Calibration::Calibration(Size grid, bool save_views)
+Calibration::Calibration(Size grid, int nimgs, bool prompt, bool save_views)
 {
 	// must call this first to avoid resetting the desired values
 	setDefaults();
 
 	// set the desired values
 	find_chessboard.grid = grid;
+	views.n = nimgs;
+	views.prompt = prompt;
 	views.save_views = save_views;
 }
 
@@ -57,6 +62,8 @@ Calibration::Calibration(Size grid, bool save_views)
 
 void Calibration::setDefaults()
 {
+	views.n = 0;
+	views.prompt = false;
 	views.save_views = false;
 
 	find_chessboard.flags = 0;
@@ -74,6 +81,9 @@ void Calibration::setDefaults()
 	polka_dots.erode = 0;
 	polka_dots.thr1 = 0;
 	polka_dots.thr2 = 0;
+
+	intrinsic_params.file = "";
+	extrinsic_params.file = "";
 }
 
 void Calibration::setGridSize(Size grid)
@@ -88,13 +98,52 @@ void Calibration::saveViews(bool save_views)
 
 void Calibration::clearVectors()
 {
-	views.chessboards.clear();
+	views.imgs.clear();
 	calib_cam.rvecs.clear();
 	calib_cam.tvecs.clear();
 }
 
-bool Calibration::getWorldPoints(string filename, vector<Point3f>& world)
+/**
+* The default world coordinate system is used where the distance between two
+* neighboring corners defines a unit of change in the x and y directions.
+* Note that if the grid pattern is not square, then there will be two different
+* units, one in the x and another in the y.  As further illustrated in the
+* ascii-art below, the x-axis runs positive from left-to-right across columns 
+* of an image and the y-axis is positive from bottom-to-top along the rows 
+* of an image.  This is commonly the xy-frame that is traditionally used in 
+* the math and sciences.  The origin of this frame is always located at 
+* the first pixel location found by the OpenCV 
+* <code> findChessboardCorners </code> function.
+*
+*		  (0,0) o-------o (1, 0)
+*				|		|
+*				|		|
+*				|		|
+*		 (0,-1) o-------o (1,-1)
+*
+*	^
+*	| y
+*	o---> x
+*
+*/
+
+void Calibration::xyWorldPoints()
 {
+	int cols = find_chessboard.grid.width;
+	int npts = find_chessboard.grid.area();
+	vector<Point3f> world_loc;
+    for(int i = 0; i < npts; ++i) {
+        float x = (float) (i % cols);
+        float y = (float) (-i / cols);
+        world_loc.push_back(Point3f(x, y, 0));
+    }
+
+	views.world.assign(views.n, world_loc);
+}
+
+bool Calibration::loadWorldPoints(string filename)
+{
+	vector<Point3f> world;
 	stringstream ss;
 	string line, sx, sy;
 	float x, y;
@@ -125,9 +174,10 @@ bool Calibration::getWorldPoints(string filename, vector<Point3f>& world)
 
 		world.push_back(Point3f(x, y , 0));
 	}
-
 	file.close();
-	return true;
+
+	views.world.assign(views.n, world);
+	return world.size() == find_chessboard.grid.area();
 }
 
 /** TODO update doc AND replace with cv equivalents which do doubles
@@ -218,4 +268,179 @@ double Calibration::getExtrinsics(const Mat& Tr)
 	}
 
 	return 0.;
+}
+
+void Calibration::reproject(Scalar pixel_color, Scalar reproj_color)
+{
+	stringstream ss;
+	size_t nimgs = views.imgs.size();
+	size_t npxs = views.pixel.size();
+	size_t nwls = views.world.size();
+
+	if(nimgs == npxs && nimgs == nwls) {
+		// setup parameters
+		Mat r;
+		cv::Rodrigues(extrinsic_params.R, r);
+		Mat& t = extrinsic_params.t;
+		Mat& A = intrinsic_params.A;
+		Mat& k = intrinsic_params.k;
+		vector<Point2f> pixel;
+
+		// iterate through each image
+		for(size_t i = 0; i < nimgs; ++i) {
+			// project from world to image frame
+			pixel.clear();
+			cv::projectPoints(Mat(views.world[i]), r, t, A, k, pixel);
+
+			// get original world and pixel values from image views
+			vector<Point3f>& w = views.world[i];
+			vector<Point2f>& p = views.pixel[i];
+
+			// get the image number in string format
+			ss.str("");
+			ss.seekp(0);
+			ss.seekg(0);
+			ss << "Image: " << (i + 1);
+			std::cout << ss.str() << std::endl;
+
+			for(size_t j = 0; j < views.pixel[i].size(); ++j) {
+				// iterate over each point
+				cv::circle(views.imgs[i], p[j], 5, pixel_color);
+				cv::circle(views.imgs[i], pixel[j], 3, 
+					reproj_color, CV_FILLED);
+
+				std::cout << "  px=" << p[j].x << " rx=" << pixel[j].x
+					<< " ex=" << p[j].x - pixel[j].x 
+					<< " py=" << p[j].y << " ry=" << pixel[j].y
+					<< " ey=" << p[j].y - pixel[j].y << std::endl;
+			}
+
+			Mat diff;
+			cv::absdiff(Mat(p), Mat(pixel), diff);
+
+			Scalar mean, stddev;
+			cv::meanStdDev(diff, mean, stddev);
+			std::cout << "average error |(px,py) - (rx,ry)|=(" << mean[0] << 
+				","  << mean[1] << ")" << " +/- (" << stddev[0] << 
+				","  << stddev[1] << ")" << std::endl;
+
+			cv::imshow(ss.str(), views.imgs[i]);
+			cv::waitKey(1);
+		}
+	}
+}
+
+bool Calibration::writeIntrinsics()
+{
+	return writeIntrinsics(intrinsic_params.file, 
+		intrinsic_params.A, intrinsic_params.k);
+}
+
+bool Calibration::readIntrinsics()
+{
+	return readIntrinsics(intrinsic_params.file, 
+		intrinsic_params.A, intrinsic_params.k);
+}
+
+bool Calibration::writeIntrinsics(const string& file, const Mat& A, 
+								  const Mat& k)
+{
+	if(file.empty() || A.empty() || k.empty()) {
+		// info is missing
+		return false;
+	}
+
+	FileStorage fs(file, FileStorage::WRITE);
+	if(fs.isOpened()) {
+		CvMat _A = A;
+		CvMat _k = k;
+
+		// write the matrices with the given names
+		fs.writeObj("Camera Matrix", &_A);
+		fs.writeObj("Distortion Coefficients", &_k);
+		return true;
+	}
+
+	return false;
+}
+
+bool Calibration::readIntrinsics(const string& file, Mat& A, Mat& k)
+{
+	CvMat* _A = NULL;
+	CvMat* _k = NULL;
+
+	if(file.empty()) {
+		return false;
+	}
+
+	FileStorage fs(file, FileStorage::READ);
+
+	if(fs.isOpened()) {
+		_A = static_cast<CvMat*> (
+			fs["Camera Matrix"].readObj());
+		_k = static_cast<CvMat*> 
+			(fs["Distortion Coefficients"].readObj());
+	}
+
+	A = _A == NULL ? Mat() : Mat(_A);
+	k = _k == NULL ? Mat() : Mat(_k);
+
+	return !A.empty() && !k.empty();
+}
+
+bool Calibration::writeExtrinsics(const string& file, const Mat& R, 
+								  const Mat& t)
+{
+	if(file.empty() || R.empty() || t.empty()) {
+		// info is missing
+		return false;
+	}
+
+	FileStorage fs(file, FileStorage::WRITE);
+	if(fs.isOpened()) {
+		CvMat _R = R;
+		CvMat _t = t;
+
+		// write the matrices with the given names
+		fs.writeObj("Rotation Matrix", &_R);
+		fs.writeObj("Translation Vector", &_t);
+		return true;
+	}
+
+	return false;
+}
+
+bool Calibration::writeExtrinsics()
+{
+	return writeIntrinsics(extrinsic_params.file, 
+		extrinsic_params.R, extrinsic_params.t);
+}
+
+bool Calibration::readExtrinsics()
+{
+	return readIntrinsics(extrinsic_params.file, 
+		extrinsic_params.R, extrinsic_params.t);
+}
+
+bool Calibration::readExtrinsics(const string& file, Mat& R, Mat& t)
+{
+	CvMat* _R = NULL;
+	CvMat* _t = NULL;
+
+	if(file.empty()) {
+		return false;
+	}
+
+	FileStorage fs(file, FileStorage::READ);
+	if(fs.isOpened()) {
+		_R = static_cast<CvMat*> (
+			fs["Rotation Matrix"].readObj());
+		_t = static_cast<CvMat*> 
+			(fs["Translation Vector"].readObj());
+	}
+
+	R = _R == NULL ? Mat() : Mat(_R);
+	t = _t == NULL ? Mat() : Mat(_t);
+
+	return !R.empty() && !t.empty();
 }
