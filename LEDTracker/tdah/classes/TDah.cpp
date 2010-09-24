@@ -12,6 +12,7 @@ TDah::TDah()
 
 	// centroid tracking
 	threshold = 0;
+	threshold_type = CV_THRESH_BINARY;
 	max_radius = 0;
 	gr = NULL;
 	wr = NULL;
@@ -36,6 +37,7 @@ int TDah::initROIs(int n, int rw, int rh, char *s,
 	double val;
 	IplImage *img;
 	CvFileStorage *fs;
+	CvPoint2D32f c;
 
 	img = queryFrame();
 	if(!img) return !CV_OK;
@@ -49,7 +51,7 @@ int TDah::initROIs(int n, int rw, int rh, char *s,
 
 	// set ROIs for each object
 	setup_kalman(kal, n_roi);
-	if(manual_acquire(this, gr, roi_w, roi_h, &threshold, 
+	if(manual_acquire(this, gr, roi_w, roi_h, &threshold, threshold_type,
 		wr, n_roi, tplt, kal) != CV_OK) {
 		return !CV_OK;
 	}
@@ -64,7 +66,8 @@ int TDah::initROIs(int n, int rw, int rh, char *s,
 		cvCvtColor(img, gr[i], CV_BGR2GRAY);
 		cvResetImageROI(img);
 
-		val = track_ctrd(gr[i], roi_w, roi_h, threshold, &wr[i]);
+		val = track_ctrd(gr[i], roi_w, roi_h, threshold, 
+			threshold_type, &wr[i], &c);
 		max_radius = std::max(val, max_radius);
 
 		if(tplt) {
@@ -138,10 +141,11 @@ int TDah::initROIs(int num_roi, char *conf_file,
 
 	// get dots
 	rc = auto_acquire(this, gr, roi_w, roi_h, 
-		threshold, wr, max_radius, n_roi, tplt, min_match, kal, SHOW_IMGS);
+		threshold, threshold_type, wr, max_radius, n_roi, 
+		tplt, min_match, kal, SHOW_IMGS);
 	if(rc != CV_OK) {
 		rc = manual_acquire(this, gr, roi_w, roi_h, 
-			&threshold, wr, n_roi, tplt, kal);
+			&threshold, threshold_type, wr, n_roi, tplt, kal);
 	}
 
 	cvReleaseFileStorage(&fs);

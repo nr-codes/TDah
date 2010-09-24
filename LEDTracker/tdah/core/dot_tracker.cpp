@@ -1,3 +1,8 @@
+/**
+* @file dot_tracker.cpp contains routines based on OpenCV 2.1 for tracking dots 
+* in an image's ROI.
+*/
+
 //http://www.parashift.com/c++-faq-lite/inline-functions.html
 
 // should warn users that roi 0x0 is bad and pyrdown will divide by roi/2^lvl

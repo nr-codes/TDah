@@ -153,8 +153,10 @@ bool TDahMe3Ag::saveMe3Buffer(char *file)
 bool TDahMe3Ag::find_ctrd(int j)
 {
 	double score;
+	CvPoint2D32f c;
 	
-	score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
+	score = track_ctrd(gr[j], roi_w, roi_h, threshold, threshold_type,
+		&wr[j], &c);
 	return (score > 0 && score <= max_radius);
 }
 

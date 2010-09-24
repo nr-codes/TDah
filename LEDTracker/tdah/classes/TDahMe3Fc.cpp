@@ -337,7 +337,9 @@ void TDahMe3Fc::showROILoc(void)
 
 bool TDahMe3Fc::find_ctrd(int j)
 {
-	double score = track_ctrd(gr[j], roi_w, roi_h, threshold, &wr[j]);
+	CvPoint2D32f c;
+	double score = track_ctrd(gr[j], roi_w, roi_h, threshold, threshold_type, 
+		&wr[j], &c);
 	return (score > 0 && score <= max_radius);
 }
 
