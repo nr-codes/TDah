@@ -774,7 +774,7 @@ bool VideoCaptureMe3::set(int prop, double value)
 
 		case FG_TRIGGERINSRC:
 			// enable the TTL Trigger pin 12 for external triggering
-			rc = TRGINSRC_1;
+			rc = static_cast<int> (value);
 			if(Fg_setParameter(_fg, FG_TRIGGERINSRC, &rc, PORT_A) != FG_OK) {
 				me3Err("set");
 				return false;

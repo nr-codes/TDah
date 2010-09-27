@@ -150,8 +150,8 @@ bool calibrate(VideoCaptureMe3& cap, Camera& cam)
 	int cols = 3;
 
 	// what type of calibration should be done?
-	bool do_intrinsic = true;
-	bool do_extrinsic = true;
+	bool do_intrinsic = false;
+	bool do_extrinsic = false;
 
 	// create the calibration structure and the camera
 	Calibration calib(Size(rows, cols), nimgs);

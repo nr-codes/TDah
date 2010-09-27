@@ -9,7 +9,7 @@
 
 #define APPLET "FastConfig.dll"
 #define NUM_BUFFERS 16
-#define NUM_IMAGES 1
+#define NUM_IMAGES 10000
 #define TIMEOUT 3
 #define WINDOW "SimpleAppletTest"
 #define FRAME_TIME 50000
@@ -64,6 +64,7 @@ int FCInit(Fg_Struct *fg, int w, int h)
 	return FG_OK;
 }
 
+#if 0
 int main(void)
 {
 	char errBuff[BUF_SIZE]={'\0'};
@@ -271,9 +272,10 @@ int main(void)
 
 	return 0;
 }
+#endif
 
 
-#if 0
+#if 1
 
 int main(void)
 {
@@ -309,7 +311,7 @@ int main(void)
 
 	// the following pinouts pertain to PORTA (sub-D15 labelled L1 on the meIV TTL output card)
 	rc = TRGINSRC_1; // pin 12 on meIV TTL output card (compatible with meIII FG board)
-	rc = TRGINSRC_0; // pin 11 on meIV TTL output card (compatible with meIII FG board)
+	//rc = TRGINSRC_0; // pin 11 on meIV TTL output card (compatible with meIII FG board)
 	if(Fg_setParameter(fg, FG_TRIGGERINSRC, &rc, PORT_A) < 0) {
 		printf("trig in: %s\n", Fg_getLastErrorDescription(fg));
 		rc = Fg_getLastErrorNumber(fg);
@@ -371,17 +373,20 @@ int main(void)
 	}
 
 	nr = 0;
+	rc = 1;
 	cvDisplay = cvCreateImage(cvSize(w, h), 8, 1);
 	cvNamedWindow(WINDOW, CV_WINDOW_AUTOSIZE);
 	while(nr < NUM_IMAGES)
 	{
 		nr++;
-		rc = Fg_getLastPicNumberBlocking(fg, nr, PORT_A, TIMEOUT);
+		rc = Fg_getLastPicNumberBlocking(fg, rc, PORT_A, TIMEOUT);
 		if(rc <= FG_OK) {
 			printf("get images: %s\n", Fg_getLastErrorDescription(fg));
 			rc = Fg_getLastErrorNumber(fg);
 			break;
 		}
+
+		printf("%d\n", rc);
 
 		img = (unsigned char *) Fg_getImagePtr(fg, rc, PORT_A);		
 		for(i = 0; i < h; i++) {
