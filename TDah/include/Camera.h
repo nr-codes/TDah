@@ -64,10 +64,10 @@ public:
 
 	/** @brief undistorts an image */
 	void undistort(cv::Mat& img);
-
+cv::VideoCapture* _vc; // TODO DELETE
 private:
 	/** @brief the actual camera */
-	cv::VideoCapture* _vc;
+	//cv::VideoCapture* _vc; // TODO UNCOMMENT
 	/** @brief camera matrix */
 	cv::Mat_<double> _A;
 	/** @brief distortion coefficients vector */

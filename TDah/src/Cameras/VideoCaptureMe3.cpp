@@ -511,13 +511,10 @@ bool VideoCaptureMe3::isRoiInBuffer()
 	int buf = bufferIndex();
 	int buf_img = _roi_in_buffer[buf].img_nbr;
 	int buf_tag = _roi_in_buffer[buf].tag;
-	int buf_img_tag = getFgImgTag(_roi_in_buffer[buf].img_nbr) - 1;
 
 	int fg_tag = getRoiTag(tag);
-	int fg_img_tag = getFgImgTag(tag);
 	
-	return _img_nbr == buf_img && buf_tag == fg_tag && 
-		buf_img_tag == fg_img_tag;
+	return _img_nbr == buf_img && buf_tag == fg_tag;
 }
 
 /**
@@ -659,6 +656,7 @@ bool VideoCaptureMe3::grab()
 		me3Err("grab");
 		return false;
 	}
+
 
 	// TODO before returning should check that 
 	// ROI in buffer before still equals ROI in buffer

@@ -5,7 +5,7 @@
 #include "TrackingAlg.h"
 
 #define UPDATE 1
-#define INTERKEY 200
+#define INTERKEY 1000
 #define BAD_LOC -1
 
 using std::ifstream;

@@ -51,7 +51,10 @@ public:
 
 	void printResults()
 	{
+		double min, max;
+		cv::Scalar mean, stddev;
 		size_t n = std::min(_start.size(), _stop.size());
+
 		if(!n) {
 			return;
 		}
@@ -65,6 +68,11 @@ public:
 		for(it = time.begin<double>(); it < time.end<double>(); ++it) {
 			printf("%0.5g us\n", (*it));
 		}
+
+		cv::meanStdDev(time, mean, stddev);
+		cv::minMaxLoc(time, &min, &max);
+		printf("avg: %0.5g us +/- %0.5g us\n", mean[0], stddev[0]);		
+		printf("min: %0.5g us max: %0.5g us\n", min, max);
 	}
 
 	void trace()

@@ -220,6 +220,7 @@ bool Camera::grab(int img_nbr, Dots& dots)
 
 	// clear all active dots
 	dots.clearActiveDots();
+	
 
 	// set the desired image number and grab the image
 	if(!_vc->set(CV_CAP_PROP_POS_FRAMES, img_nbr) || !_vc->grab()) {
