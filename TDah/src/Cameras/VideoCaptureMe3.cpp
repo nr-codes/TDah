@@ -207,6 +207,7 @@ bool VideoCaptureMe3::buffers(int n, int width, int height)
 * stopped.  Functions that stop the acquisition are stop(...), 
 * release(...), setRois(...), and buffers(...).
 */
+
 bool VideoCaptureMe3::start(int n)
 {
 	// start acquiring
