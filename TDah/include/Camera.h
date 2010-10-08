@@ -24,8 +24,8 @@ public:
 	static const int R_COLS = 3; /**< number of cols for rotation matrix */
 	static const int T_ROWS = 3; /**< number of rows for translation vector */
 	static const int T_COLS = 1; /**< number of cols for translation vector */
-	static const int K_ROWS = 5; /**< number of rows for distortion vector */
-	static const int K_COLS = 1; /**< number of cols for distortion vector */
+	static const int K_ROWS = 1; /**< number of rows for distortion vector */
+	static const int K_COLS = 5; /**< number of cols for distortion vector */
 
 	/** @name Constructors */
 	//@{

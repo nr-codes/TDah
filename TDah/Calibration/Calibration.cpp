@@ -392,13 +392,13 @@ bool Calibration::readIntrinsics(const string& file, Mat& A, Mat& k)
 
 bool Calibration::writeExtrinsics()
 {
-	return writeIntrinsics(extrinsic_params.file, 
+	return writeExtrinsics(extrinsic_params.file, 
 		extrinsic_params.R, extrinsic_params.t);
 }
 
 bool Calibration::readExtrinsics()
 {
-	return readIntrinsics(extrinsic_params.file, 
+	return readExtrinsics(extrinsic_params.file, 
 		extrinsic_params.R, extrinsic_params.t);
 }
 

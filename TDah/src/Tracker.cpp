@@ -300,6 +300,7 @@ void Tracker::ClickPoints::onMouse(int e, int x, int y, int flags, void* data)
 		cp->dots->found(tag) = true;
 		cp->dots->pixel(tag) = Point2d(x, y);
 		cp->dots->world(tag) = cp->cam->pixelToWorld(cp->dots->pixel(tag));
+		if ( cp->dots->isDotActive(tag+1) ) (cp->tag)++; /// For automatic numbering, by Ji-Chul
 	}
 	else if(e == CV_EVENT_MOUSEMOVE) {
 		cp->mouse_move = Point2d(x, y);
