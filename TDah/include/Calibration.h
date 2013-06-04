@@ -108,6 +108,8 @@ public:
 	int getPolkaDotViews(cv::VideoCapture* cam, std::string title = "");
 	/** @brief maps world and image points using an arbitrary grid pattern */
 	int getClickViews(cv::VideoCapture* cam, std::string title = "");
+	/** @brief maps world and image points using an arbitrary grid pattern Automatically*/
+	int getClickViewsAuto(cv::VideoCapture* cam, std::string title = "");
 	/** @brief performs an intrinsic camera calibration */
 	double getIntrinsics(cv::Size img_size);
 	/** @brief performs an extrinsic camera calibration */

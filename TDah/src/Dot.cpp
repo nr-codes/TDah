@@ -16,6 +16,7 @@ Dot::Dot()
 	_tag = BAD_TAG;
 	_image_nbr = INITIAL_VAL;
 	_time_stamp = INITIAL_VAL;
+	_area = INITIAL_VAL;
 
 	_pixel_loc = Point2d(INITIAL_VAL, INITIAL_VAL);
 	_world_loc = Point3d(INITIAL_VAL, INITIAL_VAL, INITIAL_VAL);
@@ -78,4 +79,9 @@ Point2d Dot::pixel() const
 Point3d Dot::world() const
 {
 	return _world_loc;
+}
+
+double Dot::area() const
+{
+	return _area;
 }

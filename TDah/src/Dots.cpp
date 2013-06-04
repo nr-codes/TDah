@@ -155,3 +155,9 @@ Dot& Dots::operator[] (int tag)
 	CV_Assert(_dots[tag].isActive());
 	return _dots[tag];
 }
+
+double& Dots::area(int tag)
+{
+	CV_Assert(_dots[tag].isActive());
+	return _dots[tag]._area;
+}

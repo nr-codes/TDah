@@ -169,6 +169,14 @@
 				RelativePath="..\..\src\TrackingAlg.cpp"
 				>
 			</File>
+			<Filter
+				Name="Header Files"
+				>
+				<File
+					RelativePath="..\..\include\Cameras\VideoCaptureMe3.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"

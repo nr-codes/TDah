@@ -226,8 +226,8 @@ bool VideoCaptureMe3::start(int n)
 
 bool VideoCaptureMe3::stop()
 {
-	//if(Fg_stopAcquireEx(_fg, PORT_A, _mem, STOP_SYNC) != FG_OK) {
-	if(Fg_stopAcquire(_fg, PORT_A) != FG_OK) {
+	if(Fg_stopAcquireEx(_fg, PORT_A, _mem, STOP_SYNC) != FG_OK) {
+	//if(Fg_stopAcquire(_fg, PORT_A) != FG_OK) {
 		me3Err("stop");
 		return false;
 	}
@@ -778,6 +778,7 @@ bool VideoCaptureMe3::set(int prop, double value)
 				me3Err("set");
 				return false;
 			}
+
 			return true;
 
 		case FG_CAMERA_LINK_CAMTYP:

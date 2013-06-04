@@ -25,7 +25,9 @@ bool simple_intrinsic(Calibration& calib, VideoCapture* cap)
 	calib.xyWorldPoints();
 
 	// get chessboard views
-	n = calib.getClickViews(cap, "intrinsic");
+	//n = calib.getClickViews(cap, "intrinsic");
+	n = calib.getClickViewsAuto(cap, "intrinsic");
+	//n = calib.getPolkaDotViews(cap, "intrinsic");
 	if( n != calib.views.n ) {
 		return false;
 	}
@@ -61,7 +63,8 @@ bool simple_extrinsic(Calibration& calib, VideoCapture* cap, Mat& Tr)
 	calib.views.n = 1;
 	calib.views.prompt = true;
 	calib.views.save_views = true;
-	n = calib.getClickViews(cap, "extrinsic");
+	n = calib.getClickViewsAuto(cap, "extrinsic");
+	//n = calib.getClickViews(cap, "extrinsic");
 	if( n != calib.views.n ) {
 		return false;
 	}

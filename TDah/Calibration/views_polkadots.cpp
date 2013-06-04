@@ -203,7 +203,7 @@ static void draw_coords(Mat& src, vector<Point2f>& centers, Mat& dst,
 int Calibration::getPolkaDotViews(VideoCapture* cam, string title)
 {
 	// NOTE DOES NOT WORK
-	CV_Assert(false);
+	//CV_Assert(false);
 
 	find_chessboard.grid = Size(4, 3); // TODO DELETE
 

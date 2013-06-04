@@ -197,7 +197,7 @@ static bool is_grid(int ndots, const vector<Vec4i>& hier, int i)
 int Calibration::getClickViews(VideoCapture* cam, string title)
 {
 	Mat bgr, edges;
-	vector<vector<Point>> contours;
+	vector<vector<Point>> contours; 
 	vector<Rect> rects;
 	vector<Vec4i> hierarchy;
 	int ndots, input, good_imgs;

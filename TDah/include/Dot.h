@@ -44,12 +44,16 @@ public:
 	/** @brief the world location */
 	cv::Point3d world() const;
 
+	double area() const;
+
 private:
 	bool _found; /**< denotes whether a dot was found in the image */
 	bool _active; /**< denotes whether a dot is active in the image */
 	int _tag; /**< a unique number that is associated with the dot */
 	int _image_nbr; /**< the most recent image number the dot was searched in */
 	double _time_stamp; /**< the image time stamp */
+	
+	double _area; // added for checking the number of detected pixels.  may not be necessary later.		
 
 	cv::Point2d _pixel_loc; /**< the pixel coordinates of the dot's centroid */
 	cv::Point3d _world_loc; /**< the world coordinates of the dot's centroid */

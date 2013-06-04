@@ -27,10 +27,15 @@ TrackingAlg::~TrackingAlg()
 * location, false otherwise.
 */
 
-bool TrackingAlg::find(const Mat& img, const Dot& dot, Point2d& new_loc)
+bool TrackingAlg::find(const Mat& img, const Dot& dot, Point2d& new_loc, double& area)
 {
 	return false;
 }
+bool TrackingAlg::find_pbu(const Mat& img, const Dot& dot, Point2d& new_loc, double& area)
+{
+	return false;
+}
+
 
 /**
 * Draws the current position of the dot based on the source image.

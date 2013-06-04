@@ -118,13 +118,18 @@ Point3d Camera::pixelToWorld(const Point2d& pixel) const
 	CvMat A = _A;
 	CvMat k = _k;
 	cvUndistortPoints(&img_frm, &img_frm, &A, &k);
-
-	// convert from camera frame to world frame
-	z = _t(2, 0) ? _t(2, 0) : 1;
+	
+		// convert from camera frame to world frame
+	/*z = _t(2, 0) ? _t(2, 0) : 1; // Wrong z != t3. z = r31 X + r32 Y + t3
 	wl[0] = z*im[0] - _t(0, 0);
 	wl[1] = z*im[1] - _t(1, 0);
 	wl[2] = 0;
 	world_frm = _R.t() * world_frm;
+    */
+
+	wl[0] = (_R(1,1) * _t(0,0)-_R(0,1) * _t(1,0)+_R(2,1) * _t(1,0) * im[0]- _R(1,1)* _t(2,0) * im[0]-_R(2,1)* _t(0,0)* im[1]+_R(0,1) * _t(2,0) * im[1])/(_R(0,1) * _R(1,0)-_R(0,0)* _R(1,1)+_R(1,1)* _R(2,0) *im[0]-_R(1,0) *_R(2,1) *im[0]-_R(0,1) *_R(2,0) * im[1]+_R(0,0) *_R(2,1) *im[1]);
+	wl[1] = (-_R(0,0) * _t(1,0)+_R(2,0)* _t(1,0)*im[0]+_R(1,0) *(_t(0,0)-_t(2,0)*im[0])-_R(2,0) * _t(0,0)*im[1]+_R(0,0) * _t(2,0) * im[1])/(-_R(0,1) * _R(1,0)+_R(0,0) * _R(1,1)-_R(1,1)*_R(2,0) *im[0]+_R(1,0) * _R(2,1) * im[0]+_R(0,1) * _R(2,0) * im[1]-_R(0,0) * _R(2,1) *im[1]);
+	wl[2] = 0;
 
 	return Point3d(wl[0], wl[1], wl[2]);
 }

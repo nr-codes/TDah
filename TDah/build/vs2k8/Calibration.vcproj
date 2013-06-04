@@ -172,6 +172,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\Calibration\views_click_auto.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Calibration\views_polkadots.cpp"
 				>
 			</File>

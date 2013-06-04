@@ -13,7 +13,7 @@
 #define TIMEOUT 3
 #define WINDOW "SimpleAppletTest"
 #define FRAME_TIME 50000
-#define EXPOSURE 200
+#define EXPOSURE 20000
 #define WIDTH 512
 #define HEIGHT 512
 

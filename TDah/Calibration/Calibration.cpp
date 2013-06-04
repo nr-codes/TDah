@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <fstream>
+using namespace std;
+
 #include "Calibration.h"
 
 using std::vector;
@@ -258,7 +260,7 @@ double Calibration::getExtrinsics(const Mat& Tr)
 	// get extrinsic parameters
 	cv::solvePnP(w, p, A, k, rvec, t, solve_pnp.useExtGuess);
 	cv::Rodrigues(rvec, R);
-
+	
 	// convert default coordinate system to new one
 	if(!Tr.empty()) {
 		CV_Assert(Tr.rows == 3 && Tr.cols == 4);
@@ -268,12 +270,27 @@ double Calibration::getExtrinsics(const Mat& Tr)
 		t += R*T_Tr;
 		R *= R_Tr;
 	}
+	/*std::cout << "you are printing modified R" << std::endl;
+	for(int i = 0; i < R.rows; i++) {
+		for(int j = 0; j < R.cols; j++) {
+			std::cout << R.at<double>(i,j) << " ";
+		}
+		std::cout << std::endl;
+	}*/
+
+	
+
 
 	return 0.;
 }
 
 void Calibration::reproject(Scalar pixel_color, Scalar reproj_color)
 {
+	std::fstream filess ("extrinsicInfo.txt", fstream::out);
+
+	filess << "px py ProX ProY wX wY " <<std::endl;
+	
+		
 	stringstream ss;
 	size_t nimgs = views.imgs.size();
 	size_t npxs = views.pixel.size();
@@ -293,10 +310,11 @@ void Calibration::reproject(Scalar pixel_color, Scalar reproj_color)
 			// project from world to image frame
 			pixel.clear();
 			cv::projectPoints(Mat(views.world[i]), r, t, A, k, pixel);
-
+			
 			// get original world and pixel values from image views
 			vector<Point3f>& w = views.world[i];
 			vector<Point2f>& p = views.pixel[i];
+
 
 			// get the image number in string format
 			ss.str("");
@@ -315,6 +333,9 @@ void Calibration::reproject(Scalar pixel_color, Scalar reproj_color)
 					<< " ex=" << p[j].x - pixel[j].x 
 					<< " py=" << p[j].y << " ry=" << pixel[j].y
 					<< " ey=" << p[j].y - pixel[j].y << std::endl;
+				
+				// Write original pixel, projected pixel and world to file
+				filess << p[j].x << " " << p[j].y << " " << pixel[j].x << " " << pixel[j].y << " " << w[j].x << " " << w[j].y << " "<< w[j].z << std::endl;
 			}
 
 			Mat diff;
@@ -330,6 +351,8 @@ void Calibration::reproject(Scalar pixel_color, Scalar reproj_color)
 			cv::waitKey(1);
 		}
 	}
+
+	filess.close();
 }
 
 bool Calibration::writeIntrinsics()

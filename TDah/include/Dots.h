@@ -57,6 +57,10 @@ private:
 	cv::Point3d& world(int tag);
 	/** @brief returns a reference to the active dot */
 	Dot& operator[] (int tag);
+
+	// added for checking the number of detected pixels.  may not be necessary later.
+	double& area(int tag);
+
 };
 
 #endif /* _DOTS_H_ */

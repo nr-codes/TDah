@@ -145,9 +145,9 @@ int main()
 
 bool calibrate(VideoCaptureMe3& cap, Camera& cam)
 {
-	int nimgs = 1; // number of images
-	int rows = 4;
-	int cols = 3;
+	int nimgs = 4; // number of images
+	int rows = 12;
+	int cols = 18;
 
 	// what type of calibration should be done?
 	bool do_intrinsic = false;

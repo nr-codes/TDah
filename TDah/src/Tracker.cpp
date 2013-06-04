@@ -47,8 +47,11 @@ bool Tracker::track(Camera& cam, Dots& dots)
 	ActiveDots& a = dots.activeDots();
 	for(dot = a.begin(), stop = a.end(); dot < stop; ++dot) {
 		tag = (*dot)->tag();
-		dots.found(tag) = _alg->find(img, dots[tag], dots.pixel(tag));
+		//dots.found(tag) = _alg->find_pbu(img, dots[tag], dots.pixel(tag), dots.area(tag)); // this does not give an error when the dots are even not tracked.
+		dots.found(tag) = _alg->find(img, dots[tag], dots.pixel(tag), dots.area(tag));
 		dots.world(tag) = cam.pixelToWorld(dots.pixel(tag));
+
+		//dots.area(tag) = 2; // added for checking the number of detected pixels.  may not be necessary later.
 
 		if(!dots.found(tag)) {
 			found_all = false;
@@ -244,6 +247,7 @@ void Tracker::ClickPoints::showScreen(TrackingAlg& alg)
 	Mat img, dst;
 	Point2d new_loc;
 	const string& win = alg.clickingWindow();
+	double area; // added for checking the number of detected pixels.  may not be necessary later.		
 
 	// take a new undistorted image
 	cam->undistort(img);
@@ -265,7 +269,7 @@ void Tracker::ClickPoints::showScreen(TrackingAlg& alg)
 		t = a[i]->tag();
 		if(dots->pixel(t).x != BAD_LOC && dots->pixel(t).y != BAD_LOC) {
 			// keep tracking dot
-			dots->found(t) = alg.find(img, (*dots)[t], new_loc);
+			dots->found(t) = alg.find(img, (*dots)[t], new_loc, area);
 			if(dots->found(t)) {
 				dots->pixel(t) = new_loc;
 				dots->world(t) = cam->pixelToWorld(new_loc);
