@@ -1,0 +1,196 @@
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <sys/time.h>
+
+#include <signal.h>
+
+#include "VisionNet.h"
+#include "FifoQ.h"
+
+#define VPORT 3490    // TCP/IP port 
+
+#define SAMPLE_RATE_DIVISOR	1
+
+VisionNet::VisionNet() : AperiodicTask(){
+	mInitialized = 0;
+	divisorCount = 0;
+}
+
+VisionNet::~VisionNet(){
+
+}
+
+// called ine SampleLoopTask::Init()
+void VisionNet::AddSignal(int ch, double *val){
+
+	if(!mInitialized && (ch <= VISION_NET_NUM_CH-1)){
+		// record pointer in array
+		mpValPtrArr[ch] = val;
+	}
+}
+
+int VisionNet::TcpIpInit(){
+
+	mSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if(mSocket < 0){
+		printf("VisionNet:tcpIpInit: error opening socket\n");
+		return -1;
+	}
+
+	int opt = 1;
+	if(setsockopt(mSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int)) < 0){
+      printf("VisionNet:tcpIpInit: error setting socket option for SO_REUSEADDR using SOL_SOCKET\n");
+		return -1;
+	}
+
+
+	mServerAddr.sin_family = AF_INET;
+	mServerAddr.sin_addr.s_addr = INADDR_ANY;
+	mServerAddr.sin_port = htons(VPORT);
+	memset(&(mServerAddr.sin_zero), '\0', 8);
+
+	if(bind(mSocket, (struct sockaddr *)&mServerAddr, sizeof(struct sockaddr)) < 0){
+		printf("VisionNet:tcpIpInit: error binding socket: %s\n", strerror(errno));
+		return -1;
+	}
+
+	if(listen(mSocket, 2) == -1){
+		printf("VisionNet:tcpIpInit: listen failed\n");
+		return -1;
+	}
+	
+	// register an empty signal handler for SIGPIPE
+	// to pervent exiting upong client disconnect
+	struct sigaction act;
+
+	act.sa_handler = &sig_handler;
+	act.sa_flags = 0;
+	sigaction(SIGPIPE, &act, NULL);
+
+	return 1;
+}
+
+int VisionNet::Init(double rate, int priority){
+
+	mInitialized = 1;
+	mSampleRate = rate;
+
+	//don't use
+	//mpFifo = new FifoQ(sizeof(double) * MATLAB_NET_NUM_CH, 3 , FifoQ::OVERWRITE);
+
+	// Initialize TCP/IP
+	if(TcpIpInit() == -1){
+		return -1;
+	}
+
+	// Start the thread
+	AperiodicTask::Init((char *)"VisionNet Task", priority);
+}
+
+void VisionNet::Process(){
+	// check to see if connection has been established
+	if(validSession && mInitialized){
+		divisorCount++;
+		if(divisorCount == SAMPLE_RATE_DIVISOR){
+			divisorCount = 0;
+
+			/// not much thing to do here when receiving data.
+			/* copy values into buffer
+			for(int i=0; i < MATLAB_NET_NUM_CH; i++){
+				mpValBuf[i] = *mpValPtrArr[i];
+			}
+			
+			put buffer into thread communication fifo
+			mpFifo->Put(mpValBuf);
+			*/
+
+			// trigger the server to read buffer and send data
+			Trigger(0);
+		}
+	}
+}
+
+void VisionNet::Task(){
+	int bytes;
+
+	while(1){
+		validSession = 0;
+		mSessionSocket = accept(mSocket, 0, 0);
+		if(mSessionSocket == -1){
+			printf("VisionNet: error accepting socket\n");
+			continue;
+		}
+		else{
+			int opt = 1;
+  			if (setsockopt(mSessionSocket, IPPROTO_TCP, TCP_NODELAY, (char *)&opt, sizeof(int)) < 0){
+    			printf("VisionNet: error setting socket option for TCP_NODELAY using IPPROTO\n");
+				close(mSessionSocket);
+				continue;
+			}
+			// set timeout on the socket for recv(). For some reason, making the socket nonblocking using ioctl() does not work.
+			struct timeval timeout = {1.0, 0.0}; // {tv_sec, tv_usec} - for some reason, tv_sec must be >= 1!
+			if (setsockopt(mSessionSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(struct timeval)) < 0){
+    			printf("VisionNet: error setting socket option for timeout\n");
+				close(mSessionSocket);
+				continue;
+			}
+		}
+		
+		printf("\nVisionNet accepted the connection from the vision system\n");
+		validSession = 1;
+
+		//don't use
+		//mpFifo->Reset();
+		while(1){
+			// wait for trigger to send signals
+			if(AperiodicTask::TriggerWait() == -1){
+				continue;
+			}
+
+			// pull signals from fifo
+			/*if(mpFifo->Get(&mBuf[0])!=-1){
+				bytes = 8*MATLAB_NET_NUM_CH;
+				if(send(mSessionSocket, mBuf, bytes, 0) == -1){
+					//printf("MatlabNet:Task: Unable to send\n");
+					close(mSessionSocket);
+					break;
+				}
+			}
+			*/
+
+			bytes = 8*VISION_NET_NUM_CH;
+			// We may need to check whether the client is connected or not by setting recv(, not wait flag)
+			// and if it does not recv anything for a certain amount of time, forcefully close the socket
+			// because it means that the connection is disconnected so that reestablish the client connection again.
+			// However, just for now, let's leave it because we assume the vision data is always being sent.
+			// UPDATED from the above:	
+			// Since there's no such flag (MSG_DONTWAIT) like linux, I set the timeout property.
+			// when the return value of recv() is -1, it means timed out.  If it's 0, it means the sockets is disconnected.
+			int n = recv(mSessionSocket, mBuf, bytes, 0);
+			if (n > 0) {
+				//printf("%d bytes received!\n", n);
+				for(int i=0; i < VISION_NET_NUM_CH; i++){
+					memcpy(&mpValBuf[i], &mBuf[8*i], 8);
+					*mpValPtrArr[i] = mpValBuf[i];
+					
+				}
+				//printf("received: %lf %lf %lf\n", mpValBuf[0], mpValBuf[1], mpValBuf[2]);
+			}
+			else if (n == 0) { // socket is disconnected.
+				printf("VisionNet: The connection is closed.\n");
+				close(mSessionSocket);
+				break;
+			}
+		} // while
+	}
+}
+
+
+

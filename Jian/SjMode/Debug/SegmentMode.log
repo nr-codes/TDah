@@ -1,0 +1,20 @@
+﻿Build started 2012/9/17 15:04:22.
+     1>Project "D:\Beans\NU\project\Camera_S250e\SjMode\SegmentMode.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Creating "Debug\SegmentModeTCPIP.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         All outputs are up-to-date.
+       ManifestResourceCompile:
+         All outputs are up-to-date.
+       Link:
+         All outputs are up-to-date.
+       Manifest:
+         All outputs are up-to-date.
+       FinalizeBuildStatus:
+         Deleting file "Debug\SegmentModeTCPIP.unsuccessfulbuild".
+         Touching "Debug\SegmentModeTCPIP.lastbuildstate".
+     1>Done Building Project "D:\Beans\NU\project\Camera_S250e\SjMode\SegmentMode.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.08

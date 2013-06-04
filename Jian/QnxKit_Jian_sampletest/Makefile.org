@@ -1,0 +1,39 @@
+######################################################################
+# Makefile
+######################################################################
+CPP 	 = qcc
+
+# directory for object files
+OBJDIR   = obj
+LIBDIR 	 = ../lib
+
+# name of executable file
+TARGET   = qnxkit
+# list of files to be included in the project
+SOURCES  = Qnx.C PeriodicTask.C AperiodicTask.C FifoQ.C  \
+		SampleLoopTask.C MatlabNet.C motor.C \
+		userInterface.C Dio82C55.C Msi_P402.C Msi_P41x.C \
+		Ruby_MM_x12.C IoHardware.C InterruptTask.C \
+		ExternalInterrupt.C main.C
+		
+# header and object files are automatically included
+HEADERS  = $(SOURCES:%.C=%.h)
+OBJECTS  = $(SOURCES:%.C=$(OBJDIR)/%.o)
+FLAGS 	 = -lang-c++
+LIBS 	 = -static -lsocket -lm
+
+#$(RM) $@
+
+$(OBJDIR)/%.o: %.C %.h
+	$(CPP) -c $(FLAGS) $(INCLPATH) $<  -o $@
+
+all:	$(TARGET)
+
+put:	$(TARGET)
+	wput -B $(TARGET) ftp://root:root@192.168.1.65/
+
+$(TARGET): $(OBJECTS) $(HEADERS)
+	${CPP} $(FLAGS) -o $(TARGET) ${OBJECTS} ${LIBS} $(LIBPATH)
+
+clean:
+	rm -f $(OBJDIR)/*.o
